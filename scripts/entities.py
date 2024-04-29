@@ -108,13 +108,13 @@ class Enemy(physicsEntity):
     def update(self, tilemap, movement = (0, 0)):
         #Walking logic, turning around etc
         if self.walking:
-            if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
-                if (self.collisions['left'] or self.collisions['right']):
-                    self.flip_x = not self.flip_x
-                else:
-                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
-            else:
+            # if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
+            if (self.collisions['left'] or self.collisions['right']):
                 self.flip_x = not self.flip_x
+            else:
+                movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
+            # else:
+            #     self.flip_x = not self.flip_x
             self.walking = max(self.walking - 1, 0)
 
             #Attack condition
@@ -172,6 +172,17 @@ class Enemy(physicsEntity):
             ypos = self.rect().centery - offset[1]
             surface.blit(self.game.assets['gun'], (xpos, ypos))
 
+class Portal(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'portal', pos, size)
+
+    def update(self, game):
+        self.animation.update()
+
+        playerRect = self.game.player.rect()
+        if self.rect().colliderect(playerRect) and self.game.transition == 0:
+            self.game.transitionToLevel('random')
+
 class Player(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'player', pos, size)
@@ -184,10 +195,13 @@ class Player(physicsEntity):
 
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)
+     
+    
 
         self.air_time += 1
         if self.air_time > 180 and not self.wall_slide:
             self.game.dead += 1
+        
 
 
         if self.collisions['down']:
@@ -217,8 +231,11 @@ class Player(physicsEntity):
         
         if abs(self.dashing) > 50:
             self.velocity[0] = abs(self.dashing) / self.dashing * 8
+            self.downwards = self.game.movement[3] - self.game.movement[2]
+            self.velocity[1] = self.downwards * 8
             if abs(self.dashing) == 51:
                 self.velocity[0] *= 0.1
+                self.velocity[1] *= 0.1
 
             p_velocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
             self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
@@ -229,9 +246,10 @@ class Player(physicsEntity):
                 speed = random.random() * 0.5 + 0.5
                 p_velocity = [math.cos(angle) * speed, math.sin(angle) * speed]
                 self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
+        
         if self.dashing > 0:
             self.dashing = max(0, self.dashing - 1)
-        if self.dashing < 0:
+        elif self.dashing < 0:
             self.dashing = min(0, self.dashing + 1)
 
 

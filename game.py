@@ -12,23 +12,27 @@ from scripts.spark import *
 
 class Game:
     def __init__(self):
-        self.running = True
+        self.game_running = True
         self.fps = 60
         self.screen_width = 1080
         self.screen_height = 720
 
         pygame.init()
-        pygame.display.set_caption('Ninja')
+        pygame.display.set_caption('Hilbert''s Hotel')
 
         self.text_font = pygame.font.SysFont(None, 30)
-
         self.clock = pygame.time.Clock()
 
         self.screen = pygame.display.set_mode((self.screen_width,self.screen_height))
         self.display_outline = pygame.Surface((self.screen_width / 2, self.screen_height / 2), pygame.SRCALPHA)
         self.display = pygame.Surface((self.screen_width / 2, self.screen_height / 2))
 
-        self.movement = [False, False]
+        self.currentLevel = 'lobby'
+        self.nextLevel = 'lobby'
+        self.currentDifficulty = 5
+        self.currentLevelSize = 25
+
+        self.movement = [False, False, False, False]
 
         #Import assets
         #BASE_PATH = 'data/images/'
@@ -50,6 +54,7 @@ class Game:
             'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
             'enemy/idle': Animation(load_images('entities/enemy/idle'), img_dur = 10),
             'enemy/run': Animation(load_images('entities/enemy/run'), img_dur = 4),
+            'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 1),
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False)
 
@@ -75,41 +80,53 @@ class Game:
         self.tilemap = tileMap(self, tile_size = 16)
         self.clouds = Clouds(self.assets['clouds'], count = 20)
 
-        self.level = 0
-        self.load_level(self.level)
+        
+        self.tilemap.load_tilemap('lobby')
+        self.load_level()
 
+    def transitionToLevel(self, newLevel):
+        self.nextLevel = newLevel
+        self.transition += 1
 
-    def load_level(self, map_id):
-        self.tilemap.load_tilemap('data/maps/' + str(map_id) + '.json')
-
+    def load_level(self):
+        self.particles = []
+        self.projectiles = []
+        self.sparks = []
+        self.portals = []
         #Spawn in leaf particle spawners
         self.leaf_spawners = []
         for tree in self.tilemap.extract([('large_decor', 2)], keep = True):
             self.leaf_spawners.append(pygame.Rect(4 + tree['pos'][0], 4 + tree['pos'][1], 23, 13))
 
-        #Spawn in enemies
+        #Spawn in entities
         self.enemies = []
-        for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
+        self.spawner_list = [
+            ('spawners', 0), #player
+            ('spawners', 1), #enemy
+            ('spawners', 2) #portal
+        ]
+        for spawner in self.tilemap.extract(self.spawner_list):
+            
             if spawner['variant'] == 0:
                 self.player.pos = spawner['pos']
                 self.player.air_time = 0
-            else:
+
+            elif spawner['variant'] == 1:
                 self.enemies.append(Enemy(self, spawner['pos'], (8, 15)))
 
-        self.particles = []
-        self.projectiles = []
-        self.sparks = []
+            elif spawner['variant'] == 2:
+                self.portals.append(Portal(self, spawner['pos'], (10,10)))
+
+        
 
         self.dead = False
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
+        self.levelDone = False
         
         self.scroll = [0, 0]
         self.screenshake = 0
         self.transition = -30
-
-
-
 
     def run(self):
         pygame.mixer.music.load('data/music.wav')
@@ -117,8 +134,9 @@ class Game:
         pygame.mixer.music.play(-1)
 
         self.sfx['ambience'].play(-1)
+        
 
-        while self.running:
+        while self.game_running:
             
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
             self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 30
@@ -129,18 +147,6 @@ class Game:
             self.display_outline.fill((0, 0, 0, 0))
             
             self.screenshake = max(0, self.screenshake - 1)
-
-            #level transition
-            if not len(self.enemies):
-                self.transition += 1
-
-                if self.transition > 30:
-                    # self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
-                    self.level = (self.level + 1) % (len(os.listdir('data/maps')))
-                    self.load_level(self.level)
-
-            if self.transition < 0:
-                self.transition += 1
 
             self.clouds.update()
             self.clouds.render(self.display, offset = self.render_scroll)
@@ -156,6 +162,9 @@ class Game:
 
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
 
+            for portal in self.portals:
+                portal.update(self)
+                portal.render(self.display_outline, offset = self.render_scroll)
 
             #projectiles are like:
             #[[x, y], direction, timer]
@@ -211,7 +220,21 @@ class Game:
                 if kill:
                     self.particles.remove(particle)          
             
+            #level transition
+            if self.transition > 30:
+                self.tilemap.load_tilemap(self.nextLevel, self.currentLevelSize, self.currentDifficulty)
+                self.currentLevel = self.nextLevel
+                self.load_level()
+
+            elif self.transition < 31 and self.transition != 0:
+                self.transition += 1
             
+         
+            if self.currentLevel == 'random' and len(self.enemies) == 0 and self.transition == 0:
+                self.transitionToLevel('lobby')
+                    
+
+           
 
     
             for event in pygame.event.get():
@@ -227,25 +250,34 @@ class Game:
                     if event.key == pygame.K_UP:
                         if self.player.jump():
                             self.sfx['jump'].play()
+                        self.movement[2] = True
+                    if event.key == pygame.K_DOWN:
+                        self.movement[3] = True
                     if event.key == pygame.K_x:
                         self.player.dash()
 
                     if event.key == pygame.K_r:
-                        self.load_level(self.level)
+                        self.load_level()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
                         self.movement[0] = False
                     if event.key == pygame.K_RIGHT:
                         self.movement[1] = False
+                    if event.key == pygame.K_UP:
+                        self.movement[2] = False
+                    if event.key == pygame.K_DOWN:
+                        self.movement[3] = False
 
             if self.dead:
                 self.dead += 1
                 self.draw_text('You Are Dead!', (self.player.pos[0], self.player.pos[1]), self.text_font, (200, 0, 0), self.render_scroll)
                 if self.dead >= 90:
                     self.transition = min(30, self.transition + 1)
+                    print('increasing transition +1, dead')
                 if self.dead > 120:
                     self.level = 0
-                    self.load_level(self.level)
+                    self.tilemap.load_tilemap('lobby')
+                    self.load_level()
 
 
             if self.transition:

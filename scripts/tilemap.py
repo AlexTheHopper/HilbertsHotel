@@ -3,6 +3,10 @@ import json
 import tkinter
 from tkinter import filedialog
 import os
+import random
+import math
+from perlin_noise import PerlinNoise
+
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
@@ -66,7 +70,6 @@ class tileMap:
 
                 if not keep:
                     del self.tilemap[loc]
-
         return matches
             
     def nearby_tiles(self, pixPos):
@@ -79,13 +82,66 @@ class tileMap:
                 potentialTiles.append(self.tilemap[check_loc])
         return potentialTiles
     
+    def load_random_tilemap(self,game,  radius, difficulty = 5):
+        ##generate random level
+        #needs to return tilemap (and maybe offgrid tiles)
+        self.tilemap = {}
+        player_placed = False
+        difficultyProgress = 0
+
+         
+        mapWidth = int(1 + radius * 2 + (game.screen_width // self.tile_size) / 2)
+        mapHeight = int(1 + radius * 2 + (game.screen_height // self.tile_size) / 2)
+        
+   
+
+        #perlin map:
+        mapSeed = random.randint(0,10000)
+        # mapSeed = 3
+        print('seed',mapSeed)
+        noise = PerlinNoise(octaves=2, seed=mapSeed)
+        for i in range(mapWidth):
+            for j in range(mapHeight):
+
+                distToCenter = math.sqrt((i - mapWidth / 2)**2 + (j - mapHeight / 2)**2)
+
+                if distToCenter > radius or noise([i/radius, j/radius]) < 0:
+                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'stone', 'variant': 0, 'pos': [i, j]}
+
+        #placing entities:
+        while not player_placed or difficultyProgress < difficulty:
+            x = int(random.randint(-int(radius), int(radius)) + mapWidth / 2)
+            y = int(random.randint(-int(radius), int(radius)) + mapHeight / 2)
+            loc = str(x) + ';' + str(y)
+            locUnder = str(x) + ';' + str(y + 1)
+            distToCenter = math.sqrt((x - mapWidth / 2)**2 + (y - mapHeight / 2)**2)
+           
+    
+            if loc not in self.tilemap and locUnder in self.tilemap:
+                if not player_placed:
+                    self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
+                    
+                   
+                    player_placed = True
+                else:
+                    self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
+                    difficultyProgress += 1
+
+
+        self.autotile()
+
     def save_tilemap(self, path):
         f = open(path, 'w')
         json.dump({'tilemap': self.tilemap, 'tile_size': self.tile_size, 'offgrid': self.offgrid_tiles}, f)
         f.close()
     
-    def load_tilemap(self, name = ''):
-        if name == '':
+    def load_tilemap(self, name = '', size = 15, difficulty = 5):
+
+        if name == 'random':
+            self.load_random_tilemap(self.game, size, difficulty)
+            return()
+    
+        elif name == '':
             root = tkinter.Tk()
             root.withdraw()
 
@@ -94,9 +150,8 @@ class tileMap:
                                             title="Open map",
                                             filetypes= (("JSON Files","*.json*"),
                                                         ("All Files","*.*")))
-            
         else:
-            filepath = name
+            filepath = 'data/maps/' + str(name) + '.json'
 
         f = open(filepath, 'r')
         map_data = json.load(f)
@@ -111,7 +166,6 @@ class tileMap:
         if tile_loc in self.tilemap:
             if self.tilemap[tile_loc]['type'] in PHYSICS_TILES:
                 return self.tilemap[tile_loc]
-
 
     def autotile(self):
         for loc in self.tilemap:
