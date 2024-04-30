@@ -99,6 +99,8 @@ class physicsEntity:
 class Enemy(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'enemy', pos, size)
+        if random.random() < 0.5:
+            self.flip_x = True
 
         self.walking = 0
         self.attack_dist_y = 16
@@ -200,7 +202,8 @@ class Player(physicsEntity):
 
         self.air_time += 1
         if self.air_time > 180 and not self.wall_slide:
-            self.game.dead += 1
+            # self.game.dead += 1
+            pass
         
 
 
@@ -219,6 +222,7 @@ class Player(physicsEntity):
                 self.flip_x = True
 
             self.set_action('wall_slide')
+            self.air_time = 5
             
         if not self.wall_slide:
             if self.air_time > 4:
@@ -269,11 +273,11 @@ class Player(physicsEntity):
             self.jumps = max(0, self.jumps - 1)
 
             if self.flip_x and self.last_movement[0] < 0:
-                self.velocity[0] = 2.5
+                self.velocity[0] = 1.5
                 return True
                 
             elif not self.flip_x and self.last_movement[0] > 0:
-                self.velocity[0] = -2.5
+                self.velocity[0] = -1.5
                 return True
                
 

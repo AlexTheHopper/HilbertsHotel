@@ -29,8 +29,8 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.currentDifficulty = 5
-        self.currentLevelSize = 25
+        self.currentDifficulty = 100
+        self.currentLevelSize = 100
 
         self.movement = [False, False, False, False]
 
@@ -87,6 +87,8 @@ class Game:
     def transitionToLevel(self, newLevel):
         self.nextLevel = newLevel
         self.transition += 1
+        
+        
 
     def load_level(self):
         self.particles = []
@@ -218,25 +220,28 @@ class Game:
                 if particle.type == 'leaf':
                     particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.2
                 if kill:
-                    self.particles.remove(particle)          
+                    self.particles.remove(particle)  
+
+            #Displaying HUD:
+            self.draw_text('Enemies: ' + str(len(self.enemies)), (70, 30), self.text_font, (200, 200, 200), (0, 0))        
             
             #level transition
             if self.transition > 30:
                 self.tilemap.load_tilemap(self.nextLevel, self.currentLevelSize, self.currentDifficulty)
                 self.currentLevel = self.nextLevel
                 self.load_level()
+                self.dead = False
 
             elif self.transition < 31 and self.transition != 0:
                 self.transition += 1
             
-         
+            
+           
             if self.currentLevel == 'random' and len(self.enemies) == 0 and self.transition == 0:
                 self.transitionToLevel('lobby')
+                # self.currentDifficulty += 10
+                # self.currentLevelSize += 10
                     
-
-           
-
-    
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -257,7 +262,7 @@ class Game:
                         self.player.dash()
 
                     if event.key == pygame.K_r:
-                        self.load_level()
+                        self.transitionToLevel(self.currentLevel)
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
                         self.movement[0] = False
@@ -271,13 +276,10 @@ class Game:
             if self.dead:
                 self.dead += 1
                 self.draw_text('You Are Dead!', (self.player.pos[0], self.player.pos[1]), self.text_font, (200, 0, 0), self.render_scroll)
-                if self.dead >= 90:
-                    self.transition = min(30, self.transition + 1)
-                    print('increasing transition +1, dead')
-                if self.dead > 120:
-                    self.level = 0
-                    self.tilemap.load_tilemap('lobby')
-                    self.load_level()
+                if self.dead == 90:
+                    self.transitionToLevel('lobby')
+                    
+                
 
 
             if self.transition:
@@ -294,10 +296,12 @@ class Game:
             pygame.display.update()
             self.clock.tick(self.fps)
 
-    def draw_text(self, text, pos, font, colour = (0, 0, 0), offset = (0, 0)):
+    def draw_text(self, text, pos, font, colour = (0, 0, 0), offset = (0, 0), scale = 1):
 
         img = font.render(str(text), True, colour)
+        # img = pygame.transform.scale(img, (scale, scale))
         self.display_outline.blit(img, (pos[0] - offset[0] - img.get_width() / 2, pos[1] - offset[1] - img.get_height() / 2))
+        # self.display_outline.blit(img, (pos[0], pos[1]))
 
 
 Game().run()

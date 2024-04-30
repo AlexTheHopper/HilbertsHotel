@@ -6,6 +6,8 @@ import os
 import random
 import math
 from perlin_noise import PerlinNoise
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 #Nine neighbor tiles:
@@ -14,11 +16,18 @@ PHYSICS_TILES = {'grass', 'stone'}
 AUTOTILE_TYPES = {'grass', 'stone'}
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
+    tuple(sorted([(1, 0)])): 0, #Added
     tuple(sorted([(1, 0), (0, 1), (-1, 0)])): 1,
+    tuple(sorted([(1, 0), (-1, 0)])): 1, #added
+    tuple(sorted([(0, 1)])): 1, #added
     tuple(sorted([(-1, 0), (0, 1)])): 2,
+    tuple(sorted([(-1, 0)])): 2, #Added
     tuple(sorted([(-1, 0), (0, -1), (0, 1)])): 3,
     tuple(sorted([(-1, 0), (0, -1)])): 4,
     tuple(sorted([(-1, 0), (0, -1), (1, 0)])): 5,
+    tuple(sorted([(0, 1)])): 1, #Added
+    tuple(sorted([(0, -1)])): 5, #Added
+    tuple(sorted([(0, 1), (0, -1)])): 5, #added
     tuple(sorted([(1, 0), (0, -1)])): 6,
     tuple(sorted([(1, 0), (0, -1), (0, 1)])): 7,
     tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 8
@@ -82,60 +91,119 @@ class tileMap:
                 potentialTiles.append(self.tilemap[check_loc])
         return potentialTiles
     
-    def load_random_tilemap(self,game,  radius, difficulty = 5):
+    def load_random_tilemap(self, game, size, difficulty = 5):
         ##generate random level
         #needs to return tilemap (and maybe offgrid tiles)
         self.tilemap = {}
-        player_placed = False
-        difficultyProgress = 0
 
-         
-        mapWidth = int(1 + radius * 2 + (game.screen_width // self.tile_size) / 2)
-        mapHeight = int(1 + radius * 2 + (game.screen_height // self.tile_size) / 2)
-        
-   
+        size = max(size, 20)
+        vertexNum = int(size / 2)
+        roomCount = int((size / 5) ** 1.3)
+        roomSize = size
+        corridorLengthMin = 5
+        corridorLengthMax = int(size / 2)
 
-        #perlin map:
-        mapSeed = random.randint(0,10000)
-        # mapSeed = 3
-        print('seed',mapSeed)
-        noise = PerlinNoise(octaves=2, seed=mapSeed)
-        for i in range(mapWidth):
-            for j in range(mapHeight):
+        horBuffer = game.screen_height // (self.tile_size * 4)
+        vertBuffer = game.screen_width // (self.tile_size * 4) + 4
+        mapHeight = int(size + 2 * vertBuffer) 
+        mapWidth = int(size + 2 * horBuffer) 
 
-                distToCenter = math.sqrt((i - mapWidth / 2)**2 + (j - mapHeight / 2)**2)
+        map = np.zeros((mapHeight, mapWidth))
+        for i in range(mapHeight):
+            for j in range(mapWidth):
+                map[i,j] = 1
 
-                if distToCenter > radius or noise([i/radius, j/radius]) < 0:
+        roomLocations = []
+        for _ in range(vertexNum):
+            
+            corridorSuccess = False
+            corridorLength = random.randint(corridorLengthMin, corridorLengthMax)
+            while not corridorSuccess:
+                
+                if len(roomLocations) == 0:
+                    digPos = [random.randint(horBuffer, mapWidth - horBuffer), random.randint(vertBuffer, mapHeight - vertBuffer)]
+                else:
+                    digPos = random.choice(roomLocations)
+
+            
+                currentDirection = [0, 0]
+                currentDirection[random.randint(0,1)] = random.choice([-1,1])
+                newPos = [digPos[0] + currentDirection[0] * corridorLength, digPos[1] + currentDirection[1] * corridorLength]
+                
+                if newPos[0] in range(horBuffer, mapWidth - horBuffer) and newPos[1] in range(vertBuffer, mapHeight - vertBuffer):
+                    roomLocations.append(newPos)
+                    while digPos != newPos:
+                        map[digPos[1],digPos[0]] = 0
+                        digPos[0] += currentDirection[0]
+                        digPos[1] += currentDirection[1]
+                    corridorSuccess = True
+
+
+
+        for _ in range(roomCount):
+            digPos = random.choice(roomLocations)
+            currentRoomCount = 0
+
+            while currentRoomCount < roomSize: 
+                currentDirection = [0, 0]           
+                currentDirection[random.randint(0,1)] = random.choice([-1,1])
+                newPos = [digPos[0] + currentDirection[0], digPos[1] + currentDirection[1]]
+                
+
+                if newPos[0] in range(horBuffer, mapWidth - horBuffer) and newPos[1] in range(vertBuffer, mapHeight - vertBuffer):
+                    map[newPos[1],newPos[0]] = 0
+                    digPos = newPos
+                    currentRoomCount += 1
+
+        for i in range(mapHeight):
+            for j in range(mapWidth):
+                if map[i,j] == 1:
                     self.tilemap[str(i) + ';' + str(j)] = {'type': 'stone', 'variant': 0, 'pos': [i, j]}
+       
+        # mapWidth = int(1 + radius * 2 + (game.screen_width // self.tile_size) / 2)
+        # mapHeight = int(1 + radius * 2 + (game.screen_height // self.tile_size) / 2)
+        # #perlin map:
+        # mapSeed = random.randint(0,10000)
+        # mapSeed = 4453
+        # print('seed',mapSeed)
+        # noise = PerlinNoise(octaves=2, seed=mapSeed)
+        # for i in range(mapWidth):
+        #     for j in range(mapHeight):
+
+        #         distToCenter = math.sqrt((i - mapWidth / 2)**2 + (j - mapHeight / 2)**2)
+
+        #         if distToCenter > radius or noise([i/radius, j/radius]) < 0:
+        #             self.tilemap[str(i) + ';' + str(j)] = {'type': 'stone', 'variant': 0, 'pos': [i, j]}
 
         #placing entities:
+        player_placed = False
+        difficultyProgress = 0
         while not player_placed or difficultyProgress < difficulty:
-            x = int(random.randint(-int(radius), int(radius)) + mapWidth / 2)
-            y = int(random.randint(-int(radius), int(radius)) + mapHeight / 2)
+            
+            x = random.choice(range(horBuffer, mapWidth - horBuffer))
+            y = random.choice(range(vertBuffer, mapHeight - vertBuffer))
             loc = str(x) + ';' + str(y)
             locUnder = str(x) + ';' + str(y + 1)
-            distToCenter = math.sqrt((x - mapWidth / 2)**2 + (y - mapHeight / 2)**2)
            
-    
             if loc not in self.tilemap and locUnder in self.tilemap:
                 if not player_placed:
                     self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
-                    
-                   
                     player_placed = True
                 else:
                     self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
                     difficultyProgress += 1
 
-
+        # plt.imshow(map)
+        # plt.show()
         self.autotile()
+        
 
     def save_tilemap(self, path):
         f = open(path, 'w')
         json.dump({'tilemap': self.tilemap, 'tile_size': self.tile_size, 'offgrid': self.offgrid_tiles}, f)
         f.close()
     
-    def load_tilemap(self, name = '', size = 15, difficulty = 5):
+    def load_tilemap(self, name = '', size = 50, difficulty = 5):
 
         if name == 'random':
             self.load_random_tilemap(self.game, size, difficulty)
@@ -189,4 +257,6 @@ class tileMap:
             if tile['type'] in PHYSICS_TILES:
                 rects.append(pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size))
         return rects
+
+
 
