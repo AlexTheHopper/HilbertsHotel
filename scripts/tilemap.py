@@ -168,8 +168,9 @@ class tileMap:
         #placing entities:
         
         player_placed = False
+        portal_placed = False
         difficultyProgress = 0
-        while not player_placed or difficultyProgress < difficulty:
+        while not player_placed or not portal_placed or difficultyProgress < difficulty:
             
             
             y = random.choice(range(horBuffer, mapWidth - horBuffer))
@@ -181,6 +182,9 @@ class tileMap:
                 if not player_placed:
                     self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                     player_placed = True
+                elif not portal_placed:
+                    self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
+                    portal_placed = True
                 else:
                     self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
                     difficultyProgress += 1
@@ -188,7 +192,6 @@ class tileMap:
         
         self.autotile()
     
-
     def save_tilemap(self, path):
         f = open(path, 'w')
         json.dump({'tilemap': self.tilemap, 'tile_size': self.tile_size, 'offgrid': self.offgrid_tiles}, f)

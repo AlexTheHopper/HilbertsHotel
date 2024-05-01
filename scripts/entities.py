@@ -4,6 +4,7 @@ import math
 import random
 from scripts.particle import *
 from scripts.spark import *
+from scripts.utilities import *
 
 class physicsEntity:
     def __init__(self, game, e_type, pos, size):
@@ -94,6 +95,7 @@ class physicsEntity:
     def render(self, surface, offset = (0, 0)):
         posx = self.pos[0] - offset[0] + self.anim_offset[0]
         posy = self.pos[1] - offset[1] + self.anim_offset[1]
+        
         surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
 
 class Enemy(physicsEntity):
@@ -110,7 +112,7 @@ class Enemy(physicsEntity):
         self.coinCount = 5
         self.coinValue = 1
 
-        self.grace = 180
+        self.grace = 90
         self.set_action('grace')
     
     def update(self, tilemap, movement = (0, 0)):
@@ -160,26 +162,26 @@ class Enemy(physicsEntity):
             else:
                 self.set_action('idle')
 
-            #Death Condition
-            if abs(self.game.player.dashing) >= 50:
-                if self.rect().colliderect(self.game.player.rect()):
-                    self.game.screenshake = max(20, self.game.screenshake)
-                    self.game.sfx['hit'].play()
-                    for _ in range(30):
-                        angle = random.random() * math.pi * 2
-                        speed = random.random() * 5
-                        self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
-                        self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
-                    self.game.sparks.append(Spark(self.rect().center, 0, 5 + random.random()))
-                    self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.game.screenshake = max(20, self.game.screenshake)
+                self.game.sfx['hit'].play()
+                for _ in range(30):
+                    angle = random.random() * math.pi * 2
+                    speed = random.random() * 5
+                    self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
+                    self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+                self.game.sparks.append(Spark(self.rect().center, 0, 5 + random.random()))
+                self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
 
-                    #Create coins
-                    spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
-                    spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
-                    
-                    for _ in range(self.coinCount):
-                        self.game.coins.append(Coin(self.game, spawnLoc, self.coinValue))
-                    return True
+                #Create coins
+                spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
+                spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
+                
+                for _ in range(self.coinCount):
+                    self.game.coins.append(Coin(self.game, spawnLoc, self.coinValue))
+                return True
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -196,13 +198,23 @@ class Enemy(physicsEntity):
 class Portal(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'portal', pos, size)
+        self.anim_offset = (0, 0)
 
     def update(self, game):
         self.animation.update()
+        if len(self.game.enemies) == 0 or self.game.currentLevel == 'lobby':
+            self.set_action('active')
 
         playerRect = self.game.player.rect()
         if self.rect().colliderect(playerRect) and self.game.transition == 0:
-            self.game.transitionToLevel('random')
+            
+            if self.game.currentLevel == 'lobby':
+            
+                self.game.transitionToLevel('random')
+            elif self.game.currentLevel == 'random' and self.action == 'active':
+                self.game.transitionToLevel('lobby')
+                
+            
 
 class Player(physicsEntity):
 
@@ -284,7 +296,7 @@ class Player(physicsEntity):
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
 
     def render(self, surface, offset = (0, 0)):
-        if abs(self.dashing) <= 50:
+        if abs(self.dashing) <= 50 and self.game.transition < 1:
             super().render(surface, offset = offset)
 
     def jump(self):
@@ -357,7 +369,7 @@ class Coin(physicsEntity):
 
 
         #Check for player collision
-        if self.game.player.rect().colliderect(self.rect()) and self.game.player.dashing < 50:
+        if self.game.player.rect().colliderect(self.rect()) and self.game.player.dashing < 10:
             self.game.money += self.value
             return True
     
@@ -395,3 +407,66 @@ class Bullet():
                 
                 return True
         
+class Character(physicsEntity):
+    def __init__(self, game, pos, size, name):
+        
+        super().__init__(game, name.lower(), pos, size)
+        self.type = name.lower()
+        self.name = name
+
+        self.walking = 0
+        self.canTalk = True
+
+
+    def update(self, tilemap, movement = (0, 0)):        
+        #Walking logic, turning around etc
+        if self.walking:
+            if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
+                if (self.collisions['left'] or self.collisions['right']):
+                    self.flip_x = not self.flip_x
+                else:
+                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
+            else:
+                self.flip_x = not self.flip_x
+            self.walking = max(self.walking - 1, 0)
+
+        elif random.random() < 0.01:
+            self.walking = random.randint(30, 120)
+
+        super().update(self.game.tilemap, movement = movement)
+
+        #Setting animation type
+        if movement[0] != 0:
+            self.set_action('run')
+        else:
+            self.set_action('idle')
+
+        if self.canTalk:
+            distToPlayer = math.dist(self.rect().center, self.game.player.rect().center)
+            if distToPlayer < 15:
+                xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
+                ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 15
+                
+                self.game.draw_text('(z)', (xpos, ypos), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
+                if self.game.interractionFrame:
+                    self.game.run_text(self)
+
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+class Bob(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Bob')
+
+        self.dialogue = {}
+
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement)
+
+    def getConversation(self):
+        return(['Oh no! Our hotel was attacked!', 'The whole thing has collapsed into the ground!', 'Please help us make it safe again!'])
+
+    

@@ -84,7 +84,7 @@ class Editor:
 
             if self.clicking and self.ongrid:
                 self.tilemap.tilemap[str(tile_pos[0]) + ';' + str(tile_pos[1])] = {'type': self.tile_list[self.tile_group], 'variant': self.tile_variant, 'pos': tile_pos}
-                print('adding at ',  str(tile_pos[0]) + ';' + str(tile_pos[1]))
+                
             if self.right_clicking:
                 tile_loc = str(tile_pos[0]) + ';' + str(tile_pos[1])
                 if tile_loc in self.tilemap.tilemap:
