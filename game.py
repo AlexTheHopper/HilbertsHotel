@@ -20,7 +20,7 @@ class Game:
         pygame.init()
         pygame.display.set_caption('Hilbert''s Hotel')
 
-        self.text_font = pygame.font.SysFont(None, 30)
+        self.text_font = pygame.font.SysFont('Arial', 30)
         self.clock = pygame.time.Clock()
 
         self.screen = pygame.display.set_mode((self.screen_width,self.screen_height))
@@ -29,8 +29,8 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.currentDifficulty = 10
-        self.currentLevelSize = 50
+        self.currentDifficulty = 3
+        self.currentLevelSize = 20
 
         self.movement = [False, False, False, False]
 
@@ -43,6 +43,7 @@ class Game:
             'large_decor': load_images('tiles/large_decor'),
             'stone': load_images('tiles/stone'),
             'background': load_image('background.png'),
+            'menuBackground': load_image('menuBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'gun': load_image('gun.png'),
@@ -55,7 +56,7 @@ class Game:
             'enemy/idle': Animation(load_images('entities/enemy/idle'), img_dur = 10),
             'enemy/run': Animation(load_images('entities/enemy/run'), img_dur = 4),
             'enemy/grace': Animation(load_images('entities/enemy/grace'), img_dur = 10),
-            'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 1),
+            'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
             'coin/idle': Animation(load_images('entities/coin/idle'),img_dur=6)
@@ -83,20 +84,19 @@ class Game:
         #Initialise map 
         self.player = Player(self, (50, 50), (8, 15))
         self.tilemap = tileMap(self, tile_size = 16)
-        self.clouds = Clouds(self.assets['clouds'], count = 20)
-
-        self.tilemap.load_tilemap('lobby')
-        self.load_level()
+        # self.clouds = Clouds(self.assets['clouds'], count = 20)
 
         
-
+        
     def transitionToLevel(self, newLevel):
         self.nextLevel = newLevel
         self.transition += 1
         
-        
-
     def load_level(self):
+
+        #Save game:
+        self.save_game(self.saveSlot)
+
         self.particles = []
         self.projectiles = []
         self.coins = []
@@ -138,28 +138,81 @@ class Game:
         self.screenshake = 0
         self.transition = -30
 
-    def run(self):
+
+    def loadMenu(self):
+        
+        self.sfx['ambience'].play(-1)
+
+        inMenu = True
+
+        saveSlots = [0, 1, 2]
+        hoverSlot = 0
+
+        selected = (200, 100, 100)
+        notSelected = (255, 255, 255)
+
+        while inMenu:
+
+
+            background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
+            self.display_outline.blit(background, (0, 0))
+
+            #Displaying HUD:
+            displaySlot = (hoverSlot % len(saveSlots))
+            self.draw_text('Welcome to Hilbert''s Hotel!', (self.screen_width / 4, 30), self.text_font, notSelected, (0, 0))   
+            self.draw_text('Please Select Your Room', (self.screen_width / 4, 60), self.text_font, notSelected, (0, 0))   
+            self.draw_text('Hint: Use the arrow keys and x', (self.screen_width / 4, 150), self.text_font, notSelected, (0, 0), scale = 0.75)
+            self.draw_text('Room 0', (self.screen_width / 4 - 100, 180), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0))
+            self.draw_text('Room 1', (self.screen_width / 4, 180), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0))
+            self.draw_text('Room 2', (self.screen_width / 4 + 100, 180), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0))   
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        hoverSlot -= 1
+                    if event.key == pygame.K_RIGHT:
+                        hoverSlot += 1
+                    if event.key == pygame.K_x:
+                        saveSlot = hoverSlot % len(saveSlots)
+                        self.run(saveSlot)
+
+            self.display.blit(self.display_outline, (0, 0))
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+            pygame.display.update()
+            self.clock.tick(self.fps)
+
+
+    def run(self, saveSlot):
+
+        self.saveSlot = saveSlot
+        self.load_game(self.saveSlot)
         pygame.mixer.music.load('data/music.wav')
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1)
 
-        self.sfx['ambience'].play(-1)
+        self.tilemap.load_tilemap('lobby')
+        self.load_level()
         
-
+        
         while self.game_running:
+            
             
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
             self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 30
             self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
-            background = pygame.transform.scale(self.assets['background'], (self.screen_width / 2, self.screen_height / 2))
+            background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.display.blit(background, (0, 0))
             self.display_outline.fill((0, 0, 0, 0))
             
             self.screenshake = max(0, self.screenshake - 1)
 
-            self.clouds.update()
-            self.clouds.render(self.display, offset = self.render_scroll)
+            # self.clouds.update()
+            # self.clouds.render(self.display, offset = self.render_scroll)
 
             if not self.dead:
                 self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
@@ -294,9 +347,32 @@ class Game:
     def draw_text(self, text, pos, font, colour = (0, 0, 0), offset = (0, 0), scale = 1):
 
         img = font.render(str(text), True, colour)
-        # img = pygame.transform.scale(img, (scale, scale))
+        img = pygame.transform.scale(img, (img.get_width() * scale, img.get_height() * scale))
         self.display_outline.blit(img, (pos[0] - offset[0] - img.get_width() / 2, pos[1] - offset[1] - img.get_height() / 2))
-        # self.display_outline.blit(img, (pos[0], pos[1]))
+        
+
+    def save_game(self, saveSlot):
+
+        f = open('data/saves/' + str(saveSlot), 'w')
+        json.dump({'totalMoney': self.money}, f)
+        
+        f.close()
+
+    def load_game(self, saveSlot):
+        try:
+            f = open('data/saves/' + str(saveSlot), 'r')
+            saveData = json.load(f)
+            f.close()
+
+            self.money = saveData['totalMoney']
+            
+
+        except:
+            f = open('data/saves/' + str(saveSlot), 'w')
+            json.dump({'totalMoney': self.money}, f)
+            f.close()
+
+            
 
 
-Game().run()
+Game().loadMenu()

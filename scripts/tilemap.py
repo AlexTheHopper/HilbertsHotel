@@ -187,8 +187,7 @@ class tileMap:
 
         
         self.autotile()
-       
-        
+    
 
     def save_tilemap(self, path):
         f = open(path, 'w')

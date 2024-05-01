@@ -174,8 +174,11 @@ class Enemy(physicsEntity):
                     self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
 
                     #Create coins
+                    spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
+                    spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
+                    
                     for _ in range(self.coinCount):
-                        self.game.coins.append(Coin(self.game, self.rect().center, self.coinValue))
+                        self.game.coins.append(Coin(self.game, spawnLoc, self.coinValue))
                     return True
 
     def render(self, surface, offset = (0, 0)):
@@ -340,7 +343,7 @@ class Coin(physicsEntity):
         super().__init__(game, 'coin', pos, size)
 
         #All spawn at the same point with 0 vel.
-        self.velocity = [(random.random()-0.5) * 2, -1.5]
+        self.velocity = [(random.random()-0.5), -1.5]
         self.value = value
         self.size = list(size)
         
