@@ -106,61 +106,77 @@ class Enemy(physicsEntity):
         self.attack_dist_y = 16
         self.attack_dist_y = 16
         self.bullet_speed = 1.5
+
+        self.coinCount = 5
+        self.coinValue = 1
+
+        self.grace = 180
+        self.set_action('grace')
     
     def update(self, tilemap, movement = (0, 0)):
-        #Walking logic, turning around etc
-        if self.walking:
-            # if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
-            if (self.collisions['left'] or self.collisions['right']):
-                self.flip_x = not self.flip_x
-            else:
-                movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
-            # else:
-            #     self.flip_x = not self.flip_x
-            self.walking = max(self.walking - 1, 0)
-
-            #Attack condition
-            if not self.walking:
-                dist = (self.game.player.pos[0] - self.pos[0], self.game.player.pos[1] - self.pos[1])
-                if abs(dist[1]) < self.attack_dist_y and not self.game.dead:
-                    if self.flip_x and dist[0] < 0:
-                        self.game.sfx['shoot'].play()
-                        self.game.projectiles.append([[self.rect().centerx - 7, self.rect().centery], -self.bullet_speed, 0])
-                        for _ in range(4):
-                            self.game.sparks.append(Spark(self.game.projectiles[-1][0], random.random() - 0.5 + math.pi, 2 + random.random()))
-                    if not self.flip_x and dist[0] > 0:
-                        self.game.sfx['shoot'].play()
-                        self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], self.bullet_speed, 0])
-                        for _ in range(4):
-                            self.game.sparks.append(Spark(self.game.projectiles[-1][0], random.random() - 0.5, 2 + random.random()))
-                        
-
-
-
-        elif random.random() < 0.01:
-            self.walking = random.randint(30, 120)
-
-
-        super().update(tilemap, movement = movement)
-
-        #Setting animation type
-        if movement[0] != 0:
-            self.set_action('run')
+        
+        if self.grace:
+            self.grace = max(0, self.grace - 1)
         else:
             self.set_action('idle')
+           
+            
+        if self.action != 'grace':
+            #Walking logic, turning around etc
+            if self.walking:
+                # if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
+                if (self.collisions['left'] or self.collisions['right']):
+                    self.flip_x = not self.flip_x
+                else:
+                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
+                # else:
+                #     self.flip_x = not self.flip_x
+                self.walking = max(self.walking - 1, 0)
 
-        if abs(self.game.player.dashing) >= 50:
-            if self.rect().colliderect(self.game.player.rect()):
-                self.game.screenshake = max(20, self.game.screenshake)
-                self.game.sfx['hit'].play()
-                for _ in range(30):
-                    angle = random.random() * math.pi * 2
-                    speed = random.random() * 5
-                    self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
-                    self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
-                self.game.sparks.append(Spark(self.rect().center, 0, 5 + random.random()))
-                self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
-                return True
+                #Attack condition
+                if not self.walking:
+                    dist = (self.game.player.pos[0] - self.pos[0], self.game.player.pos[1] - self.pos[1])
+                    if abs(dist[1]) < self.attack_dist_y and not self.game.dead:
+                        if self.flip_x and dist[0] < 0:
+                            self.game.sfx['shoot'].play()
+                            self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 7, self.rect().centery], -self.bullet_speed))
+                            for _ in range(4):
+                                self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
+                        if not self.flip_x and dist[0] > 0:
+                            self.game.sfx['shoot'].play()
+                            self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 7, self.rect().centery], self.bullet_speed))
+                            for _ in range(4):
+                                self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
+                            
+            elif random.random() < 0.01:
+                self.walking = random.randint(30, 120)
+
+
+            super().update(tilemap, movement = movement)
+
+            #Setting animation type
+            if movement[0] != 0:
+                self.set_action('run')
+            else:
+                self.set_action('idle')
+
+            #Death Condition
+            if abs(self.game.player.dashing) >= 50:
+                if self.rect().colliderect(self.game.player.rect()):
+                    self.game.screenshake = max(20, self.game.screenshake)
+                    self.game.sfx['hit'].play()
+                    for _ in range(30):
+                        angle = random.random() * math.pi * 2
+                        speed = random.random() * 5
+                        self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
+                        self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+                    self.game.sparks.append(Spark(self.rect().center, 0, 5 + random.random()))
+                    self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
+
+                    #Create coins
+                    for _ in range(self.coinCount):
+                        self.game.coins.append(Coin(self.game, self.rect().center, self.coinValue))
+                    return True
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -186,6 +202,7 @@ class Portal(physicsEntity):
             self.game.transitionToLevel('random')
 
 class Player(physicsEntity):
+
     def __init__(self, game, pos, size):
         super().__init__(game, 'player', pos, size)
         self.air_time = 0
@@ -231,6 +248,7 @@ class Player(physicsEntity):
                 self.set_action('run')
             else:
                 self.set_action('idle')
+ 
 
         
         if abs(self.dashing) > 50:
@@ -295,3 +313,82 @@ class Player(physicsEntity):
                 self.dashing = -self.dash_dist
             else:
                 self.dashing = self.dash_dist
+
+    def damage(self, damageAmount):
+
+        self.game.health = max(0, self.game.health - damageAmount)
+        self.game.sfx['hit'].play()
+        if self.game.health == 0:
+
+            self.game.screenshake = max(50, self.game.screenshake)
+            for _ in range(30):
+                    angle = random.random() * math.pi * 2
+                    speed = random.random() * 5
+                    self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
+                    self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+            self.game.dead += 1
+        else:
+            self.game.screenshake = max(5, self.game.screenshake)
+            for _ in range(10):
+                    angle = random.random() * math.pi * 2
+                    speed = random.random() * 5
+                    self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
+                    self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+
+class Coin(physicsEntity):
+    def __init__(self, game, pos, value, size = (6,6)):
+        super().__init__(game, 'coin', pos, size)
+
+        #All spawn at the same point with 0 vel.
+        self.velocity = [(random.random()-0.5) * 2, -1.5]
+        self.value = value
+        self.size = list(size)
+        
+
+        
+
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
+        self.velocity[0] *= 0.95
+
+
+
+        #Check for player collision
+        if self.game.player.rect().colliderect(self.rect()) and self.game.player.dashing < 50:
+            self.game.money += self.value
+            return True
+    
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+class Bullet():
+    def __init__(self, game, pos, speed):
+        self.pos = list(pos)
+        self.game = game
+        self.speed = speed
+        self.type = 'projectile'
+        self.img = self.game.assets[self.type]
+
+        self.attackPower = 1
+
+    def update(self, game):
+        self.game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - self.game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - self.game.render_scroll[1]))
+        self.pos[0] += self.speed
+
+        #Check to destroy
+        if self.game.tilemap.solid_check(self.pos):
+            for _ in range(4):
+                self.game.sparks.append(Spark(self.pos, random.random() - 0.5 + (math.pi if self.speed > 0 else 0), 2 + random.random()))
+            return True
+        # elif self.pos[0] > 500:
+        #     return True
+        
+        #Check for player collision:
+        if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50:
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower)
+                
+
+                
+                return True
+        

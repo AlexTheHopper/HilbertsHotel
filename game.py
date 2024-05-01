@@ -29,8 +29,8 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.currentDifficulty = 100
-        self.currentLevelSize = 100
+        self.currentDifficulty = 10
+        self.currentLevelSize = 50
 
         self.movement = [False, False, False, False]
 
@@ -54,9 +54,11 @@ class Game:
             'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
             'enemy/idle': Animation(load_images('entities/enemy/idle'), img_dur = 10),
             'enemy/run': Animation(load_images('entities/enemy/run'), img_dur = 4),
+            'enemy/grace': Animation(load_images('entities/enemy/grace'), img_dur = 10),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 1),
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
-            'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False)
+            'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
+            'coin/idle': Animation(load_images('entities/coin/idle'),img_dur=6)
 
         }
        
@@ -74,15 +76,19 @@ class Game:
         self.sfx['shoot'].set_volume(0.4)
         self.sfx['ambience'].set_volume(0.2)
         
+        #Set player values:
+        self.money = 0
+        self.maxHealth = 3
 
-        #Initialise map
+        #Initialise map 
         self.player = Player(self, (50, 50), (8, 15))
         self.tilemap = tileMap(self, tile_size = 16)
         self.clouds = Clouds(self.assets['clouds'], count = 20)
 
-        
         self.tilemap.load_tilemap('lobby')
         self.load_level()
+
+        
 
     def transitionToLevel(self, newLevel):
         self.nextLevel = newLevel
@@ -93,8 +99,10 @@ class Game:
     def load_level(self):
         self.particles = []
         self.projectiles = []
+        self.coins = []
         self.sparks = []
         self.portals = []
+        self.health = self.maxHealth
         #Spawn in leaf particle spawners
         self.leaf_spawners = []
         for tree in self.tilemap.extract([('large_decor', 2)], keep = True):
@@ -157,45 +165,22 @@ class Game:
                 self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
                 self.player.render(self.display_outline, offset = self.render_scroll)
             for enemy in self.enemies.copy():
+                
                 kill = enemy.update(self.tilemap, (0, 0))
                 enemy.render(self.display_outline, offset = self.render_scroll)
                 if kill:
                     self.enemies.remove(enemy)
+                
+
+            for projectile in self.projectiles:
+                if projectile.update(self):
+                    self.projectiles.remove(projectile)
 
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
-
+  
             for portal in self.portals:
                 portal.update(self)
                 portal.render(self.display_outline, offset = self.render_scroll)
-
-            #projectiles are like:
-            #[[x, y], direction, timer]
-            for projectile in self.projectiles.copy():
-                projectile[0][0] += projectile[1]
-                projectile[2] == 1
-                img = self.assets['projectile']
-                self.display_outline.blit(img, (projectile[0][0] - img.get_width() / 2 - self.render_scroll[0], projectile[0][1] - img.get_height() / 2 - self.render_scroll[1]))
-                if self.tilemap.solid_check(projectile[0]):
-                    self.projectiles.remove(projectile)
-                    for _ in range(4):
-                        self.sparks.append(Spark(projectile[0], random.random() - 0.5 + (math.pi if projectile[1] > 0 else 0), 2 + random.random()))
-                
-                elif projectile[2] > 500:
-                    self.projectiles.remove(projectile)
-                elif abs(self.player.dashing) < 50:
-                    if self.player.rect().collidepoint(projectile[0]):
-                        if not self.dead:
-                            self.projectiles.remove(projectile)
-                            self.dead += 1
-                            self.screenshake = max(50, self.screenshake)
-                            self.sfx['hit'].play()
-
-                            for _ in range(30):
-                                angle = random.random() * math.pi * 2
-                                speed = random.random() * 5
-                                self.sparks.append(Spark(self.player.rect().center, angle, 2 + random.random()))
-                                self.particles.append(Particle(self, 'particle', self.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
-                        
 
             for rect in self.leaf_spawners:
                   if random.random() * 10000 < rect.width * rect.height:
@@ -208,6 +193,8 @@ class Game:
                 spark.render(self.display_outline, offset = self.render_scroll)
                 if kill:
                     self.sparks.remove(spark)
+
+            
 
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
@@ -222,8 +209,16 @@ class Game:
                 if kill:
                     self.particles.remove(particle)  
 
+            for coin in self.coins:
+                
+                if coin.update(self.tilemap, (0, 0)):
+                    self.coins.remove(coin)
+                coin.render(self.display_outline, offset = self.render_scroll)
+                
             #Displaying HUD:
             self.draw_text('Enemies: ' + str(len(self.enemies)), (70, 30), self.text_font, (200, 200, 200), (0, 0))        
+            self.draw_text('Money: ' + str(self.money), (70, 60), self.text_font, (200, 200, 200), (0, 0))        
+            self.draw_text('Health: ' + str(self.health), (70, 90), self.text_font, (200, 200, 200), (0, 0))        
             
             #level transition
             if self.transition > 30:
