@@ -96,7 +96,7 @@ class tileMap:
         #needs to return tilemap (and maybe offgrid tiles)
         self.tilemap = {}
       
-        size = max(size, 20)
+        size = max(size, 10)
         vertexNum = int(size / 2)
         roomCount = int((size / 5) ** 1.3)
         roomSize = size

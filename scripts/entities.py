@@ -209,7 +209,7 @@ class Portal(physicsEntity):
         if self.rect().colliderect(playerRect) and self.game.transition == 0:
             
             if self.game.currentLevel == 'lobby':
-            
+                self.game.floor += 1
                 self.game.transitionToLevel('random')
             elif self.game.currentLevel == 'random' and self.action == 'active':
                 self.game.transitionToLevel('lobby')
@@ -454,11 +454,40 @@ class Character(physicsEntity):
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
 
+    def getConversation(self):
+        dialogue = self.game.dialogueHistory[self.name]
+        for index in range(int(len(dialogue) / 2) - 1):
+            available = dialogue[str(index) + 'available']
+            said = dialogue[str(index) + 'said']
+
+            if not available:
+                return(self.dialogue[str(index - 1)], index - 1)
+            
+            elif available and not said:
+                self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
+                return(self.dialogue[str(index)], index)
+        
+        index = int(len(dialogue) / 2) - 1
+        self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
+        return(self.dialogue[str(index)], int(index))
+
 class Bob(Character):
     def __init__(self, game, pos, size):
         super().__init__(game, pos, size, 'Bob')
 
-        self.dialogue = {}
+        self.dialogue = {
+            '0': ['Oh no! Our hotel was attacked!',
+                    'The whole thing has collapsed into the ground!',
+                    'Please help us make it safe again!',
+                    'By getting 20 moneys for me!'],
+            '1': ['Thanks for getting some money woow!',
+                    'Now go get 50 pls',
+                    'The maps should now be bigger and harder :)'],
+            '2': ['Amazing job wow!',
+                    'Now go get 100 pls',
+                    'Again, bigger and harder :)'],
+            '3': ['phenomenal work, my little slave',
+                    'thanks a bunch, now the maps are huge!']  }
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -467,6 +496,26 @@ class Bob(Character):
         super().update(tilemap, movement)
 
     def getConversation(self):
-        return(['Oh no! Our hotel was attacked!', 'The whole thing has collapsed into the ground!', 'Please help us make it safe again!'])
+        return super().getConversation()
+
+    def conversationAction(self, key):
+        if key == 1:
+            self.game.currentDifficulty = 10
+            self.game.currentLevelSize = 20
+            self.game.money -= 20
+
+        elif key == 2:
+            self.game.currentDifficulty = 20
+            self.game.currentLevelSize = 30
+            self.game.money -= 50
+            
+        elif key == 3:
+            self.game.currentDifficulty = 50
+            self.game.currentLevelSize = 50
+            self.game.money -= 100
+
+            
+
+        
 
     

@@ -32,9 +32,10 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.currentDifficulty = 10
-        self.currentLevelSize = 35
+        self.currentDifficulty = 1
+        self.currentLevelSize = 15
         self.moneyThisRun = 0
+        self.floor = 0
 
         self.movement = [False, False, False, False]
         self.paused = False
@@ -45,6 +46,17 @@ class Game:
         self.maxTextCooldown = 30
         self.textCooldown = self.maxTextCooldown
         self.talkingTo = ''
+        self.dialogueHistory = {
+            'Bob': {'0available': True,
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False}
+        }
+        
        
 
         #Import assets
@@ -97,9 +109,6 @@ class Game:
         #Set player values:
         self.money = 0
         self.maxHealth = 1
-        self.textLog = {
-            'Bob': 0
-        }
 
         #Initialise map 
         self.player = Player(self, (50, 50), (8, 15))
@@ -109,12 +118,22 @@ class Game:
         
         
     def transitionToLevel(self, newLevel):
-        self.money += self.moneyThisRun
+        if not self.dead:
+            self.money += self.moneyThisRun
         self.moneyThisRun = 0
         self.nextLevel = newLevel
         self.transition += 1
+
+    def update_dialogues(self):
+        if self.money >= 20:
+            self.dialogueHistory['Bob']['1available'] = True
+        if self.money >= 50:
+            self.dialogueHistory['Bob']['2available'] = True
+        if self.money >= 100:
+            self.dialogueHistory['Bob']['3available'] = True
         
     def load_level(self):
+        
         #Save game:
         self.save_game(self.saveSlot)
 
@@ -314,6 +333,12 @@ class Game:
             self.draw_text('Enemies: ' + str(len(self.enemies)), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Money: ' + str(self.money) + ' + ('+str(self.moneyThisRun)+')', (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Health: ' + str(self.health), (0, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            self.draw_text('Difficulty: ' + str(self.currentDifficulty), (500, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            self.draw_text('Map Size: ' + str(self.currentLevelSize), (500, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            if self.currentLevel != 'lobby':
+                self.draw_text('Floor: ' + str(self.floor), (500, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            else:
+                self.draw_text('Floor: Lobby', (500, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')        
             #Talking mechanics:
@@ -354,6 +379,8 @@ class Game:
                     
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    #Save game:
+                    self.save_game(self.saveSlot)
                     pygame.quit()
                     sys.exit()
 
@@ -373,6 +400,7 @@ class Game:
                         if not self.paused:
                             self.player.dash()
                     if event.key == pygame.K_z:
+                        self.update_dialogues()
                         self.interractionFrame = True
                     if event.key == pygame.K_ESCAPE:
                         if not self.talking:
@@ -428,14 +456,19 @@ class Game:
         self.paused = True
         self.talking = True
         self.talkingTo = character
-        self.currentTextList = character.getConversation()
+        convoInfo = character.getConversation()
+        self.currentTextList = convoInfo[0]
+        character.conversationAction(convoInfo[1])
         self.currentTextIndex = 0
         self.endTextIndex = len(self.currentTextList)
 
     def save_game(self, saveSlot):
 
         f = open('data/saves/' + str(saveSlot), 'w')
-        json.dump({'totalMoney': self.money}, f)
+        json.dump({'totalMoney': self.money,
+                   'dialogue': self.dialogueHistory,
+                   'difficulty': self.currentDifficulty,
+                   'mapSize': self.currentLevelSize}, f)
         
         f.close()
 
@@ -446,6 +479,9 @@ class Game:
             f.close()
 
             self.money = saveData['totalMoney']
+            self.dialogueHistory = saveData['dialogue']
+            self.currentDifficulty = saveData['difficulty']
+            self.currentLevelSize = saveData['mapSize']
             
 
         except:
