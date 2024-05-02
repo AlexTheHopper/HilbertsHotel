@@ -32,8 +32,10 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
+
         self.currentDifficulty = 1
         self.currentLevelSize = 15
+
         self.moneyThisRun = 0
         self.floor = 0
 
@@ -125,7 +127,9 @@ class Game:
         self.transition += 1
 
     def update_dialogues(self):
-        if self.money >= 20:
+        #Bob:
+        
+        if self.money >= 5:
             self.dialogueHistory['Bob']['1available'] = True
         if self.money >= 50:
             self.dialogueHistory['Bob']['2available'] = True
@@ -267,7 +271,11 @@ class Game:
 
             # self.clouds.update()
             # self.clouds.render(self.display, offset = self.render_scroll)
-           
+            for portal in self.portals:
+                if not self.paused:
+                    portal.update(self.tilemap)
+                portal.render(self.display_outline, offset = self.render_scroll)
+
             if not self.dead:
                 if not self.paused:
                     self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
@@ -289,17 +297,19 @@ class Game:
                     if projectile.update(self):
                         self.projectiles.remove(projectile)
 
-            self.tilemap.render(self.display_outline, offset = self.render_scroll)
-  
-            for portal in self.portals:
-                if not self.paused:
-                    portal.update(self.tilemap)
-                portal.render(self.display_outline, offset = self.render_scroll)
-
+            
+            
             for rect in self.leaf_spawners:
                   if random.random() * 10000 < rect.width * rect.height:
                       pos = (rect.x + random.random() * rect.width, rect.y + random.random() * rect.height)
                       self.particles.append(Particle(self, 'leaf', pos, vel = [0.1, 0.3], frame = random.randint(0, 20)))
+
+            for coin in self.coins:
+                if not self.paused:
+                    if coin.update(self.tilemap, (0, 0)):
+                        self.coins.remove(coin)
+                coin.render(self.display_outline, offset = self.render_scroll)
+               
 
 
             for spark in self.sparks.copy():
@@ -309,7 +319,8 @@ class Game:
                     self.sparks.remove(spark)
 
             
-
+            self.tilemap.render(self.display_outline, offset = self.render_scroll)
+  
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
             for offset in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -323,12 +334,7 @@ class Game:
                 if kill:
                     self.particles.remove(particle)  
 
-            for coin in self.coins:
-                if not self.paused:
-                    if coin.update(self.tilemap, (0, 0)):
-                        self.coins.remove(coin)
-                coin.render(self.display_outline, offset = self.render_scroll)
-                
+             
             #Displaying HUD:
             self.draw_text('Enemies: ' + str(len(self.enemies)), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Money: ' + str(self.money) + ' + ('+str(self.moneyThisRun)+')', (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
@@ -400,7 +406,7 @@ class Game:
                         if not self.paused:
                             self.player.dash()
                     if event.key == pygame.K_z:
-                        self.update_dialogues()
+                       
                         self.interractionFrame = True
                     if event.key == pygame.K_ESCAPE:
                         if not self.talking:
@@ -466,6 +472,7 @@ class Game:
 
         f = open('data/saves/' + str(saveSlot), 'w')
         json.dump({'totalMoney': self.money,
+                   'floor': self.floor,
                    'dialogue': self.dialogueHistory,
                    'difficulty': self.currentDifficulty,
                    'mapSize': self.currentLevelSize}, f)
@@ -479,6 +486,7 @@ class Game:
             f.close()
 
             self.money = saveData['totalMoney']
+            self.floor = saveData['floor']
             self.dialogueHistory = saveData['dialogue']
             self.currentDifficulty = saveData['difficulty']
             self.currentLevelSize = saveData['mapSize']

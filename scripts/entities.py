@@ -449,27 +449,35 @@ class Character(physicsEntity):
                 
                 self.game.draw_text('(z)', (xpos, ypos), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
                 if self.game.interractionFrame:
+                    
                     self.game.run_text(self)
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
 
+
+
     def getConversation(self):
+        self.game.update_dialogues()
         dialogue = self.game.dialogueHistory[self.name]
-        for index in range(int(len(dialogue) / 2) - 1):
+        
+        for index in range(int(len(dialogue) / 2)):
             available = dialogue[str(index) + 'available']
             said = dialogue[str(index) + 'said']
+            
 
             if not available:
                 return(self.dialogue[str(index - 1)], index - 1)
             
             elif available and not said:
-                self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
+                #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
                 return(self.dialogue[str(index)], index)
         
         index = int(len(dialogue) / 2) - 1
-        self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
+        #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
         return(self.dialogue[str(index)], int(index))
+
+
 
 class Bob(Character):
     def __init__(self, game, pos, size):
@@ -479,7 +487,7 @@ class Bob(Character):
             '0': ['Oh no! Our hotel was attacked!',
                     'The whole thing has collapsed into the ground!',
                     'Please help us make it safe again!',
-                    'By getting 20 moneys for me!'],
+                    'By getting 5 moneys for me!'],
             '1': ['Thanks for getting some money woow!',
                     'Now go get 50 pls',
                     'The maps should now be bigger and harder :)'],
@@ -499,20 +507,24 @@ class Bob(Character):
         return super().getConversation()
 
     def conversationAction(self, key):
-        if key == 1:
+        #Runs when dialogue matching key is said
+        
+        if key == 1 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 10
             self.game.currentLevelSize = 20
-            self.game.money -= 20
+            self.game.money -= 5
 
-        elif key == 2:
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 20
             self.game.currentLevelSize = 30
             self.game.money -= 50
             
-        elif key == 3:
+        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 50
             self.game.currentLevelSize = 50
             self.game.money -= 100
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
             
 

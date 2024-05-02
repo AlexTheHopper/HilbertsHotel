@@ -95,6 +95,7 @@ class tileMap:
         ##generate random level
         #needs to return tilemap (and maybe offgrid tiles)
         self.tilemap = {}
+        self.offgrid_tiles = []
       
         size = max(size, 10)
         vertexNum = int(size / 2)
@@ -161,12 +162,9 @@ class tileMap:
         for i in range(mapHeight):
             for j in range(mapWidth):
                 if map[i,j] == 1:
-                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'stone', 'variant': 0, 'pos': [i, j]}
+                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'stone', 'variant': 1, 'pos': [i, j]}
 
-        # plt.imshow(map)
-        # plt.show()
         #placing entities:
-        
         player_placed = False
         portal_placed = False
         difficultyProgress = 0
@@ -177,14 +175,21 @@ class tileMap:
             x = random.choice(range(vertBuffer, mapHeight - vertBuffer))
             loc = str(x) + ';' + str(y)
             locUnder = str(x) + ';' + str(y + 1)
+            locRight = str(x + 1) + ';' + str(y)
+            locUnderRight = str(x + 1) + ';' + str(y + 1)
             if locUnder in self.tilemap:
-                if loc not in self.tilemap and self.tilemap[locUnder]['type'] in PHYSICS_TILES:#locUnder in self.tilemap:
+                if loc not in self.tilemap and self.tilemap[locUnder]['type'] in PHYSICS_TILES:
                     if not player_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                         player_placed = True
                     elif not portal_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
                         portal_placed = True
+                    
+                    elif random.random() < 0.5 and locUnderRight in self.tilemap and locRight not in self.tilemap:
+                        if self.tilemap[locUnder]['type'] in PHYSICS_TILES:
+                            to_add = {'type': 'large_decor', 'variant': 0, 'pos': [x * self.tile_size + random.randint(-4,4), y * self.tile_size + self.tile_size / 2 + random.randint(0,8)]}
+                            self.offgrid_tiles.append(to_add)
                     else:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
                         difficultyProgress += 1
