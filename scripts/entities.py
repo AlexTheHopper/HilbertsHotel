@@ -370,7 +370,7 @@ class Coin(physicsEntity):
 
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and self.game.player.dashing < 10:
-            self.game.money += self.value
+            self.game.moneyThisRun += self.value
             return True
     
     def render(self, surface, offset = (0, 0)):

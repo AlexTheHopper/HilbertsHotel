@@ -32,17 +32,20 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.currentDifficulty = 3
-        self.currentLevelSize = 20
+        self.currentDifficulty = 10
+        self.currentLevelSize = 35
+        self.moneyThisRun = 0
 
         self.movement = [False, False, False, False]
         self.paused = False
+
         self.interractionFrame = False
         self.talking = False
         self.currentTextList = []
         self.maxTextCooldown = 30
         self.textCooldown = self.maxTextCooldown
         self.talkingTo = ''
+       
 
         #Import assets
         #BASE_PATH = 'data/images/'
@@ -106,6 +109,8 @@ class Game:
         
         
     def transitionToLevel(self, newLevel):
+        self.money += self.moneyThisRun
+        self.moneyThisRun = 0
         self.nextLevel = newLevel
         self.transition += 1
         
@@ -118,6 +123,7 @@ class Game:
         self.coins = []
         self.sparks = []
         self.health = self.maxHealth
+        self.moneyThisRun = 0
         #Spawn in leaf particle spawners
         self.leaf_spawners = []
         for tree in self.tilemap.extract([('large_decor', 2)], keep = True):
@@ -242,7 +248,7 @@ class Game:
 
             # self.clouds.update()
             # self.clouds.render(self.display, offset = self.render_scroll)
-            print(self.transition)
+           
             if not self.dead:
                 if not self.paused:
                     self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
@@ -306,7 +312,7 @@ class Game:
                 
             #Displaying HUD:
             self.draw_text('Enemies: ' + str(len(self.enemies)), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            self.draw_text('Money: ' + str(self.money), (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            self.draw_text('Money: ' + str(self.money) + ' + ('+str(self.moneyThisRun)+')', (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Health: ' + str(self.health), (0, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')        

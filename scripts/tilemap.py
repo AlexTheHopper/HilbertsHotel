@@ -177,17 +177,17 @@ class tileMap:
             x = random.choice(range(vertBuffer, mapHeight - vertBuffer))
             loc = str(x) + ';' + str(y)
             locUnder = str(x) + ';' + str(y + 1)
-           
-            if loc not in self.tilemap and locUnder in self.tilemap:
-                if not player_placed:
-                    self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
-                    player_placed = True
-                elif not portal_placed:
-                    self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
-                    portal_placed = True
-                else:
-                    self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
-                    difficultyProgress += 1
+            if locUnder in self.tilemap:
+                if loc not in self.tilemap and self.tilemap[locUnder]['type'] in PHYSICS_TILES:#locUnder in self.tilemap:
+                    if not player_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
+                        player_placed = True
+                    elif not portal_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
+                        portal_placed = True
+                    else:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
+                        difficultyProgress += 1
 
         
         self.autotile()
