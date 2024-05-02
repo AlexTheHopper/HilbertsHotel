@@ -112,7 +112,7 @@ class Enemy(physicsEntity):
         self.coinCount = 1
         self.coinValue = 1
 
-        self.grace = 90
+        self.grace = random.randint(90,210)
         self.graceDone = False
         self.set_action('grace')
     
@@ -278,16 +278,17 @@ class Player(physicsEntity):
             if abs(self.dashing) == 51:
                 self.velocity[0] *= 0.1
                 self.velocity[1] *= 0.1
-
-            p_velocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
-            self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
+            if self.game.transition < 1:
+                p_velocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
+                self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
 
         if abs(self.dashing) in {60, 50}:
-            for _ in range(20):
-                angle = random.random() * math.pi * 2
-                speed = random.random() * 0.5 + 0.5
-                p_velocity = [math.cos(angle) * speed, math.sin(angle) * speed]
-                self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
+            if self.game.transition < 1:
+                for _ in range(20):
+                    angle = random.random() * math.pi * 2
+                    speed = random.random() * 0.5 + 0.5
+                    p_velocity = [math.cos(angle) * speed, math.sin(angle) * speed]
+                    self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
         
         if self.dashing > 0:
             self.dashing = max(0, self.dashing - 1)
