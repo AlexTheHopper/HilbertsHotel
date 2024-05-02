@@ -193,6 +193,10 @@ class tileMap:
                     else:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 1, 'pos': [x, y]}
                         difficultyProgress += 1
+            elif loc in self.tilemap and locUnder not in self.tilemap and random.random() < 0.1:
+                to_add = {'type': 'large_decor', 'variant': 3, 'pos': [x * self.tile_size, (y+1) * self.tile_size]}
+                self.offgrid_tiles.append(to_add)
+
 
         
         self.autotile()

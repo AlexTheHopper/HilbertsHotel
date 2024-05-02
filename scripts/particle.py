@@ -1,4 +1,8 @@
+import math
+import random
+
 class Particle:
+
     def __init__(self, game, p_type, pos, vel = [0, 0], frame = 0):
         self.game = game
         self.type = p_type
@@ -6,6 +10,7 @@ class Particle:
         self.velocity = list(vel)
         self.animation = self.game.assets['particle/' + self.type].copy()
         self.animation.frame = frame
+        self.randomness = random.random() * math.pi * 2
 
     def update(self):
         kill = False

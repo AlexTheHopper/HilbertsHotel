@@ -88,7 +88,7 @@ class Game:
             'bob/jump': Animation(load_images('entities/bob/jump'), img_dur = 5),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
-            'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
+            'particle/dust': Animation(load_images('particles/dust'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
             'coin/idle': Animation(load_images('entities/coin/idle'),img_dur=6)
 
@@ -147,10 +147,10 @@ class Game:
         self.sparks = []
         self.health = self.maxHealth
         self.moneyThisRun = 0
-        #Spawn in leaf particle spawners
-        self.leaf_spawners = []
-        for tree in self.tilemap.extract([('large_decor', 2)], keep = True):
-            self.leaf_spawners.append(pygame.Rect(4 + tree['pos'][0], 4 + tree['pos'][1], 23, 13))
+        #Spawn in dust particle spawners
+        self.dust_spawners = []
+        for dust in self.tilemap.extract([('large_decor', 3)], keep = True):
+            self.dust_spawners.append(pygame.Rect(dust['pos'][0],dust['pos'][1], 16, 16))
 
         #Spawn in entities
         self.enemies = []
@@ -299,10 +299,10 @@ class Game:
 
             
             
-            for rect in self.leaf_spawners:
-                  if random.random() * 10000 < rect.width * rect.height:
-                      pos = (rect.x + random.random() * rect.width, rect.y + random.random() * rect.height)
-                      self.particles.append(Particle(self, 'leaf', pos, vel = [0.1, 0.3], frame = random.randint(0, 20)))
+            for rect in self.dust_spawners:
+                  if random.random() < 0.01:
+                      pos = (rect.x + rect.width / 2, rect.y + rect.height)
+                      self.particles.append(Particle(self, 'dust', pos, vel = [0, 0.3], frame = random.randint(0, 20)))
 
             for coin in self.coins:
                 if not self.paused:
@@ -329,8 +329,8 @@ class Game:
             for particle in self.particles.copy():
                 kill = particle.update()
                 particle.render(self.display_outline, offset = self.render_scroll)
-                if particle.type == 'leaf':
-                    particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.2
+                if particle.type == 'dust':
+                    particle.pos[0] += math.sin(particle.animation.frame * 0.035 + particle.randomness) * 0.2
                 if kill:
                     self.particles.remove(particle)  
 
