@@ -109,21 +109,24 @@ class Enemy(physicsEntity):
         self.attack_dist_y = 16
         self.bullet_speed = 1.5
 
-        self.coinCount = 5
+        self.coinCount = 1
         self.coinValue = 1
 
         self.grace = 90
+        self.graceDone = False
         self.set_action('grace')
     
     def update(self, tilemap, movement = (0, 0)):
         
-        if self.grace:
+        if not self.graceDone:
             self.grace = max(0, self.grace - 1)
-        else:
-            self.set_action('idle')
+            if self.grace == 0:
+                self.set_action('idle')
+                self.graceDone = True
+            self.animation.update()
            
             
-        if self.action != 'grace':
+        if self.graceDone:
             #Walking logic, turning around etc
             if self.walking:
                 # if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
@@ -159,8 +162,10 @@ class Enemy(physicsEntity):
             #Setting animation type
             if movement[0] != 0:
                 self.set_action('run')
+                
             else:
                 self.set_action('idle')
+                
 
         #Death Condition
         if abs(self.game.player.dashing) >= 50:

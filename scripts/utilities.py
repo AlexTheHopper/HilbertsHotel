@@ -10,6 +10,7 @@ def load_image(path):
 
 def load_images(path):
     images = [load_image(path + '/' + img_name) for img_name in sorted(os.listdir(BASE_PATH + path))]
+    
     return images
 
 class Animation:
@@ -24,6 +25,7 @@ class Animation:
         return Animation(self.images, self.img_duration, self.loop)
     
     def update(self):
+        
         if self.loop:
             self.frame = (self.frame + 1) % (self.img_duration * len(self.images))
 
