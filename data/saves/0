@@ -1,1 +1,1 @@
-{"totalMoney": 38, "floor": 44, "dialogue": {"Bob": {"0available": true, "0said": true, "1available": true, "1said": true, "2available": false, "2said": false, "3available": false, "3said": false}}, "difficulty": 10, "mapSize": 20}
+{"totalMoney": 2, "floor": 19, "dialogue": {"Hilbert": {"0available": true, "0said": false, "1available": false, "1said": false, "2available": false, "2said": false, "3available": false, "3said": false}}, "difficulty": 1, "mapSize": 15}

@@ -49,7 +49,7 @@ class Game:
         self.textCooldown = self.maxTextCooldown
         self.talkingTo = ''
         self.dialogueHistory = {
-            'Bob': {'0available': True,
+            'Hilbert': {'0available': True,
                     '0said': False,
                     '1available': False,
                     '1said': False,
@@ -73,7 +73,7 @@ class Game:
             'menuBackground': load_image('menuBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
-            'gun': load_image('gun.png'),
+            'guns': load_images('guns'),
             'projectile': load_image('projectile.png'),
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
             'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
@@ -83,9 +83,10 @@ class Game:
             'enemy/idle': Animation(load_images('entities/enemy/idle'), img_dur = 10),
             'enemy/run': Animation(load_images('entities/enemy/run'), img_dur = 4,),
             'enemy/grace': Animation(load_images('entities/enemy/grace'), img_dur = 4),
-            'bob/idle': Animation(load_images('entities/bob/idle'), img_dur = 10),
-            'bob/run': Animation(load_images('entities/bob/run'), img_dur = 4),
-            'bob/jump': Animation(load_images('entities/bob/jump'), img_dur = 5),
+            'enemy/shooting': Animation(load_images('entities/enemy/shooting'), img_dur = 20, loop = False),
+            'hilbert/idle': Animation(load_images('entities/hilbert/idle'), img_dur = 10),
+            'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
+            'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
             'particle/dust': Animation(load_images('particles/dust'),img_dur=20, loop = False),
@@ -127,14 +128,13 @@ class Game:
         self.transition += 1
 
     def update_dialogues(self):
-        #Bob:
-        
+        #Hilbert:
         if self.money >= 5:
-            self.dialogueHistory['Bob']['1available'] = True
+            self.dialogueHistory['Hilbert']['1available'] = True
         if self.money >= 50:
-            self.dialogueHistory['Bob']['2available'] = True
+            self.dialogueHistory['Hilbert']['2available'] = True
         if self.money >= 100:
-            self.dialogueHistory['Bob']['3available'] = True
+            self.dialogueHistory['Hilbert']['3available'] = True
         
     def load_level(self):
         
@@ -180,7 +180,7 @@ class Game:
             #Character
             #Portal
             elif spawner['variant'] == 3:
-                self.portals.append(Bob(self, spawner['pos'], (8,15)))
+                self.portals.append(Hilbert(self, spawner['pos'], (8,15)))
 
 
         
@@ -253,21 +253,26 @@ class Game:
 
         self.tilemap.load_tilemap('lobby')
         self.load_level()
+
+
         
         
         while self.game_running:
             
-            
+            #Camera movement
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
             self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 30
             self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
+            #Background
             background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.display.blit(background, (0, 0))
             self.display_outline.fill((0, 0, 0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
             
             self.screenshake = max(0, self.screenshake - 1)
+
+            #RENDER AND UPDATE ALL THE THINGS
 
             # self.clouds.update()
             # self.clouds.render(self.display, offset = self.render_scroll)
@@ -297,8 +302,6 @@ class Game:
                     if projectile.update(self):
                         self.projectiles.remove(projectile)
 
-            
-            
             for rect in self.dust_spawners:
                   if random.random() < 0.01:
                       pos = (rect.x + rect.width / 2, rect.y + rect.height)
@@ -309,9 +312,10 @@ class Game:
                     if coin.update(self.tilemap, (0, 0)):
                         self.coins.remove(coin)
                 coin.render(self.display_outline, offset = self.render_scroll)
-               
-
-
+            
+            
+            self.tilemap.render(self.display_outline, offset = self.render_scroll)
+  
             for spark in self.sparks.copy():
                 kill = spark.update()
                 spark.render(self.display_outline, offset = self.render_scroll)
@@ -319,8 +323,7 @@ class Game:
                     self.sparks.remove(spark)
 
             
-            self.tilemap.render(self.display_outline, offset = self.render_scroll)
-  
+
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
             for offset in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -347,6 +350,7 @@ class Game:
                 self.draw_text('Floor: Lobby', (500, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')        
+           
             #Talking mechanics:
             if self.talking:
                 if self.textCooldown > 0:
@@ -385,7 +389,6 @@ class Game:
                     
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    #Save game:
                     self.save_game(self.saveSlot)
                     pygame.quit()
                     sys.exit()
@@ -396,9 +399,8 @@ class Game:
                     if event.key == pygame.K_RIGHT:
                         self.movement[1] = True
                     if event.key == pygame.K_UP:
-                        if not self.paused:
-                            if self.player.jump():
-                                self.sfx['jump'].play()
+                        if not self.paused and self.player.jump():
+                            self.sfx['jump'].play()
                         self.movement[2] = True
                     if event.key == pygame.K_DOWN:
                         self.movement[3] = True
@@ -406,14 +408,14 @@ class Game:
                         if not self.paused:
                             self.player.dash()
                     if event.key == pygame.K_z:
-                       
                         self.interractionFrame = True
                     if event.key == pygame.K_ESCAPE:
                         if not self.talking:
                             self.paused = not self.paused
-
                     if event.key == pygame.K_r:
                         self.transitionToLevel(self.currentLevel)
+
+
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
                         self.movement[0] = False
@@ -426,12 +428,12 @@ class Game:
 
             if self.dead:
                 self.dead += 1
-                self.draw_text('You Are Dead!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
+                self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
                 
                 if self.dead == 90:
                     self.transitionToLevel('lobby')
 
-
+            #Level transition circle
             if self.transition:
                 transition_surface = pygame.Surface(self.display_outline.get_size())
                 pygame.draw.circle(transition_surface, (255, 255, 255), (self.display_outline.get_width() // 2, self.display_outline.get_height() // 2), (30 - abs(self.transition)) * (self.display_outline.get_width() / 30))
@@ -446,6 +448,8 @@ class Game:
             self.screen.blit(self.HUDdisplay, (0, 0))
             pygame.display.update()
             self.clock.tick(self.fps)
+
+
 
     def draw_text(self, text, pos, font, colour = (0, 0, 0), offset = (0, 0), scale = 1, mode = 'topleft'):
         xAdj = 0

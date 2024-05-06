@@ -2,10 +2,11 @@ import math
 import pygame
 
 class Spark:
-    def __init__(self, pos, angle, speed):
+    def __init__(self, pos, angle, speed, color = (255, 255, 255)):
         self.pos = list(pos)
         self.angle = angle
         self.speed = speed
+        self.color = color
 
     def update(self):
         self.pos[0] += math.cos(self.angle) * self.speed
@@ -22,4 +23,4 @@ class Spark:
             (self.pos[0] + math.cos(self.angle - math.pi / 2) * self.speed / 2 - offset[0], self.pos[1] + math.sin(self.angle - math.pi / 2) * self.speed / 2 - offset[1])
         ]
 
-        pygame.draw.polygon(surface, (255, 255, 255), render_points)
+        pygame.draw.polygon(surface, self.color, render_points)

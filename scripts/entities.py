@@ -2,6 +2,7 @@ import pygame
 import sys
 import math
 import random
+import numpy as np
 from scripts.particle import *
 from scripts.spark import *
 from scripts.utilities import *
@@ -105,9 +106,10 @@ class Enemy(physicsEntity):
             self.flip_x = True
 
         self.walking = 0
-        self.attack_dist_y = 16
-        self.attack_dist_y = 16
+        self.attack_dist_y = 24
         self.bullet_speed = 1.5
+        self.shootCountdown = 0
+        self.gunIndex = 0
 
         self.coinCount = 1
         self.coinValue = 1
@@ -128,7 +130,26 @@ class Enemy(physicsEntity):
             
         if self.graceDone:
             #Walking logic, turning around etc
-            if self.walking:
+            if self.shootCountdown:
+                self.shootCountdown = max(self.shootCountdown - 1, 0)
+                self.gunIndex = math.ceil(self.shootCountdown / 20)
+                
+                if not self.shootCountdown:
+                    # dist = self.game.player.pos[0] - self.pos[0]
+                    
+                    if self.flip_x:
+                            self.game.sfx['shoot'].play()
+                            self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 5, self.rect().centery], -self.bullet_speed))
+                            for _ in range(4):
+                                self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
+                    if not self.flip_x:
+                        self.game.sfx['shoot'].play()
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 5, self.rect().centery], self.bullet_speed))
+                        for _ in range(4):
+                            self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
+                    
+
+            elif self.walking:
                 # if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
                 if (self.collisions['left'] or self.collisions['right']):
                     self.flip_x = not self.flip_x
@@ -141,18 +162,15 @@ class Enemy(physicsEntity):
                 #Attack condition
                 if not self.walking:
                     dist = (self.game.player.pos[0] - self.pos[0], self.game.player.pos[1] - self.pos[1])
+                    distx = self.game.player.pos[0] - self.pos[0]
                     if abs(dist[1]) < self.attack_dist_y and not self.game.dead:
-                        if self.flip_x and dist[0] < 0:
-                            self.game.sfx['shoot'].play()
-                            self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 7, self.rect().centery], -self.bullet_speed))
-                            for _ in range(4):
-                                self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
-                        if not self.flip_x and dist[0] > 0:
-                            self.game.sfx['shoot'].play()
-                            self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 7, self.rect().centery], self.bullet_speed))
-                            for _ in range(4):
-                                self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
-                            
+                        if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
+                            self.shootCountdown = 60
+                       
+            
+            
+           
+           
             elif random.random() < 0.01:
                 self.walking = random.randint(30, 120)
 
@@ -160,11 +178,12 @@ class Enemy(physicsEntity):
             super().update(tilemap, movement = movement)
 
             #Setting animation type
-            if movement[0] != 0:
-                self.set_action('run')
-                
-            else:
-                self.set_action('idle')
+            if self.action != 'shooting':
+                if movement[0] != 0:
+                    self.set_action('run')
+                    
+                else:
+                    self.set_action('idle')
                 
 
         #Death Condition
@@ -192,13 +211,13 @@ class Enemy(physicsEntity):
         super().render(surface, offset = offset)
 
         if self.flip_x:
-            xpos = self.rect().centerx - 3 - self.game.assets['gun'].get_width() - offset[0]
+            xpos = self.rect().centerx - 2 - self.game.assets['guns'][self.gunIndex].get_width() - offset[0]
             ypos = self.rect().centery - offset[1]
-            surface.blit(pygame.transform.flip(self.game.assets['gun'], True, False), (xpos, ypos))
+            surface.blit(pygame.transform.flip(self.game.assets['guns'][self.gunIndex], True, False), (xpos, ypos))
         else:
-            xpos = self.rect().centerx + 3 - offset[0]
+            xpos = self.rect().centerx + 2 - offset[0]
             ypos = self.rect().centery - offset[1]
-            surface.blit(self.game.assets['gun'], (xpos, ypos))
+            surface.blit(self.game.assets['guns'][self.gunIndex], (xpos, ypos))
 
 class Portal(physicsEntity):
     def __init__(self, game, pos, size):
@@ -236,15 +255,20 @@ class Player(physicsEntity):
         super().update(tilemap, movement = movement)
      
     
-
+        
         self.air_time += 1
         if self.air_time > 180 and not self.wall_slide:
             # self.game.dead += 1
             pass
         
 
-
+        
         if self.collisions['down']:
+            if self.air_time > 10:
+                for _ in range(5):
+                    angle = (random.random()) * math.pi
+                    speed = random.random() * (2)
+                    self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
             self.air_time = 0
             self.jumps = self.total_jumps
 
@@ -272,9 +296,17 @@ class Player(physicsEntity):
 
         
         if abs(self.dashing) > 50:
-            self.velocity[0] = abs(self.dashing) / self.dashing * 8
+            
             self.downwards = self.game.movement[3] - self.game.movement[2]
             self.velocity[1] = self.downwards * 8
+
+            self.sideways = self.game.movement[1] - self.game.movement[0]
+            if self.sideways == 0 and not self.downwards:
+                self.sideways = 1 - 2*self.flip_x    
+            self.velocity[0] = self.sideways * 8
+
+            
+
             if abs(self.dashing) == 51:
                 self.velocity[0] *= 0.1
                 self.velocity[1] *= 0.1
@@ -313,10 +345,21 @@ class Player(physicsEntity):
 
             if self.flip_x and self.last_movement[0] < 0:
                 self.velocity[0] = 1.5
+                for _ in range(5):
+                        angle = (random.random() + 2) * (math.pi / 4)
+                        speed = random.random() * (2)
+                       
+                        self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
                 return True
-                
+
+
             elif not self.flip_x and self.last_movement[0] > 0:
                 self.velocity[0] = -1.5
+                for _ in range(5):
+                        angle = (random.random() + 1) * (math.pi / 4)
+                        
+                        speed = random.random() * (2)
+                        self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
                 return True
                
 
@@ -325,6 +368,11 @@ class Player(physicsEntity):
             self.jumps -= 1
             self.velocity[1] = min(self.velocity[1], -3)
             self.air_time = 5
+            for _ in range(5):
+                    angle = (random.random()) * math.pi
+                    speed = random.random() * (2)
+                    self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
+                
             return True
 
     def dash(self):
@@ -485,9 +533,9 @@ class Character(physicsEntity):
 
 
 
-class Bob(Character):
+class Hilbert(Character):
     def __init__(self, game, pos, size):
-        super().__init__(game, pos, size, 'Bob')
+        super().__init__(game, pos, size, 'Hilbert')
 
         self.dialogue = {
             '0': ['Oh no! Our hotel was attacked!',
