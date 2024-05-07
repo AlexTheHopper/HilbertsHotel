@@ -58,6 +58,7 @@ class physicsEntity:
                 elif self.frame_movement[1] < 0:
                     entity_rect.top = rect.bottom
                     self.collisions['up'] = True
+                    
                 self.pos[1] = entity_rect.y
 
 
@@ -70,10 +71,12 @@ class physicsEntity:
                 if self.frame_movement[0] > 0:
                     entity_rect.right = rect.left
                     self.collisions['right'] = True
+                    
                 #Collision moving left
                 elif self.frame_movement[0] < 0:
                     entity_rect.left = rect.right
                     self.collisions['left'] = True
+                    
                 self.pos[0] = entity_rect.x
 
         #Facing direction
@@ -83,7 +86,8 @@ class physicsEntity:
             self.flip_x = True
 
         #Add gravity up to terminal velocity
-        self.velocity[1] = min(self.velocity[1] + self.gravity, self.terminal_vel)
+        if self.gravityAffected:
+            self.velocity[1] = min(self.velocity[1] + self.gravity, self.terminal_vel)
 
         #Reset velocity if vertically hit tile
         if self.collisions['up'] or self.collisions['down']:
@@ -99,9 +103,78 @@ class physicsEntity:
         
         surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
 
-class Enemy(physicsEntity):
+
+
+    def kill(self, coinCount, coinValue, screenshakeValue = 10, intensity = 10):
+        self.game.screenshake = max(screenshakeValue, self.game.screenshake)
+        self.game.sfx['hit'].play()
+        for _ in range(intensity):
+            angle = random.random() * math.pi * 2
+            speed = random.random() * 5
+
+            self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random() * (intensity / 10)))
+            self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+        
+        self.game.sparks.append(Spark(self.rect().center, 0, intensity / 2))
+        self.game.sparks.append(Spark(self.rect().center, math.pi, intensity / 2))
+
+        #Create coins
+        spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
+        spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
+        
+        for _ in range(coinCount):
+            self.game.coins.append(Coin(self.game, spawnLoc, coinValue))
+
+
+
+class Bat(physicsEntity):
     def __init__(self, game, pos, size):
-        super().__init__(game, 'enemy', pos, size)
+        super().__init__(game, 'bat', pos, size)
+
+        self.coinCount = 3
+        self.coinValue = 1
+
+        self.deathIntensity = 5
+
+        self.gravityAffected = False
+
+        self.grace = random.randint(90,210)
+        self.graceDone = False
+        self.set_action('grace')
+
+    def update(self, tilemap, movement = (0, 0)):
+
+        if not self.graceDone:
+            self.grace = max(0, self.grace - 1)
+            if self.grace == 0:
+                self.set_action('idle')
+                self.graceDone = True
+            self.animation.update()
+
+        if self.graceDone:
+            super().update(tilemap, movement = movement)
+
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.kill(self.coinCount, self.coinValue, screenshakeValue = 10, intensity = self.deathIntensity)
+                return True
+
+
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+
+class GunGuy(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'gunguy', pos, size)
+
+        self.coinCount = 1
+        self.coinValue = 1
+
+        self.deathIntensity = 5
+
+
         if random.random() < 0.5:
             self.flip_x = True
 
@@ -110,9 +183,9 @@ class Enemy(physicsEntity):
         self.bullet_speed = 1.5
         self.shootCountdown = 0
         self.gunIndex = 0
+        self.gravityAffected = True
 
-        self.coinCount = 1
-        self.coinValue = 1
+        
 
         self.grace = random.randint(90,210)
         self.graceDone = False
@@ -161,9 +234,11 @@ class Enemy(physicsEntity):
 
                 #Attack condition
                 if not self.walking:
-                    dist = (self.game.player.pos[0] - self.pos[0], self.game.player.pos[1] - self.pos[1])
+                    disty = self.game.player.pos[1] - self.pos[1]
                     distx = self.game.player.pos[0] - self.pos[0]
-                    if abs(dist[1]) < self.attack_dist_y and not self.game.dead:
+                    #Y axis condition:
+                    if abs(disty) < self.attack_dist_y and not self.game.dead:
+                        #X axis condition
                         if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
                             self.shootCountdown = 60
                        
@@ -189,23 +264,10 @@ class Enemy(physicsEntity):
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
-                self.game.screenshake = max(20, self.game.screenshake)
-                self.game.sfx['hit'].play()
-                for _ in range(30):
-                    angle = random.random() * math.pi * 2
-                    speed = random.random() * 5
-                    self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
-                    self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
-                self.game.sparks.append(Spark(self.rect().center, 0, 5 + random.random()))
-                self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
-
-                #Create coins
-                spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
-                spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
-                
-                for _ in range(self.coinCount):
-                    self.game.coins.append(Coin(self.game, spawnLoc, self.coinValue))
+                self.kill(self.coinCount, self.coinValue, screenshakeValue = 10, intensity = self.deathIntensity)
                 return True
+
+                
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -251,6 +313,10 @@ class Player(physicsEntity):
 
         self.wall_slide = False
 
+        self.spark_timer = 0
+        self.spark_timer_max = 60
+        self.gravityAffected = True
+
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)
      
@@ -260,17 +326,30 @@ class Player(physicsEntity):
         if self.air_time > 180 and not self.wall_slide:
             # self.game.dead += 1
             pass
+        if self.spark_timer:
+            self.spark_timer = max(self.spark_timer - 1, 0)
         
 
         
         if self.collisions['down']:
-            if self.air_time > 10:
+            if self.air_time > 15 and not self.spark_timer and not self.game.transition and abs(self.dashing) > 10:
+                self.spark_timer = self.spark_timer_max
                 for _ in range(5):
                     angle = (random.random()) * math.pi
                     speed = random.random() * (2)
-                    self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
+                    extra = 2 if self.dashing else 0
+                    self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed + extra, color = (190, 200, 220)))
             self.air_time = 0
             self.jumps = self.total_jumps
+
+        if self.collisions['up'] and not self.spark_timer and self.dashing and not self.game.transition:
+            self.spark_timer = self.spark_timer_max
+            for _ in range(5):
+                angle = (random.random()) * math.pi
+                speed = random.random() * (2)
+                extra = 2 if self.dashing else 0
+                self.game.sparks.append(Spark((self.rect().centerx, self.rect().top), angle, speed + extra, color = (190, 200, 220)))
+          
 
         self.wall_slide = False
         if (self.collisions['left'] or self.collisions['right']) and self.air_time > 4:
@@ -284,6 +363,16 @@ class Player(physicsEntity):
 
             self.set_action('wall_slide')
             self.air_time = 5
+
+            
+            if self.dashing and not self.spark_timer and not self.game.transition:
+                self.spark_timer = self.spark_timer_max
+                for _ in range(5):
+                    angle = (random.random() - 0.5) * math.pi + (math.pi if self.collisions['right'] else 0)
+                    speed = random.random() * (2)
+                    extra = 2
+                    self.game.sparks.append(Spark(((self.rect().left if self.collisions['left'] else self.rect().right), self.rect().centery), angle, speed + extra, color = (190, 200, 220)))
+          
             
         if not self.wall_slide:
             if self.air_time > 4:
@@ -312,7 +401,7 @@ class Player(physicsEntity):
                 self.velocity[1] *= 0.1
             if self.game.transition < 1:
                 p_velocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
-                self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
+                self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=[movement[0] + random.random(), movement[1] + random.random()], frame = random.randint(0,7)))
 
         if abs(self.dashing) in {60, 50}:
             if self.game.transition < 1:
@@ -377,6 +466,7 @@ class Player(physicsEntity):
 
     def dash(self):
         if not self.dashing:
+            self.spark_timer = 0
             self.game.sfx['dash'].play()
             if self.flip_x:
                 self.dashing = -self.dash_dist
@@ -412,6 +502,7 @@ class Coin(physicsEntity):
         self.velocity = [(random.random()-0.5), -1.5]
         self.value = value
         self.size = list(size)
+        self.gravityAffected = True
         
 
         
@@ -423,7 +514,7 @@ class Coin(physicsEntity):
 
 
         #Check for player collision
-        if self.game.player.rect().colliderect(self.rect()) and self.game.player.dashing < 10:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 10:
             self.game.moneyThisRun += self.value
             return True
     
@@ -470,10 +561,13 @@ class Character(physicsEntity):
 
         self.walking = 0
         self.canTalk = True
+        self.newDialogue = False
+        self.gravityAffected = True
 
 
     def update(self, tilemap, movement = (0, 0)):        
         #Walking logic, turning around etc
+        
         if self.walking:
             if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
                 if (self.collisions['left'] or self.collisions['right']):
@@ -495,7 +589,7 @@ class Character(physicsEntity):
         else:
             self.set_action('idle')
 
-        if self.canTalk:
+        if self.canTalk and not self.game.transition:
             distToPlayer = math.dist(self.rect().center, self.game.player.rect().center)
             if distToPlayer < 15:
                 xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
@@ -505,6 +599,12 @@ class Character(physicsEntity):
                 if self.game.interractionFrame:
                     
                     self.game.run_text(self)
+            elif distToPlayer >= 15 and self.newDialogue:
+                xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
+                ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 15
+                
+                self.game.draw_text('(!)', (xpos, ypos), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
+                
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -530,8 +630,6 @@ class Character(physicsEntity):
         index = int(len(dialogue) / 2) - 1
         #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
         return(self.dialogue[str(index)], int(index))
-
-
 
 class Hilbert(Character):
     def __init__(self, game, pos, size):

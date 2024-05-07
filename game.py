@@ -48,6 +48,8 @@ class Game:
         self.maxTextCooldown = 30
         self.textCooldown = self.maxTextCooldown
         self.talkingTo = ''
+
+        self.availableEnemyVariants = [3, 4]
         self.dialogueHistory = {
             'Hilbert': {'0available': True,
                     '0said': False,
@@ -69,8 +71,9 @@ class Game:
             'grass': load_images('tiles/grass'),
             'large_decor': load_images('tiles/large_decor'),
             'stone': load_images('tiles/stone'),
-            'background': load_image('background.png'),
             'menuBackground': load_image('menuBackground.png'),
+            'menuBackgroundHH': load_image('menuBackgroundHH.png'),
+            'caveBackground': load_image('caveBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'guns': load_images('guns'),
@@ -80,10 +83,12 @@ class Game:
             'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
             'player/slide': Animation(load_images('entities/player/slide'), img_dur = 5),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
-            'enemy/idle': Animation(load_images('entities/enemy/idle'), img_dur = 10),
-            'enemy/run': Animation(load_images('entities/enemy/run'), img_dur = 4,),
-            'enemy/grace': Animation(load_images('entities/enemy/grace'), img_dur = 4),
-            'enemy/shooting': Animation(load_images('entities/enemy/shooting'), img_dur = 20, loop = False),
+            'gunguy/idle': Animation(load_images('entities/gunguy/idle'), img_dur = 10),
+            'gunguy/run': Animation(load_images('entities/gunguy/run'), img_dur = 4,),
+            'gunguy/grace': Animation(load_images('entities/gunguy/grace'), img_dur = 4),
+            'gunguy/shooting': Animation(load_images('entities/gunguy/shooting'), img_dur = 20, loop = False),
+            'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
+            'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
             'hilbert/idle': Animation(load_images('entities/hilbert/idle'), img_dur = 10),
             'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
             'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
@@ -127,6 +132,16 @@ class Game:
         self.nextLevel = newLevel
         self.transition += 1
 
+    def checkNewDialogue(self):
+        for character in self.characters:
+            dialogue = self.dialogueHistory[str(character.name)]
+            character.newDialogue = False
+            
+            for index in range(int(len(dialogue) / 2)):
+                if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
+                    character.newDialogue = True
+
+
     def update_dialogues(self):
         #Hilbert:
         if self.money >= 5:
@@ -158,9 +173,10 @@ class Game:
         self.characters = []
         self.spawner_list = [
             ('spawners', 0), #player
-            ('spawners', 1), #enemy
+            ('spawners', 1), #character
             ('spawners', 2), #portal
-            ('spawners', 3) #character
+            ('spawners', 3), #gunguy
+            ('spawners', 4) #bat
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
             
@@ -169,18 +185,21 @@ class Game:
                 self.player.pos = spawner['pos']
                 self.player.air_time = 0
 
-            #Enemy
+            #Character
             elif spawner['variant'] == 1:
-                self.enemies.append(Enemy(self, spawner['pos'], (8, 15)))
+                self.characters.append(Hilbert(self, spawner['pos'], (8,15)))
 
             #Portal
             elif spawner['variant'] == 2:
                 self.portals.append(Portal(self, spawner['pos'], (10,10)))
 
-            #Character
-            #Portal
+            #GunGuy
             elif spawner['variant'] == 3:
-                self.portals.append(Hilbert(self, spawner['pos'], (8,15)))
+                self.enemies.append(GunGuy(self, spawner['pos'], (8, 15)))
+            
+            #Bat
+            elif spawner['variant'] == 4:
+                self.enemies.append(Bat(self, spawner['pos'], (8, 15)))
 
 
         
@@ -193,6 +212,10 @@ class Game:
         self.screenshake = 0
         self.transition = -30
 
+        self.update_dialogues()
+        self.checkNewDialogue()
+        
+
 
     def loadMenu(self):
         
@@ -204,23 +227,32 @@ class Game:
         hoverSlot = 0
 
         selected = (200, 100, 100)
+        selected = (86, 31, 126)
         notSelected = (255, 255, 255)
+        savedFloors = self.getSavedFloors()
+        
 
         while inMenu:
 
 
-            background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
+            background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
             self.display_outline.blit(background, (0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
 
             #Displaying HUD:
             displaySlot = (hoverSlot % len(saveSlots))
-            self.draw_text('Welcome to Hilbert''s Hotel!', (self.screen_width / 2, self.screen_height / 2 - 90), self.text_font, notSelected, (0, 0), mode = 'center')   
-            self.draw_text('Please Select Your Room', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, notSelected, (0, 0), mode = 'center')   
-            # self.draw_text('Hint: Use the arrow keys and x', (self.screen_width / 2, 150), self.text_font, notSelected, (0, 0), scale = 0.75, mode = 'center')
-            self.draw_text('Room 0', (self.screen_width / 2 - 150, self.screen_height / 2), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
-            self.draw_text('Room 1', (self.screen_width / 2, self.screen_height / 2), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center')
-            self.draw_text('Room 2', (self.screen_width / 2 + 150, self.screen_height / 2), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
+            self.draw_text('Welcome to Hilbert''s Hotel!', (self.screen_width * (3/4), 60), self.text_font, notSelected, (0, 0), mode = 'center')   
+            # self.draw_text('Please Select Your Room', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, notSelected, (0, 0), mode = 'center')   
+            self.draw_text('Select Save with Arrow Keys and x', (self.screen_width * (3/4), 90), self.text_font, notSelected, (0, 0), scale = 0.75, mode = 'center')
+            
+            self.draw_text('Save 0', (self.screen_width * (3/4) - 120, 170), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
+            self.draw_text(str(savedFloors[0]), (self.screen_width * (3/4) - 120, 200), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
+            
+            self.draw_text('Save 1', (self.screen_width * (3/4), 170), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center')
+            self.draw_text(str(savedFloors[1]), (self.screen_width * (3/4), 200), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center', scale = 0.75)
+            
+            self.draw_text('Save 2', (self.screen_width * (3/4) + 120, 170), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
+            self.draw_text(str(savedFloors[2]), (self.screen_width * (3/4) + 120, 200), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center', scale = 0.75) 
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -265,7 +297,7 @@ class Game:
             self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
             #Background
-            background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
+            background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.display.blit(background, (0, 0))
             self.display_outline.fill((0, 0, 0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
@@ -366,6 +398,7 @@ class Game:
                 if self.currentTextIndex >= self.endTextIndex:
                     self.talking = False
                     self.paused = False
+                    self.checkNewDialogue()
                     
 
 
@@ -460,6 +493,9 @@ class Game:
         if mode == 'center':
             xAdj = img.get_width() / 2
             yAdj = img.get_height() / 2
+        elif mode == 'right':
+            xAdj = img.get_width()
+            yAdj = img.get_height()
         self.HUDdisplay.blit(img, (pos[0] - xAdj, pos[1] - yAdj))
 
     def run_text(self, character):
@@ -479,9 +515,27 @@ class Game:
                    'floor': self.floor,
                    'dialogue': self.dialogueHistory,
                    'difficulty': self.currentDifficulty,
-                   'mapSize': self.currentLevelSize}, f)
+                   'mapSize': self.currentLevelSize,
+                   'availableEnemyVariants': self.availableEnemyVariants}, f)
         
         f.close()
+
+    def getSavedFloors(self):
+        floorList = ['None', 'None', 'None']
+        for i in range(len(floorList)):
+            try:
+                f = open('data/saves/' + str(i), 'r')
+                saveData = json.load(f)
+                f.close()
+
+                floorList[i] = 'Floor: ' + str(saveData['floor'])
+                
+        
+            except FileNotFoundError:
+                pass
+        f.close()
+            
+        return floorList
 
     def load_game(self, saveSlot):
         try:
@@ -494,9 +548,10 @@ class Game:
             self.dialogueHistory = saveData['dialogue']
             self.currentDifficulty = saveData['difficulty']
             self.currentLevelSize = saveData['mapSize']
+            self.availableEnemyVariants = saveData['availableEnemyVariants']
             
 
-        except:
+        except FileNotFoundError:
             f = open('data/saves/' + str(saveSlot), 'w')
             json.dump({'totalMoney': self.money}, f)
             f.close()
