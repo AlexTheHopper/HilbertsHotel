@@ -154,6 +154,11 @@ class Bat(physicsEntity):
         if self.graceDone:
             super().update(tilemap, movement = movement)
 
+            ######BAT BEHAVIOR GOES HERE
+
+
+
+
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):

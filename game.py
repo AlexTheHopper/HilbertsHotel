@@ -533,7 +533,10 @@ class Game:
         
             except FileNotFoundError:
                 pass
-        f.close()
+        try:
+            f.close()
+        except UnboundLocalError:
+            pass
             
         return floorList
 
