@@ -12,9 +12,9 @@ class Cloud:
 
     def render(self, surface, offset = (0, 0)):
         
-        render_pos = (self.pos[0] - offset[0] * self.depth, self.pos[1] - offset[1] * self.depth)
-        looped_posx = render_pos[0] % (surface.get_width() + self.img.get_width()) - self.img.get_width()
-        looped_posy = render_pos[1] % (surface.get_height() + self.img.get_height()) - self.img.get_height()
+        # render_pos = (self.pos[0] - offset[0] * self.depth, self.pos[1] - offset[1] * self.depth)
+        looped_posx = self.pos[0] % (surface.get_width() + self.img.get_width()) - self.img.get_width()
+        looped_posy = self.pos[1] % (surface.get_height() + self.img.get_height()) - self.img.get_height()
         surface.blit(self.img, (looped_posx, looped_posy))
 
 class Clouds:
@@ -22,10 +22,10 @@ class Clouds:
         self.clouds = []
         for _ in range(count):
 
-            newCloudX = random.random() * 10000
-            newCloudY = random.random() * 10000
+            newCloudX = random.random() * 1080
+            newCloudY = random.random() * 360
             newCloudImg = random.choice(cloud_images)
-            newCloudSpeed = random.random() * 0.05 + 0.05
+            newCloudSpeed = random.random() * 0.1 + 0.05
             newCloudDepth = random.random() * 0.6 + 0.2
 
             newCloud = Cloud((newCloudX, newCloudY), newCloudImg, newCloudSpeed, newCloudDepth)
@@ -36,6 +36,7 @@ class Clouds:
     def update(self):
         for cloud in self.clouds:
             cloud.update()
+            
 
     def render(self, surface, offset = (0, 0)):
         for cloud in self.clouds:

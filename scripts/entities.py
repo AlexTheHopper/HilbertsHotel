@@ -3,6 +3,7 @@ import sys
 import math
 import random
 import numpy as np
+
 from scripts.particle import *
 from scripts.spark import *
 from scripts.utilities import *
@@ -89,9 +90,10 @@ class physicsEntity:
         if self.gravityAffected:
             self.velocity[1] = min(self.velocity[1] + self.gravity, self.terminal_vel)
 
-        #Reset velocity if vertically hit tile
-        if self.collisions['up'] or self.collisions['down']:
+        #Reset velocity if vertically hit tile if affected by gravity:
+        if (self.collisions['up'] or self.collisions['down']) and self.gravityAffected:
             self.velocity[1] = 0
+            
 
 
         self.animation.update()
@@ -100,6 +102,7 @@ class physicsEntity:
     def render(self, surface, offset = (0, 0)):
         posx = self.pos[0] - offset[0] + self.anim_offset[0]
         posy = self.pos[1] - offset[1] + self.anim_offset[1]
+        
         
         surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
 
@@ -133,6 +136,7 @@ class Bat(physicsEntity):
 
         self.coinCount = 3
         self.coinValue = 1
+        self.attackPower = 1
 
         self.deathIntensity = 5
 
@@ -141,29 +145,97 @@ class Bat(physicsEntity):
         self.grace = random.randint(90,210)
         self.graceDone = False
         self.set_action('grace')
+        self.isAttacking = False
+        self.anim_offset = (0, 0)
+        self.timer = 0
+        self.slingTimer = 0
+
+        self.toPlayer = [0, 0]
+        self.pos[0] += 5
+        self.pos[1] += 5
+    
+        
+
+        
 
     def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
 
         if not self.graceDone:
             self.grace = max(0, self.grace - 1)
             if self.grace == 0:
                 self.set_action('idle')
                 self.graceDone = True
+                
             self.animation.update()
 
         if self.graceDone:
-            super().update(tilemap, movement = movement)
+            
+            
+           
 
-            ######BAT BEHAVIOR GOES HERE
+
+            if self.action == 'idle':
+                self.timer = max(self.timer - 1, 0)
+
+                self.velocity[0] *= 0.99
+                self.velocity[1] *= 0.99
+
+                if not self.timer:
+                    
+                    self.set_action('charging')
+                    toPlayer = (self.game.player.pos[0] - self.pos[0] + 4, self.game.player.pos[1] - self.pos[1] + 5)
+                    self.toPlayer = toPlayer / np.linalg.norm(toPlayer) 
+                    self.timer = random.randint(120,250)
+                    self.slingTimer = random.randint(60,90)
+
+            elif self.action == 'charging':
+                self.slingTimer = max(self.slingTimer - 1, 0)
+                self.velocity[0] = -self.toPlayer[0] * 0.15
+                self.velocity[1] = -self.toPlayer[1] * 0.15
+
+                if self.slingTimer == 0:
+                    self.velocity[0] = self.toPlayer[0]
+                    self.velocity[1] = self.toPlayer[1]
+                    self.set_action('attacking')
 
 
 
+            elif self.action == 'attacking':
+                self.timer = max(self.timer - 1, 0)
+
+                if not self.timer:
+                    self.set_action('idle')
+                    self.timer = random.randint(120,180)
+                        
+                        
+
+
+            if not self.slingTimer:
+                if self.collisions['up'] or self.collisions['down']:
+                    self.velocity[1] = -self.velocity[1] * 0.9
+                elif self.collisions['left'] or self.collisions['right']:
+                    self.velocity[0] = -self.velocity[0] * 0.9
+                    
 
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
                 self.kill(self.coinCount, self.coinValue, screenshakeValue = 10, intensity = self.deathIntensity)
                 return True
+            
+        #Also dies if hit by bullet:
+        for projectile in self.game.projectiles:
+            if self.rect().collidepoint(projectile.pos):
+                self.kill(self.coinCount, self.coinValue, screenshakeValue = 10, intensity = self.deathIntensity)
+                self.game.projectiles.remove(projectile)
+                return True
+
+        
+        #Check for player collision, not dashing and in attack mode:
+        if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50 and self.action == 'attacking':
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower)
 
 
     def render(self, surface, offset = (0, 0)):
@@ -174,7 +246,7 @@ class GunGuy(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'gunguy', pos, size)
 
-        self.coinCount = 1
+        self.coinCount = random.randint(1,3)
         self.coinValue = 1
 
         self.deathIntensity = 5
@@ -204,6 +276,12 @@ class GunGuy(physicsEntity):
                 self.set_action('idle')
                 self.graceDone = True
             self.animation.update()
+
+
+        if self.velocity[0] > 0:
+            self.velocity[0] = max(self.velocity[0] - 0.1, 0)
+        else:
+            self.velocity[0] = min(self.velocity[0] + 0.1, 0)
            
             
         if self.graceDone:
@@ -213,7 +291,7 @@ class GunGuy(physicsEntity):
                 self.gunIndex = math.ceil(self.shootCountdown / 20)
                 
                 if not self.shootCountdown:
-                    # dist = self.game.player.pos[0] - self.pos[0]
+                    
                     
                     if self.flip_x:
                             self.game.sfx['shoot'].play()
@@ -228,13 +306,38 @@ class GunGuy(physicsEntity):
                     
 
             elif self.walking:
-                # if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
-                if (self.collisions['left'] or self.collisions['right']):
+                #Check jump condition, tilemap infront and above:
+                inFront = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery))
+                above = tilemap.solid_check((self.rect().centerx, self.rect().centery - 8))
+                
+                if inFront and not above and self.collisions['down']:
+                    aboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 16))
+                    aboveAboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 32))
+
+                    #Check jump 2 space:
+                    aboveAbove = tilemap.solid_check((self.rect().centerx, self.rect().centery - 32))
+                    if not above and not aboveAbove and not aboveAboveSide and aboveSide:
+                        self.set_action('jump')
+                        self.velocity[1] = -3
+                        self.velocity[0] =(-0.5 if self.flip_x else 0.5)
+                       
+
+
+                    #Jump one space
+                    elif not aboveSide:
+                        self.set_action('jump')
+                        self.velocity[1] = -2
+                        self.velocity[0] =(-0.5 if self.flip_x else 0.5)
+                        
+
+
+
+
+                if (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
                     self.flip_x = not self.flip_x
                 else:
                     movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
-                # else:
-                #     self.flip_x = not self.flip_x
+               
                 self.walking = max(self.walking - 1, 0)
 
                 #Attack condition
@@ -258,7 +361,10 @@ class GunGuy(physicsEntity):
             super().update(tilemap, movement = movement)
 
             #Setting animation type
-            if self.action != 'shooting':
+            if self.action == 'jump':
+                if self.collisions['down']:
+                    self.set_action('idle')
+            if self.action not in ['shooting', 'jump']:
                 if movement[0] != 0:
                     self.set_action('run')
                     
@@ -306,7 +412,6 @@ class Portal(physicsEntity):
                 self.game.transitionToLevel('lobby')
                 
             
-
 class Player(physicsEntity):
 
     def __init__(self, game, pos, size):
@@ -337,12 +442,12 @@ class Player(physicsEntity):
 
         
         if self.collisions['down']:
-            if self.air_time > 15 and not self.spark_timer and not self.game.transition and abs(self.dashing) > 10:
+            if self.air_time > 20 and not self.spark_timer and not self.game.transition:
                 self.spark_timer = self.spark_timer_max
                 for _ in range(5):
                     angle = (random.random()) * math.pi
                     speed = random.random() * (2)
-                    extra = 2 if self.dashing else 0
+                    extra = 2 if abs(self.dashing) > 40 else 0
                     self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed + extra, color = (190, 200, 220)))
             self.air_time = 0
             self.jumps = self.total_jumps
@@ -552,9 +657,6 @@ class Bullet():
         if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50:
             if not self.game.dead:
                 self.game.player.damage(self.attackPower)
-                
-
-                
                 return True
         
 class Character(physicsEntity):

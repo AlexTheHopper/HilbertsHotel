@@ -9,6 +9,7 @@ def load_image(path):
     return img
 
 def load_images(path):
+    
     images = [load_image(path + '/' + img_name) for img_name in sorted(os.listdir(BASE_PATH + path))]
     
     return images

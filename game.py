@@ -21,7 +21,7 @@ class Game:
         pygame.init()
         pygame.display.set_caption('Hilbert''s Hotel')
 
-        self.text_font = pygame.font.SysFont('Comic Sans MS', 30)
+        self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
 
         self.screen = pygame.display.set_mode((self.screen_width,self.screen_height))
@@ -49,7 +49,13 @@ class Game:
         self.textCooldown = self.maxTextCooldown
         self.talkingTo = ''
 
-        self.availableEnemyVariants = [3, 4]
+        self.availableEnemyVariants = {
+            '3': 1, #Gunguy
+            '4': 3  #Bat
+        }
+
+
+
         self.dialogueHistory = {
             'Hilbert': {'0available': True,
                     '0said': False,
@@ -73,6 +79,7 @@ class Game:
             'stone': load_images('tiles/stone'),
             'menuBackground': load_image('menuBackground.png'),
             'menuBackgroundHH': load_image('menuBackgroundHH.png'),
+            'menuBackgroundHHForeground': load_image('menuBackgroundHHForeground3.png'),
             'caveBackground': load_image('caveBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
@@ -87,8 +94,11 @@ class Game:
             'gunguy/run': Animation(load_images('entities/gunguy/run'), img_dur = 4,),
             'gunguy/grace': Animation(load_images('entities/gunguy/grace'), img_dur = 4),
             'gunguy/shooting': Animation(load_images('entities/gunguy/shooting'), img_dur = 20, loop = False),
+            'gunguy/jump': Animation(load_images('entities/gunguy/jump'), img_dur = 20),
             'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
             'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
+            'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
+            'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 10, loop = False),
             'hilbert/idle': Animation(load_images('entities/hilbert/idle'), img_dur = 10),
             'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
             'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
@@ -121,107 +131,13 @@ class Game:
         #Initialise map 
         self.player = Player(self, (50, 50), (8, 15))
         self.tilemap = tileMap(self, tile_size = 16)
-        # self.clouds = Clouds(self.assets['clouds'], count = 20)
-
         
-        
-    def transitionToLevel(self, newLevel):
-        if not self.dead:
-            self.money += self.moneyThisRun
-        self.moneyThisRun = 0
-        self.nextLevel = newLevel
-        self.transition += 1
-
-    def checkNewDialogue(self):
-        for character in self.characters:
-            dialogue = self.dialogueHistory[str(character.name)]
-            character.newDialogue = False
-            
-            for index in range(int(len(dialogue) / 2)):
-                if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
-                    character.newDialogue = True
-
-
-    def update_dialogues(self):
-        #Hilbert:
-        if self.money >= 5:
-            self.dialogueHistory['Hilbert']['1available'] = True
-        if self.money >= 50:
-            self.dialogueHistory['Hilbert']['2available'] = True
-        if self.money >= 100:
-            self.dialogueHistory['Hilbert']['3available'] = True
-        
-    def load_level(self):
-        
-        #Save game:
-        self.save_game(self.saveSlot)
-
-        self.particles = []
-        self.projectiles = []
-        self.coins = []
-        self.sparks = []
-        self.health = self.maxHealth
-        self.moneyThisRun = 0
-        #Spawn in dust particle spawners
-        self.dust_spawners = []
-        for dust in self.tilemap.extract([('large_decor', 3)], keep = True):
-            self.dust_spawners.append(pygame.Rect(dust['pos'][0],dust['pos'][1], 16, 16))
-
-        #Spawn in entities
-        self.enemies = []
-        self.portals = []
-        self.characters = []
-        self.spawner_list = [
-            ('spawners', 0), #player
-            ('spawners', 1), #character
-            ('spawners', 2), #portal
-            ('spawners', 3), #gunguy
-            ('spawners', 4) #bat
-        ]
-        for spawner in self.tilemap.extract(self.spawner_list):
-            
-            #Player
-            if spawner['variant'] == 0:
-                self.player.pos = spawner['pos']
-                self.player.air_time = 0
-
-            #Character
-            elif spawner['variant'] == 1:
-                self.characters.append(Hilbert(self, spawner['pos'], (8,15)))
-
-            #Portal
-            elif spawner['variant'] == 2:
-                self.portals.append(Portal(self, spawner['pos'], (10,10)))
-
-            #GunGuy
-            elif spawner['variant'] == 3:
-                self.enemies.append(GunGuy(self, spawner['pos'], (8, 15)))
-            
-            #Bat
-            elif spawner['variant'] == 4:
-                self.enemies.append(Bat(self, spawner['pos'], (8, 15)))
-
-
-        
-
-        self.dead = False
-        self.player.velocity = [0, 0]
-        self.player.set_action('idle')
-        
-        self.scroll = [0, 0]
-        self.screenshake = 0
-        self.transition = -30
-
-        self.update_dialogues()
-        self.checkNewDialogue()
-        
-
-
     def loadMenu(self):
         
         self.sfx['ambience'].play(-1)
 
         inMenu = True
+        self.scroll = [0, 0]
 
         saveSlots = [0, 1, 2]
         hoverSlot = 0
@@ -229,21 +145,35 @@ class Game:
         selected = (200, 100, 100)
         selected = (86, 31, 126)
         notSelected = (255, 255, 255)
+        notSelected = (1, 1, 1)
         savedFloors = self.getSavedFloors()
+
+        self.clouds = Clouds(self.assets['clouds'], count = 20)
         
 
         while inMenu:
+
+            self.scroll[0] += (self.screen_width / 2)
+            self.scroll[1] += (self.screen_height / 2)
+            self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
 
             background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
             self.display_outline.blit(background, (0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
 
+            self.clouds.update()
+            self.clouds.render(self.display_outline, offset = self.render_scroll)
+
+            foreground = pygame.transform.scale(self.assets['menuBackgroundHHForeground'], (self.screen_width / 2, self.screen_height / 2))
+            self.display_outline.blit(foreground, (0, 0))
+            
+
             #Displaying HUD:
             displaySlot = (hoverSlot % len(saveSlots))
-            self.draw_text('Welcome to Hilbert''s Hotel!', (self.screen_width * (3/4), 60), self.text_font, notSelected, (0, 0), mode = 'center')   
+            self.draw_text('Hilbert\'s Hotel', (self.screen_width * (3/4), 60), self.text_font, selected, (0, 0), mode = 'center')   
             # self.draw_text('Please Select Your Room', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, notSelected, (0, 0), mode = 'center')   
-            self.draw_text('Select Save with Arrow Keys and x', (self.screen_width * (3/4), 90), self.text_font, notSelected, (0, 0), scale = 0.75, mode = 'center')
+            # self.draw_text('Select Save with Arrow Keys and x', (self.screen_width * (3/4), 100), self.text_font, notSelected, (0, 0), scale = 0.75, mode = 'center')
             
             self.draw_text('Save 0', (self.screen_width * (3/4) - 120, 170), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
             self.draw_text(str(savedFloors[0]), (self.screen_width * (3/4) - 120, 200), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
@@ -306,8 +236,8 @@ class Game:
 
             #RENDER AND UPDATE ALL THE THINGS
 
-            # self.clouds.update()
-            # self.clouds.render(self.display, offset = self.render_scroll)
+            
+
             for portal in self.portals:
                 if not self.paused:
                     portal.update(self.tilemap)
@@ -319,6 +249,7 @@ class Game:
                 self.player.render(self.display_outline, offset = self.render_scroll)
             
             for enemy in self.enemies.copy():
+                
                 enemy.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if enemy.update(self.tilemap, (0, 0)):
@@ -355,7 +286,6 @@ class Game:
                     self.sparks.remove(spark)
 
             
-
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
             for offset in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -558,6 +488,98 @@ class Game:
             f = open('data/saves/' + str(saveSlot), 'w')
             json.dump({'totalMoney': self.money}, f)
             f.close()
+
+            
+    def transitionToLevel(self, newLevel):
+        if not self.dead:
+            self.money += self.moneyThisRun
+        self.moneyThisRun = 0
+        self.nextLevel = newLevel
+        self.transition += 1
+
+    def checkNewDialogue(self):
+        for character in self.characters:
+            dialogue = self.dialogueHistory[str(character.name)]
+            character.newDialogue = False
+            
+            for index in range(int(len(dialogue) / 2)):
+                if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
+                    character.newDialogue = True
+
+    def update_dialogues(self):
+        #Hilbert:
+        if self.money >= 5:
+            self.dialogueHistory['Hilbert']['1available'] = True
+        if self.money >= 50:
+            self.dialogueHistory['Hilbert']['2available'] = True
+        if self.money >= 100:
+            self.dialogueHistory['Hilbert']['3available'] = True
+        
+    def load_level(self):
+        
+        #Save game:
+        self.save_game(self.saveSlot)
+
+        self.particles = []
+        self.projectiles = []
+        self.coins = []
+        self.sparks = []
+        self.health = self.maxHealth
+        self.moneyThisRun = 0
+
+        #Spawn in dust particle spawners
+        self.dust_spawners = []
+        for dust in self.tilemap.extract([('large_decor', 3)], keep = True):
+            self.dust_spawners.append(pygame.Rect(dust['pos'][0],dust['pos'][1], 16, 16))
+
+        #Spawn in entities
+        self.enemies = []
+        self.portals = []
+        self.characters = []
+        self.spawner_list = [
+            ('spawners', 0), #player
+            ('spawners', 1), #character
+            ('spawners', 2), #portal
+            ('spawners', 3), #gunguy
+            ('spawners', 4) #bat
+        ]
+        for spawner in self.tilemap.extract(self.spawner_list):
+            
+            #Player
+            if spawner['variant'] == 0:
+                self.player.pos = spawner['pos']
+                self.player.air_time = 0
+
+            #Character
+            elif spawner['variant'] == 1:
+                self.characters.append(Hilbert(self, spawner['pos'], (8,15)))
+
+            #Portal
+            elif spawner['variant'] == 2:
+                self.portals.append(Portal(self, spawner['pos'], (10,10)))
+
+            #GunGuy
+            elif spawner['variant'] == 3:
+                self.enemies.append(GunGuy(self, spawner['pos'], (8, 15)))
+                
+            #Bat
+            elif spawner['variant'] == 4:
+                self.enemies.append(Bat(self, spawner['pos'], (6, 6)))
+                
+
+        
+
+        self.dead = False
+        self.player.velocity = [0, 0]
+        self.player.set_action('idle')
+        
+        self.scroll = [0, 0]
+        self.screenshake = 0
+        self.transition = -30
+
+        self.update_dialogues()
+        self.checkNewDialogue()
+        
 
             
 

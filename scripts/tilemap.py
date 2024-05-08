@@ -104,8 +104,8 @@ class tileMap:
         corridorLengthMin = 5
         corridorLengthMax = int(size / 2)
 
-        horBuffer = game.screen_height // (self.tile_size * 4)
-        vertBuffer = game.screen_width // (self.tile_size * 4) + 5
+        horBuffer = game.screen_height // (self.tile_size * 4) + 4
+        vertBuffer = game.screen_width // (self.tile_size * 4) + 4
         mapHeight = int(size + 2 * vertBuffer) 
         mapWidth = int(size + 2 * horBuffer) 
 
@@ -187,13 +187,15 @@ class tileMap:
                         portal_placed = True
                     
                     elif random.random() < 0.5 and locUnderRight in self.tilemap and locRight not in self.tilemap:
-                        if self.tilemap[locUnder]['type'] in PHYSICS_TILES:
+                        if self.tilemap[locUnder]['type'] in PHYSICS_TILES and self.tilemap[locUnderRight]['type'] in PHYSICS_TILES:
                             to_add = {'type': 'large_decor', 'variant': 0, 'pos': [x * self.tile_size + random.randint(-4,4), y * self.tile_size + self.tile_size / 2 + random.randint(0,6)]}
                             self.offgrid_tiles.append(to_add)
+
+                    #Add enemies:
                     else:
-                        variant = random.choice(self.game.availableEnemyVariants)
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': variant, 'pos': [x, y]}
-                        difficultyProgress += 1
+                        variant, enemyDifficulty = random.choice(list(self.game.availableEnemyVariants.items()))
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
+                        difficultyProgress += enemyDifficulty
 
             elif loc in self.tilemap and locUnder not in self.tilemap and random.random() < 0.1:
                 to_add = {'type': 'large_decor', 'variant': 3, 'pos': [x * self.tile_size, (y+1) * self.tile_size]}
