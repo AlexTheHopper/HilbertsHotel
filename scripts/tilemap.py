@@ -101,7 +101,7 @@ class tileMap:
         vertexNum = int(size / 2)
         roomCount = int((size / 5) ** 1.3)
         roomSize = size
-        corridorLengthMin = 5
+        corridorLengthMin = int(size / 4)
         corridorLengthMax = int(size / 2)
 
         horBuffer = game.screen_height // (self.tile_size * 4) + 4

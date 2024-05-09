@@ -99,12 +99,13 @@ class physicsEntity:
         self.animation.update()
         
 
-    def render(self, surface, offset = (0, 0)):
+    def render(self, surface, offset = (0, 0), rotation = 0):
         posx = self.pos[0] - offset[0] + self.anim_offset[0]
         posy = self.pos[1] - offset[1] + self.anim_offset[1]
         
         
-        surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
+        image = pygame.transform.rotate(self.animation.img(), rotation)
+        surface.blit(pygame.transform.flip(image, self.flip_x, False), (posx, posy))
 
 
 
@@ -151,8 +152,8 @@ class Bat(physicsEntity):
         self.slingTimer = 0
 
         self.toPlayer = [0, 0]
-        self.pos[0] += 5
-        self.pos[1] += 5
+        self.pos[0] += 2
+        self.pos[1] += 8
     
         
 
@@ -165,49 +166,47 @@ class Bat(physicsEntity):
             self.grace = max(0, self.grace - 1)
             if self.grace == 0:
                 self.set_action('idle')
+                self.timer = random.randint(180,500)
+                self.velocity = [random.random(), random.random()]
                 self.graceDone = True
                 
             self.animation.update()
 
         if self.graceDone:
-            
-            
-           
-
-
             if self.action == 'idle':
                 self.timer = max(self.timer - 1, 0)
 
-                self.velocity[0] *= 0.99
-                self.velocity[1] *= 0.99
+                if np.linalg.norm(self.velocity) > 5:
+                    self.velocity[0] *= 0.99
+                    self.velocity[1] *= 0.99
 
                 if not self.timer:
                     
                     self.set_action('charging')
                     toPlayer = (self.game.player.pos[0] - self.pos[0] + 4, self.game.player.pos[1] - self.pos[1] + 5)
                     self.toPlayer = toPlayer / np.linalg.norm(toPlayer) 
-                    self.timer = random.randint(120,250)
-                    self.slingTimer = random.randint(60,90)
+                    self.timer = random.randint(90,120)
+                    
 
             elif self.action == 'charging':
-                self.slingTimer = max(self.slingTimer - 1, 0)
+                self.timer = max(self.timer - 1, 0)
                 self.velocity[0] = -self.toPlayer[0] * 0.15
                 self.velocity[1] = -self.toPlayer[1] * 0.15
 
-                if self.slingTimer == 0:
-                    self.velocity[0] = self.toPlayer[0]
-                    self.velocity[1] = self.toPlayer[1]
+                if self.timer == 0:
+                    self.velocity[0] = self.toPlayer[0] * 2
+                    self.velocity[1] = self.toPlayer[1] * 2
+                    self.timer = 120
                     self.set_action('attacking')
 
 
 
             elif self.action == 'attacking':
                 self.timer = max(self.timer - 1, 0)
-
-                if not self.timer:
+                if any(self.collisions.values()) and not self.timer:
                     self.set_action('idle')
-                    self.timer = random.randint(120,180)
-                        
+                    self.timer = random.randint(180,500)
+                  
                         
 
 
@@ -308,7 +307,7 @@ class GunGuy(physicsEntity):
             elif self.walking:
                 #Check jump condition, tilemap infront and above:
                 inFront = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery))
-                above = tilemap.solid_check((self.rect().centerx, self.rect().centery - 8))
+                above = tilemap.solid_check((self.rect().centerx, self.rect().centery - 16))
                 
                 if inFront and not above and self.collisions['down']:
                     aboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 16))
@@ -321,17 +320,12 @@ class GunGuy(physicsEntity):
                         self.velocity[1] = -3
                         self.velocity[0] =(-0.5 if self.flip_x else 0.5)
                        
-
-
                     #Jump one space
                     elif not aboveSide:
                         self.set_action('jump')
                         self.velocity[1] = -2
                         self.velocity[0] =(-0.5 if self.flip_x else 0.5)
-                        
-
-
-
+                    
 
                 if (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
                     self.flip_x = not self.flip_x
@@ -341,7 +335,7 @@ class GunGuy(physicsEntity):
                 self.walking = max(self.walking - 1, 0)
 
                 #Attack condition
-                if not self.walking:
+                if not self.walking or (random.random() < 0.01 and not self.shootCountdown):
                     disty = self.game.player.pos[1] - self.pos[1]
                     distx = self.game.player.pos[0] - self.pos[0]
                     #Y axis condition:
@@ -383,14 +377,15 @@ class GunGuy(physicsEntity):
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
 
-        if self.flip_x:
-            xpos = self.rect().centerx - 2 - self.game.assets['guns'][self.gunIndex].get_width() - offset[0]
-            ypos = self.rect().centery - offset[1]
-            surface.blit(pygame.transform.flip(self.game.assets['guns'][self.gunIndex], True, False), (xpos, ypos))
-        else:
-            xpos = self.rect().centerx + 2 - offset[0]
-            ypos = self.rect().centery - offset[1]
-            surface.blit(self.game.assets['guns'][self.gunIndex], (xpos, ypos))
+        if self.action != 'grace':
+            if self.flip_x:
+                xpos = self.rect().centerx - 2 - self.game.assets['guns'][self.gunIndex].get_width() - offset[0]
+                ypos = self.rect().centery - offset[1]
+                surface.blit(pygame.transform.flip(self.game.assets['guns'][self.gunIndex], True, False), (xpos, ypos))
+            else:
+                xpos = self.rect().centerx + 2 - offset[0]
+                ypos = self.rect().centery - offset[1]
+                surface.blit(self.game.assets['guns'][self.gunIndex], (xpos, ypos))
 
 class Portal(physicsEntity):
     def __init__(self, game, pos, size):
@@ -418,7 +413,7 @@ class Player(physicsEntity):
         super().__init__(game, 'player', pos, size)
         self.air_time = 0
 
-        self.total_jumps = 2
+        self.total_jumps = 1
         self.jumps = self.total_jumps
 
         self.wall_slide = False
@@ -538,28 +533,18 @@ class Player(physicsEntity):
 
     def jump(self):
         if self.wall_slide:
-            self.velocity[1] = -2.5
+            self.velocity[1] = -2.3
             self.air_time = 5
             self.jumps = max(0, self.jumps - 1)
 
-            if self.flip_x and self.last_movement[0] < 0:
-                self.velocity[0] = 1.5
-                for _ in range(5):
-                        angle = (random.random() + 2) * (math.pi / 4)
-                        speed = random.random() * (2)
-                       
-                        self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
-                return True
-
-
-            elif not self.flip_x and self.last_movement[0] > 0:
-                self.velocity[0] = -1.5
-                for _ in range(5):
-                        angle = (random.random() + 1) * (math.pi / 4)
-                        
-                        speed = random.random() * (2)
-                        self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
-                return True
+            self.velocity[0] = -1.5 + 3*self.flip_x
+            for _ in range(5):
+                    angle = (random.random() + 1 + self.flip_x) * (math.pi / 4)
+                    speed = random.random() * (2)
+                    
+                    self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
+            return True
+   
                
 
 
@@ -603,6 +588,19 @@ class Player(physicsEntity):
                     speed = random.random() * 5
                     self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
                     self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+    
+    def getClosestEnemyAngle(self):
+        if len(self.game.enemies) > 0:
+            dist = 10000
+            outputVector = [0, 0]
+
+            for enemy in self.game.enemies:
+                direction = [int(enemy.pos[0] - self.pos[0]), int(enemy.pos[1] - self.pos[1])]
+                if np.linalg.norm(direction) < dist:
+                        dist = np.linalg.norm(direction)
+                        outputVector = direction
+            outputVector /= np.linalg.norm(outputVector)
+        return outputVector
 
 class Coin(physicsEntity):
     def __init__(self, game, pos, value, size = (6,6)):
@@ -626,6 +624,7 @@ class Coin(physicsEntity):
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 10:
             self.game.moneyThisRun += self.value
+            self.game.sfx['coin'].play()
             return True
     
     def render(self, surface, offset = (0, 0)):
@@ -745,16 +744,31 @@ class Hilbert(Character):
         self.dialogue = {
             '0': ['Oh no! Our hotel was attacked!',
                     'The whole thing has collapsed into the ground!',
-                    'Please help us make it safe again!',
-                    'By getting 5 moneys for me!'],
-            '1': ['Thanks for getting some money woow!',
-                    'Now go get 50 pls',
-                    'The maps should now be bigger and harder :)'],
-            '2': ['Amazing job wow!',
-                    'Now go get 100 pls',
-                    'Again, bigger and harder :)'],
-            '3': ['phenomenal work, my little slave',
-                    'thanks a bunch, now the maps are huge!']  }
+                    'Pretty please help me get to The Penthouse.',
+                    'Up there is a powerful weapon that we can use!',
+                    'It will surely be enough to get rid of the intruders!',
+                    'I usually use my portal elevator, but they broke it,',
+                    'and now its only good for going up one floor at a time!',
+                    'If you bring me some money I can try to fix it!'],
+
+            '1': ['I swear I left a bunch of money around on each floor.',
+                  'Im too scared, go get it for me!',
+                  'Oh and you can do a lil attack with your x key.',
+                  'That should help if you run into any danger.',
+                  'I am gonna need about 5 coins to start these repairs.'],
+
+            '2': ['Thanks for getting some money woow!',
+                    'I just realised I actually need another 50 though.',
+                    'Be careful! The floors get bigger as you ascend!',
+                    'Which makes no structural sense, I dont know how it works!'],
+
+            '3': ['Amazing job wow!',
+                    'Really sorry but I still need 100 more moneys.',
+                    'I think I heard some bats around earlier, watch out for them.',
+                    'They fly around and suddenly go AHHH at you, ya know?'],
+
+            '4': ['Phenomenal work, my little slave!!',
+                    'I dont know what else to do but please keep exploring!']  }
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -766,21 +780,26 @@ class Hilbert(Character):
         return super().getConversation()
 
     def conversationAction(self, key):
-        #Runs when dialogue matching key is said
-        
-        if key == 1 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 10
-            self.game.currentLevelSize = 20
-            self.game.money -= 5
+        #Runs when dialogue matching key is said for thr first time.
+
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.dialogueHistory[self.name]['1available'] = True
 
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 20
+            self.game.currentDifficulty = 5
             self.game.currentLevelSize = 30
-            self.game.money -= 50
-            
+            self.game.money -= 5
+
         elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 50
+            self.game.currentDifficulty = 20
             self.game.currentLevelSize = 50
+            self.game.money -= 50
+
+            self.game.availableEnemyVariants['4'] = 3
+            
+        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.currentDifficulty = 50
+            self.game.currentLevelSize = 75
             self.game.money -= 100
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True

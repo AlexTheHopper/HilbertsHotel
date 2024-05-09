@@ -49,9 +49,10 @@ class Game:
         self.textCooldown = self.maxTextCooldown
         self.talkingTo = ''
 
+
         self.availableEnemyVariants = {
             '3': 1, #Gunguy
-            '4': 3  #Bat
+            # '4': 3  #Bat
         }
 
 
@@ -64,7 +65,9 @@ class Game:
                     '2available': False,
                     '2said': False,
                     '3available': False,
-                    '3said': False}
+                    '3said': False,
+                    '4available': False,
+                    '4said': False}
         }
         
        
@@ -98,7 +101,7 @@ class Game:
             'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
             'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
             'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
-            'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 10, loop = False),
+            'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 20, loop = False),
             'hilbert/idle': Animation(load_images('entities/hilbert/idle'), img_dur = 10),
             'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
             'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
@@ -115,13 +118,15 @@ class Game:
            'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
            'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
            'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
-           'ambience': pygame.mixer.Sound('data/sfx/ambience.wav')
+           'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
+           'coin': pygame.mixer.Sound('data/sfx/coin.wav')
        }
         
         self.sfx['jump'].set_volume(0.7)
         self.sfx['dash'].set_volume(0.3)
         self.sfx['hit'].set_volume(0.8)
         self.sfx['shoot'].set_volume(0.4)
+        self.sfx['coin'].set_volume(0.6)
         self.sfx['ambience'].set_volume(0.2)
         
         #Set player values:
@@ -235,9 +240,6 @@ class Game:
             self.screenshake = max(0, self.screenshake - 1)
 
             #RENDER AND UPDATE ALL THE THINGS
-
-            
-
             for portal in self.portals:
                 if not self.paused:
                     portal.update(self.tilemap)
@@ -284,6 +286,8 @@ class Game:
                 spark.render(self.display_outline, offset = self.render_scroll)
                 if kill:
                     self.sparks.remove(spark)
+            
+
 
             
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
@@ -299,17 +303,17 @@ class Game:
                 if kill:
                     self.particles.remove(particle)  
 
-             
+            
             #Displaying HUD:
             self.draw_text('Enemies: ' + str(len(self.enemies)), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Money: ' + str(self.money) + ' + ('+str(self.moneyThisRun)+')', (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Health: ' + str(self.health), (0, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            self.draw_text('Difficulty: ' + str(self.currentDifficulty), (500, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            self.draw_text('Map Size: ' + str(self.currentLevelSize), (500, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            # self.draw_text('Difficulty: ' + str(self.currentDifficulty), (500, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            # self.draw_text('Map Size: ' + str(self.currentLevelSize), (500, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             if self.currentLevel != 'lobby':
-                self.draw_text('Floor: ' + str(self.floor), (500, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+                self.draw_text('Floor: ' + str(self.floor), (0, 90), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             else:
-                self.draw_text('Floor: Lobby', (500, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+                self.draw_text('Floor: Lobby', (0, 90), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')        
            
@@ -375,9 +379,10 @@ class Game:
                     if event.key == pygame.K_ESCAPE:
                         if not self.talking:
                             self.paused = not self.paused
+
                     if event.key == pygame.K_r:
                         self.transitionToLevel(self.currentLevel)
-
+                    
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
@@ -451,7 +456,7 @@ class Game:
         f.close()
 
     def getSavedFloors(self):
-        floorList = ['None', 'None', 'None']
+        floorList = ['No Data', 'No Data', 'No Data']
         for i in range(len(floorList)):
             try:
                 f = open('data/saves/' + str(i), 'r')
@@ -509,11 +514,11 @@ class Game:
     def update_dialogues(self):
         #Hilbert:
         if self.money >= 5:
-            self.dialogueHistory['Hilbert']['1available'] = True
-        if self.money >= 50:
             self.dialogueHistory['Hilbert']['2available'] = True
-        if self.money >= 100:
+        if self.money >= 50:
             self.dialogueHistory['Hilbert']['3available'] = True
+        if self.money >= 100:
+            self.dialogueHistory['Hilbert']['4available'] = True
         
     def load_level(self):
         
@@ -564,7 +569,7 @@ class Game:
                 
             #Bat
             elif spawner['variant'] == 4:
-                self.enemies.append(Bat(self, spawner['pos'], (6, 6)))
+                self.enemies.append(Bat(self, spawner['pos'], (12, 7)))
                 
 
         
@@ -573,7 +578,10 @@ class Game:
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
         
-        self.scroll = [0, 0]
+        extra = (self.screen_height / 4 if self.currentLevel == 'lobby' else self.screen_height / 4)
+        self.scroll = [self.player.rect().centerx - self.screen_width / 4,
+                       self.player.rect().centery - self.screen_height / 4]
+        
         self.screenshake = 0
         self.transition = -30
 
