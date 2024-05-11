@@ -15,6 +15,7 @@ class Game:
     def __init__(self):
         self.game_running = True
         self.fps = 60
+        self.displayFPS = self.fps
         self.screen_width = 1080
         self.screen_height = 720
 
@@ -106,6 +107,7 @@ class Game:
             'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
             'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
+            'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 10, loop = False),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
             'particle/dust': Animation(load_images('particles/dust'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
@@ -123,7 +125,7 @@ class Game:
        }
         
         self.sfx['jump'].set_volume(0.7)
-        self.sfx['dash'].set_volume(0.3)
+        self.sfx['dash'].set_volume(0.2)
         self.sfx['hit'].set_volume(0.8)
         self.sfx['shoot'].set_volume(0.4)
         self.sfx['coin'].set_volume(0.6)
@@ -146,6 +148,7 @@ class Game:
 
         saveSlots = [0, 1, 2]
         hoverSlot = 0
+        deleting = 0
 
         selected = (200, 100, 100)
         selected = (86, 31, 126)
@@ -157,6 +160,7 @@ class Game:
         
 
         while inMenu:
+           
 
             self.scroll[0] += (self.screen_width / 2)
             self.scroll[1] += (self.screen_height / 2)
@@ -172,11 +176,22 @@ class Game:
 
             foreground = pygame.transform.scale(self.assets['menuBackgroundHHForeground'], (self.screen_width / 2, self.screen_height / 2))
             self.display_outline.blit(foreground, (0, 0))
+
+            #Delete save if held for 5 secs
+            if deleting:
+                deleting = max(deleting - 1, 0)
+                if deleting == 0:
+                    self.delete_save(hoverSlot % len(saveSlots))
+                    savedFloors = self.getSavedFloors()
             
 
             #Displaying HUD:
             displaySlot = (hoverSlot % len(saveSlots))
-            self.draw_text('Hilbert\'s Hotel', (self.screen_width * (3/4), 60), self.text_font, selected, (0, 0), mode = 'center')   
+            self.draw_text('Hilbert\'s Hotel', (self.screen_width * (3/4), 60), self.text_font, selected, (0, 0), mode = 'center') 
+            self.draw_text('Select: x', (self.screen_width * (3/4), 100), self.text_font, notSelected, (0, 0), scale = 0.5, mode = 'center')  
+            self.draw_text('Delete: z (hold)', (self.screen_width * (3/4), 120), self.text_font,notSelected, (0, 0), scale = 0.5, mode = 'center')  
+            if deleting:
+                self.draw_text('Deleting save ' + str(hoverSlot % len(saveSlots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's', (self.screen_width * (3/4), 140), self.text_font, (200, 0, 0), (0, 0), scale = 0.5, mode = 'center')
             # self.draw_text('Please Select Your Room', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, notSelected, (0, 0), mode = 'center')   
             # self.draw_text('Select Save with Arrow Keys and x', (self.screen_width * (3/4), 100), self.text_font, notSelected, (0, 0), scale = 0.75, mode = 'center')
             
@@ -197,20 +212,33 @@ class Game:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         hoverSlot -= 1
+                        if deleting:
+                            deleting = 0
                     if event.key == pygame.K_RIGHT:
                         hoverSlot += 1
+                        if deleting:
+                            deleting = 0
                     if event.key == pygame.K_x:
                         saveSlot = hoverSlot % len(saveSlots)
                         self.run(saveSlot)
+                    if event.key == pygame.K_z:
+                        deleting = 300
+                
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_z:
+                        deleting = 0
 
             self.display.blit(self.display_outline, (0, 0))
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
             self.screen.blit(self.HUDdisplay, (0, 0))
             pygame.display.update()
             self.clock.tick(self.fps)
+            self.interractionFrame = False
+            
 
 
     def run(self, saveSlot):
+        
 
         self.saveSlot = saveSlot
         self.load_game(self.saveSlot)
@@ -225,6 +253,7 @@ class Game:
         
         
         while self.game_running:
+           
             
             #Camera movement
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
@@ -305,6 +334,10 @@ class Game:
 
             
             #Displaying HUD:
+            if pygame.time.get_ticks() % 60 == 0:
+                self.displayFPS = round(self.clock.get_fps())
+            self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-30, 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
+            
             self.draw_text('Enemies: ' + str(len(self.enemies)), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Money: ' + str(self.money) + ' + ('+str(self.moneyThisRun)+')', (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             self.draw_text('Health: ' + str(self.health), (0, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
@@ -315,8 +348,15 @@ class Game:
             else:
                 self.draw_text('Floor: Lobby', (0, 90), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             if self.paused and not self.talking:
-                self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')        
-           
+                self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
+                self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
+                if self.interractionFrame:
+                    self.paused = False
+                    self.currentLevel = 'lobby'
+                    self.save_game(self.saveSlot)
+                    self.loadMenu()
+
+
             #Talking mechanics:
             if self.talking:
                 if self.textCooldown > 0:
@@ -416,6 +456,7 @@ class Game:
             self.screen.blit(self.HUDdisplay, (0, 0))
             pygame.display.update()
             self.clock.tick(self.fps)
+            (self.clock.get_fps())
 
 
 
@@ -445,7 +486,7 @@ class Game:
 
     def save_game(self, saveSlot):
 
-        f = open('data/saves/' + str(saveSlot), 'w')
+        f = open('data/saves/' + str(saveSlot) + '.json', 'w')
         json.dump({'totalMoney': self.money,
                    'floor': self.floor,
                    'dialogue': self.dialogueHistory,
@@ -459,7 +500,7 @@ class Game:
         floorList = ['No Data', 'No Data', 'No Data']
         for i in range(len(floorList)):
             try:
-                f = open('data/saves/' + str(i), 'r')
+                f = open('data/saves/' + str(i) + '.json', 'r')
                 saveData = json.load(f)
                 f.close()
 
@@ -475,9 +516,15 @@ class Game:
             
         return floorList
 
+    def delete_save(self, saveSlot):
+        try:
+            os.remove('data/saves/' + str(saveSlot) + '.json')
+        except FileNotFoundError:
+            pass
+
     def load_game(self, saveSlot):
         try:
-            f = open('data/saves/' + str(saveSlot), 'r')
+            f = open('data/saves/' + str(saveSlot) + '.json', 'r')
             saveData = json.load(f)
             f.close()
 
@@ -490,7 +537,7 @@ class Game:
             
 
         except FileNotFoundError:
-            f = open('data/saves/' + str(saveSlot), 'w')
+            f = open('data/saves/' + str(saveSlot) + '.json', 'w')
             json.dump({'totalMoney': self.money}, f)
             f.close()
 
@@ -531,6 +578,7 @@ class Game:
         self.sparks = []
         self.health = self.maxHealth
         self.moneyThisRun = 0
+        self.player.dashing = 0
 
         #Spawn in dust particle spawners
         self.dust_spawners = []
@@ -561,7 +609,7 @@ class Game:
 
             #Portal
             elif spawner['variant'] == 2:
-                self.portals.append(Portal(self, spawner['pos'], (10,10)))
+                self.portals.append(Portal(self, spawner['pos'], (16,16)))
 
             #GunGuy
             elif spawner['variant'] == 3:
@@ -578,7 +626,7 @@ class Game:
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
         
-        extra = (self.screen_height / 4 if self.currentLevel == 'lobby' else self.screen_height / 4)
+        # extra = (self.screen_height / 4 if self.currentLevel == 'lobby' else self.screen_height / 4)
         self.scroll = [self.player.rect().centerx - self.screen_width / 4,
                        self.player.rect().centery - self.screen_height / 4]
         

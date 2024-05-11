@@ -202,7 +202,8 @@ class tileMap:
                 self.offgrid_tiles.append(to_add)
 
 
-        
+        # plt.imshow(map)
+        # plt.show()
         self.autotile()
     
     def save_tilemap(self, path):

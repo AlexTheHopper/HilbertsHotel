@@ -24,6 +24,7 @@ class physicsEntity:
         self.anim_offset = (-3, -3)
         self.flip_x = False
         self.set_action('idle')
+        self.renderDistance = self.game.screen_width / 2
 
         self.last_movement = [0, 0]
 
@@ -39,6 +40,13 @@ class physicsEntity:
             self.animation = self.game.assets[self.type + '/' + self.action].copy()
 
     def update(self, tilemap, movement = (0, 0)):
+
+        # Only update/render at close distances
+        renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
+        if renderDistToPlayer > self.renderDistance:
+            return False
+        
+
         self.collisions = {'up': False, 'down': False, 'left': False, 'right': False}
 
         #Forced movement plus velocity already there
@@ -100,6 +108,11 @@ class physicsEntity:
         
 
     def render(self, surface, offset = (0, 0), rotation = 0):
+        # Only update/render at close distances
+        renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
+        if renderDistToPlayer > self.renderDistance:
+            return False
+
         posx = self.pos[0] - offset[0] + self.anim_offset[0]
         posy = self.pos[1] - offset[1] + self.anim_offset[1]
         
@@ -260,6 +273,7 @@ class GunGuy(physicsEntity):
         self.shootCountdown = 0
         self.gunIndex = 0
         self.gravityAffected = True
+        
 
         
 
@@ -268,6 +282,11 @@ class GunGuy(physicsEntity):
         self.set_action('grace')
     
     def update(self, tilemap, movement = (0, 0)):
+        # Only update/render at close distances
+        renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
+        if renderDistToPlayer > self.renderDistance:
+            return False
+        
         
         if not self.graceDone:
             self.grace = max(0, self.grace - 1)
@@ -335,7 +354,7 @@ class GunGuy(physicsEntity):
                 self.walking = max(self.walking - 1, 0)
 
                 #Attack condition
-                if not self.walking or (random.random() < 0.01 and not self.shootCountdown):
+                if not self.walking or (random.random() < 0.02 and not self.shootCountdown):
                     disty = self.game.player.pos[1] - self.pos[1]
                     distx = self.game.player.pos[0] - self.pos[0]
                     #Y axis condition:
@@ -394,9 +413,23 @@ class Portal(physicsEntity):
 
     def update(self, game):
         self.animation.update()
-        if len(self.game.enemies) == 0 or self.game.currentLevel == 'lobby':
+
+        if self.game.currentLevel == 'lobby':
+            self.set_action('active')
+        elif self.action == 'idle' and len(self.game.enemies) == 0:
+            self.set_action('opening')
+
+        if self.action == 'opening' and self.animation.done:
             self.set_action('active')
 
+        if self.action in ['opening', 'active']:
+            if random.random() < (0.1 + (0.1 if self.action == 'active' else 0)):
+                angle = (random.random()) * 2 * math.pi
+                speed = random.random() * (2.5 if self.action == 'active' else 2)
+                colours = [(58, 6, 82), (111, 28, 117)]
+                self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice(colours)))
+
+        #Collision
         playerRect = self.game.player.rect()
         if self.rect().colliderect(playerRect) and self.game.transition == 0:
             
@@ -560,7 +593,7 @@ class Player(physicsEntity):
             return True
 
     def dash(self):
-        if not self.dashing:
+        if not self.dashing and not self.game.dead:
             self.spark_timer = 0
             self.game.sfx['dash'].play()
             if self.flip_x:
