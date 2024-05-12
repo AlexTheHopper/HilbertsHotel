@@ -16,9 +16,10 @@ class physicsEntity:
         self.size = size
         self.velocity = [0, 0]
         self.collisions = {'up': False, 'down': False, 'left': False, 'right': False}
+        self.collideWall = True
 
         self.terminal_vel = 5
-        self.gravity = 0.1
+        self.gravity = 0.12
 
         self.action = ''
         self.anim_offset = (-3, -3)
@@ -53,40 +54,41 @@ class physicsEntity:
         self.frame_movement = (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
         self.last_movement = movement
 
-        #Check for collision with physics tiles
-        self.pos[1] += self.frame_movement[1]
-        entity_rect = self.rect()
-        for rect in tilemap.physics_rects_around(self.pos):
-            if entity_rect.colliderect(rect):
+        if self.collideWall:
+            #Check for collision with physics tiles
+            self.pos[1] += self.frame_movement[1]
+            entity_rect = self.rect()
+            for rect in tilemap.physics_rects_around(self.pos):
+                if entity_rect.colliderect(rect):
 
-                #Collision moving down
-                if self.frame_movement[1] > 0:
-                    entity_rect.bottom = rect.top
-                    self.collisions['down'] = True
-                #Collision moving up
-                elif self.frame_movement[1] < 0:
-                    entity_rect.top = rect.bottom
-                    self.collisions['up'] = True
-                    
-                self.pos[1] = entity_rect.y
+                    #Collision moving down
+                    if self.frame_movement[1] > 0:
+                        entity_rect.bottom = rect.top
+                        self.collisions['down'] = True
+                    #Collision moving up
+                    elif self.frame_movement[1] < 0:
+                        entity_rect.top = rect.bottom
+                        self.collisions['up'] = True
+                        
+                    self.pos[1] = entity_rect.y
 
 
-        self.pos[0] += self.frame_movement[0]
-        entity_rect = self.rect()
-        for rect in tilemap.physics_rects_around(self.pos):
-            if entity_rect.colliderect(rect):
+            self.pos[0] += self.frame_movement[0]
+            entity_rect = self.rect()
+            for rect in tilemap.physics_rects_around(self.pos):
+                if entity_rect.colliderect(rect):
 
-                #Collision moving right
-                if self.frame_movement[0] > 0:
-                    entity_rect.right = rect.left
-                    self.collisions['right'] = True
-                    
-                #Collision moving left
-                elif self.frame_movement[0] < 0:
-                    entity_rect.left = rect.right
-                    self.collisions['left'] = True
-                    
-                self.pos[0] = entity_rect.x
+                    #Collision moving right
+                    if self.frame_movement[0] > 0:
+                        entity_rect.right = rect.left
+                        self.collisions['right'] = True
+                        
+                    #Collision moving left
+                    elif self.frame_movement[0] < 0:
+                        entity_rect.left = rect.right
+                        self.collisions['left'] = True
+                        
+                    self.pos[0] = entity_rect.x
 
         #Facing direction
         if movement[0] > 0:
@@ -142,8 +144,6 @@ class physicsEntity:
         for _ in range(coinCount):
             self.game.coins.append(Coin(self.game, spawnLoc, coinValue))
 
-
-
 class Bat(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'bat', pos, size)
@@ -182,6 +182,7 @@ class Bat(physicsEntity):
                 self.timer = random.randint(180,500)
                 self.velocity = [random.random(), random.random()]
                 self.graceDone = True
+                self.anim_offset = [-3, -2]
                 
             self.animation.update()
 
@@ -252,7 +253,7 @@ class Bat(physicsEntity):
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
-
+        
 
 class GunGuy(physicsEntity):
     def __init__(self, game, pos, size):
@@ -277,7 +278,7 @@ class GunGuy(physicsEntity):
 
         
 
-        self.grace = random.randint(90,210)
+        self.grace = random.randint(60,120)
         self.graceDone = False
         self.set_action('grace')
     
@@ -286,6 +287,10 @@ class GunGuy(physicsEntity):
         renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
         if renderDistToPlayer > self.renderDistance:
             return False
+        
+        if self.game.caveDarkness:
+            self.game.darknessCircle(50, 30, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+
         
         
         if not self.graceDone:
@@ -312,13 +317,13 @@ class GunGuy(physicsEntity):
                     
                     
                     if self.flip_x:
-                            self.game.sfx['shoot'].play()
-                            self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 5, self.rect().centery], -self.bullet_speed))
-                            for _ in range(4):
-                                self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
+                        self.game.sfx['shoot'].play()
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 5, self.rect().centery], -self.bullet_speed))
+                        for _ in range(4):
+                            self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
                     if not self.flip_x:
                         self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 5, self.rect().centery], self.bullet_speed))
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + 5, self.rect().centery], self.bullet_speed))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
                     
@@ -353,22 +358,25 @@ class GunGuy(physicsEntity):
                
                 self.walking = max(self.walking - 1, 0)
 
-                #Attack condition
-                if not self.walking or (random.random() < 0.02 and not self.shootCountdown):
-                    disty = self.game.player.pos[1] - self.pos[1]
-                    distx = self.game.player.pos[0] - self.pos[0]
-                    #Y axis condition:
-                    if abs(disty) < self.attack_dist_y and not self.game.dead:
-                        #X axis condition
-                        if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
-                            self.shootCountdown = 60
+            elif random.random() < 0.01:
+                self.walking = random.randint(30, 120)
+
+            #Attack condition
+            if (random.random() < 0.02 and not self.shootCountdown):
+                disty = self.game.player.pos[1] - self.pos[1]
+                distx = self.game.player.pos[0] - self.pos[0]
+                #Y axis condition:
+                if abs(disty) < self.attack_dist_y and not self.game.dead:
+                    #X axis condition
+                    if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
+                        self.shootCountdown = 60
+                        self.walking = 0
                        
             
             
            
            
-            elif random.random() < 0.01:
-                self.walking = random.randint(30, 120)
+            
 
 
             super().update(tilemap, movement = movement)
@@ -407,21 +415,34 @@ class GunGuy(physicsEntity):
                 surface.blit(self.game.assets['guns'][self.gunIndex], (xpos, ypos))
 
 class Portal(physicsEntity):
-    def __init__(self, game, pos, size):
+    def __init__(self, game, pos, size, destination):
         super().__init__(game, 'portal', pos, size)
         self.anim_offset = (0, 0)
+        self.destination = destination
+        self.lightSize = 0
 
     def update(self, game):
         self.animation.update()
+       
 
+        if self.game.caveDarkness and self.action in ['opening', 'active']:
+            self.game.darknessCircle(50, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+
+
+        #Changing state/action
         if self.game.currentLevel == 'lobby':
             self.set_action('active')
+            self.lightSize = 40
         elif self.action == 'idle' and len(self.game.enemies) == 0:
             self.set_action('opening')
+            self.game.checkNewDialogue()
 
-        if self.action == 'opening' and self.animation.done:
-            self.set_action('active')
+        if self.action == 'opening':
+            if self.animation.done:
+                self.set_action('active')
+            self.lightSize += 0.5
 
+        #Decals
         if self.action in ['opening', 'active']:
             if random.random() < (0.1 + (0.1 if self.action == 'active' else 0)):
                 angle = (random.random()) * 2 * math.pi
@@ -429,15 +450,14 @@ class Portal(physicsEntity):
                 colours = [(58, 6, 82), (111, 28, 117)]
                 self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice(colours)))
 
-        #Collision
+        #Collision and level change
         playerRect = self.game.player.rect()
-        if self.rect().colliderect(playerRect) and self.game.transition == 0:
+        if self.rect().colliderect(playerRect) and self.action == 'active' and self.game.transition == 0:
             
             if self.game.currentLevel == 'lobby':
                 self.game.floor += 1
-                self.game.transitionToLevel('random')
-            elif self.game.currentLevel == 'random' and self.action == 'active':
-                self.game.transitionToLevel('lobby')
+            self.game.transitionToLevel(self.destination)
+
                 
             
 class Player(physicsEntity):
@@ -454,11 +474,17 @@ class Player(physicsEntity):
         self.spark_timer = 0
         self.spark_timer_max = 60
         self.gravityAffected = True
+        self.nearestEnemy = False
 
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)
-     
-    
+
+        if self.game.caveDarkness:
+            size = 90
+            if self.game.transition > 0:
+                size = 90 * (1 - (self.game.transition / 15))
+            self.game.darknessCircle(50, size, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+
         
         self.air_time += 1
         if self.air_time > 180 and not self.wall_slide:
@@ -577,11 +603,8 @@ class Player(physicsEntity):
                     
                     self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
             return True
-   
-               
 
-
-        elif self.jumps > 0:
+        elif self.jumps > 0 and abs(self.dashing) < 50:
             self.jumps -= 1
             self.velocity[1] = min(self.velocity[1], -3)
             self.air_time = 5
@@ -589,7 +612,6 @@ class Player(physicsEntity):
                     angle = (random.random()) * math.pi
                     speed = random.random() * (2)
                     self.game.sparks.append(Spark((self.rect().centerx, self.rect().bottom), angle, speed, color = (190, 200, 220)))
-                
             return True
 
     def dash(self):
@@ -600,6 +622,15 @@ class Player(physicsEntity):
                 self.dashing = -self.dash_dist
             else:
                 self.dashing = self.dash_dist
+
+    def updateNearestEnemy(self):
+        distance = 10000
+        returnEnemy = False
+        for enemy in self.game.enemies:
+            if np.linalg.norm((self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1])) < distance:
+                returnEnemy = enemy
+                distance = np.linalg.norm((self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1]))
+        self.nearestEnemy = returnEnemy
 
     def damage(self, damageAmount):
 
@@ -622,18 +653,6 @@ class Player(physicsEntity):
                     self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
                     self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
     
-    def getClosestEnemyAngle(self):
-        if len(self.game.enemies) > 0:
-            dist = 10000
-            outputVector = [0, 0]
-
-            for enemy in self.game.enemies:
-                direction = [int(enemy.pos[0] - self.pos[0]), int(enemy.pos[1] - self.pos[1])]
-                if np.linalg.norm(direction) < dist:
-                        dist = np.linalg.norm(direction)
-                        outputVector = direction
-            outputVector /= np.linalg.norm(outputVector)
-        return outputVector
 
 class Coin(physicsEntity):
     def __init__(self, game, pos, value, size = (6,6)):
@@ -655,10 +674,83 @@ class Coin(physicsEntity):
 
 
         #Check for player collision
-        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 10:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
             self.game.moneyThisRun += self.value
             self.game.sfx['coin'].play()
             return True
+    
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+class Glowworm(physicsEntity):
+    def __init__(self, game, pos, size = (5,5)):
+        super().__init__(game, 'glowworm', pos, size)
+
+        #All spawn at the same point with 0 vel.
+        self.velocity = [(random.random()-0.5), -1.5]
+        self.size = list(size)
+        self.gravityAffected = False
+        self.collideWall = False
+        self.hoverDistance = 100
+        self.anim_offset = (0, 0)
+        self.animation.img_duration += (self.animation.img_duration*random.random())  
+        self.direction = [random.random(), random.random()]      
+
+    def update(self, tilemap, movement = (0, 0)):
+       
+       #Choose a random direction to head for a bit,
+       #They will go towards a priority entity.
+
+        if random.random() < 0.05:
+            #First priority go to random enemy
+            directionExtra = [0, 0]
+            checkPortal = True
+
+            if len(self.game.enemies) > 0 and self.game.player.nearestEnemy:
+                checkPortal = False
+                enemy = self.game.player.nearestEnemy
+                
+                if np.linalg.norm((self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1])) > self.hoverDistance:
+                    directionExtra = [self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1]]
+                    
+                else:
+                    directionExtra = [0, 0]
+                    
+
+            #Second priority go to character with new dialogue
+            elif len(self.game.characters) > 0:
+                for character in self.game.characters:
+                    if character.newDialogue:
+                        checkPortal = False
+                        if np.linalg.norm((self.pos[0] - character.pos[0], self.pos[1] - character.pos[1])) > self.hoverDistance:
+                            directionExtra = [self.pos[0] - character.pos[0], self.pos[1] - character.pos[1]]
+                            break
+                    else:
+                        directionExtra = [0, 0]
+                        
+
+            #Third priority go to active portal
+            if len(self.game.portals) > 0 and checkPortal:
+                portal = random.choice(self.game.portals)
+                if np.linalg.norm((self.pos[0] - portal.pos[0], self.pos[1] - portal.pos[1])) > self.hoverDistance:
+                    directionExtra = [self.pos[0] - portal.pos[0], self.pos[1] - portal.pos[1]]
+                else:
+                    directionExtra = [0, 0]
+                 
+            extraLength = np.linalg.norm(directionExtra)
+
+            if extraLength > 0:
+                directionExtra /= (np.linalg.norm(directionExtra) * 3)
+            self.direction = [random.random() - 0.5 - directionExtra[0], random.random() - 0.5 - directionExtra[1]]
+          
+        self.pos[0] += self.direction[0] + (random.random() - 0.5)
+        self.pos[1] += self.direction[1] + (random.random() - 0.5)
+        
+        if self.game.caveDarkness:
+            self.game.darknessCircle(50, 6, (int(self.pos[0]) - self.game.render_scroll[0] + self.animation.img().get_width() / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.animation.img().get_height() / 2))
+        
+        super().update(tilemap, movement = movement)
+
     
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -670,6 +762,7 @@ class Bullet():
         self.speed = speed
         self.type = 'projectile'
         self.img = self.game.assets[self.type]
+        self.anim_offset = (-2, 0)
 
         self.attackPower = 1
 
@@ -677,19 +770,23 @@ class Bullet():
         self.game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - self.game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - self.game.render_scroll[1]))
         self.pos[0] += self.speed
 
+        if self.game.caveDarkness:
+            self.game.darknessCircle(50, 15, (int(self.pos[0]) - self.game.render_scroll[0], int(self.pos[1]) - self.game.render_scroll[1]))
+
+
+        
         #Check to destroy
         if self.game.tilemap.solid_check(self.pos):
             for _ in range(4):
                 self.game.sparks.append(Spark(self.pos, random.random() - 0.5 + (math.pi if self.speed > 0 else 0), 2 + random.random()))
             return True
-        # elif self.pos[0] > 500:
-        #     return True
         
         #Check for player collision:
         if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50:
             if not self.game.dead:
                 self.game.player.damage(self.attackPower)
                 return True
+            
         
 class Character(physicsEntity):
     def __init__(self, game, pos, size, name):
@@ -704,7 +801,12 @@ class Character(physicsEntity):
         self.gravityAffected = True
 
 
-    def update(self, tilemap, movement = (0, 0)):        
+    def update(self, tilemap, movement = (0, 0)):   
+
+        if self.game.caveDarkness:
+            self.game.darknessCircle(50, 50, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+
+
         #Walking logic, turning around etc
         
         if self.walking:

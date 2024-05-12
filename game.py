@@ -30,6 +30,7 @@ class Game:
         self.display = pygame.Surface((self.screen_width / 2, self.screen_height / 2))
         self.HUDdisplay = pygame.Surface((self.screen_width, self.screen_height))
         self.HUDdisplay.set_colorkey((0, 0, 0))
+        self.darkness_surface = pygame.Surface(self.display_outline.get_size(), pygame.SRCALPHA)
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
@@ -42,6 +43,8 @@ class Game:
 
         self.movement = [False, False, False, False]
         self.paused = False
+        self.caveDarknessRange = (150,250)
+        self.caveDarkness = True
 
         self.interractionFrame = False
         self.talking = False
@@ -83,12 +86,13 @@ class Game:
             'stone': load_images('tiles/stone'),
             'menuBackground': load_image('menuBackground.png'),
             'menuBackgroundHH': load_image('menuBackgroundHH.png'),
-            'menuBackgroundHHForeground': load_image('menuBackgroundHHForeground3.png'),
+            'menuBackgroundHHForeground': load_image('menuBackgroundHHForeground.png'),
             'caveBackground': load_image('caveBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'guns': load_images('guns'),
             'projectile': load_image('projectile.png'),
+            'heart': load_image('heart.png'),
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
             'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
             'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
@@ -107,11 +111,12 @@ class Game:
             'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
             'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
-            'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 10, loop = False),
+            'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 6, loop = False),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
             'particle/dust': Animation(load_images('particles/dust'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
-            'coin/idle': Animation(load_images('entities/coin/idle'),img_dur=6)
+            'coin/idle': Animation(load_images('entities/coin/idle'),img_dur=6),
+            'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)
 
         }
        
@@ -249,6 +254,8 @@ class Game:
         self.tilemap.load_tilemap('lobby')
         self.load_level()
 
+        
+
 
         
         
@@ -265,31 +272,35 @@ class Game:
             self.display.blit(background, (0, 0))
             self.display_outline.fill((0, 0, 0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
+            self.darkness_surface.fill((0, 0, 0, self.caveDarkness))
             
+
+        
             self.screenshake = max(0, self.screenshake - 1)
 
             #RENDER AND UPDATE ALL THE THINGS
+            
             for portal in self.portals:
                 if not self.paused:
                     portal.update(self.tilemap)
                 portal.render(self.display_outline, offset = self.render_scroll)
-
-            if not self.dead:
-                if not self.paused:
-                    self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
-                self.player.render(self.display_outline, offset = self.render_scroll)
             
             for enemy in self.enemies.copy():
-                
                 enemy.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if enemy.update(self.tilemap, (0, 0)):
                         self.enemies.remove(enemy)
+                        self.player.updateNearestEnemy()
             
             for character in self.characters.copy():
                 if not self.paused:
                     character.update(self.tilemap)
                 character.render(self.display_outline, offset = self.render_scroll)
+
+            if not self.dead:
+                if not self.paused:
+                    self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
+                self.player.render(self.display_outline, offset = self.render_scroll)
             
             for projectile in self.projectiles.copy():
                 if not self.paused:
@@ -315,8 +326,13 @@ class Game:
                 spark.render(self.display_outline, offset = self.render_scroll)
                 if kill:
                     self.sparks.remove(spark)
+           
+            for glowworm in self.glowworms:
+                if not self.paused:
+                    glowworm.update(self.tilemap)
+                glowworm.render(self.display_outline, offset = self.render_scroll)
             
-
+            
 
             
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
@@ -336,17 +352,22 @@ class Game:
             #Displaying HUD:
             if pygame.time.get_ticks() % 60 == 0:
                 self.displayFPS = round(self.clock.get_fps())
-            self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-30, 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
+            self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-35, 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
             
-            self.draw_text('Enemies: ' + str(len(self.enemies)), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            self.draw_text('Money: ' + str(self.money) + ' + ('+str(self.moneyThisRun)+')', (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            self.draw_text('Health: ' + str(self.health), (0, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            # self.draw_text('Difficulty: ' + str(self.currentDifficulty), (500, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            # self.draw_text('Map Size: ' + str(self.currentLevelSize), (500, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5) 
+
+            self.HUDdisplay.blit(pygame.transform.scale(self.assets['coin/idle'].images[0], (28,28)), ((self.screen_width - self.assets['coin/idle'].images[0].get_width()) / 2 - 50 , 45))
+            self.draw_text(str(self.money) + ' + ('+str(self.moneyThisRun)+')', ((self.screen_width - self.assets['coin/idle'].images[0].get_width()) / 2 - 10, 48), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            
+            for _ in range(self.health):
+                self.HUDdisplay.blit(pygame.transform.scale(self.assets['heart'], (32, 32)), (self.screen_width / 2 - (self.health * 30) / 2 + _ * 30, 10))
+            # self.draw_text('Health: ' + str(self.health), (20, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            
             if self.currentLevel != 'lobby':
-                self.draw_text('Floor: ' + str(self.floor), (0, 90), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+                self.draw_text('Floor: ' + str(self.floor), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             else:
-                self.draw_text('Floor: Lobby', (0, 90), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+                self.draw_text('Floor: Lobby', (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
                 self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
@@ -354,6 +375,7 @@ class Game:
                     self.paused = False
                     self.currentLevel = 'lobby'
                     self.save_game(self.saveSlot)
+                    self.__init__()
                     self.loadMenu()
 
 
@@ -406,7 +428,7 @@ class Game:
                     if event.key == pygame.K_RIGHT:
                         self.movement[1] = True
                     if event.key == pygame.K_UP:
-                        if not self.paused and self.player.jump():
+                        if not self.paused and self.player.jump() and abs(self.player.dashing) < 50:
                             self.sfx['jump'].play()
                         self.movement[2] = True
                     if event.key == pygame.K_DOWN:
@@ -447,6 +469,14 @@ class Game:
                 pygame.draw.circle(transition_surface, (255, 255, 255), (self.display_outline.get_width() // 2, self.display_outline.get_height() // 2), (30 - abs(self.transition)) * (self.display_outline.get_width() / 30))
                 transition_surface.set_colorkey((255, 255, 255))
                 self.display_outline.blit(transition_surface, (0, 0))
+
+            #Darkness effect blit:
+            if self.caveDarkness:
+                # self.darkness_surface.convert_alpha()
+                # self.darkness_surface.set_colorkey((255, 255, 255))
+                self.display_outline.blit(self.darkness_surface, (0, 0))
+            
+
 
             self.display.blit(self.display_outline, (0, 0))
 
@@ -566,6 +596,9 @@ class Game:
             self.dialogueHistory['Hilbert']['3available'] = True
         if self.money >= 100:
             self.dialogueHistory['Hilbert']['4available'] = True
+
+    def darknessCircle(self, transparency, radius, pos):
+        pygame.draw.circle(self.darkness_surface, (0, 0, 0, transparency), pos, radius)
         
     def load_level(self):
         
@@ -589,12 +622,14 @@ class Game:
         self.enemies = []
         self.portals = []
         self.characters = []
+        self.glowworms = []
         self.spawner_list = [
             ('spawners', 0), #player
             ('spawners', 1), #character
             ('spawners', 2), #portal
             ('spawners', 3), #gunguy
-            ('spawners', 4) #bat
+            ('spawners', 4), #bat
+            ('spawners', 5) #glowworm
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
             
@@ -609,7 +644,15 @@ class Game:
 
             #Portal
             elif spawner['variant'] == 2:
-                self.portals.append(Portal(self, spawner['pos'], (16,16)))
+                if self.currentLevel == 'lobby':
+                    portalDest = 'random'
+                else:
+                    portalDest = 'lobby'
+                self.portals.append(Portal(self, spawner['pos'], (16,16), portalDest))
+
+            #GlowWorm
+            elif spawner['variant'] == 5:
+                self.glowworms.append(Glowworm(self, spawner['pos'], (5, 5)))
 
             #GunGuy
             elif spawner['variant'] == 3:
@@ -618,6 +661,8 @@ class Game:
             #Bat
             elif spawner['variant'] == 4:
                 self.enemies.append(Bat(self, spawner['pos'], (12, 7)))
+            
+
                 
 
         
@@ -625,13 +670,18 @@ class Game:
         self.dead = False
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
+        self.player.updateNearestEnemy()
         
-        # extra = (self.screen_height / 4 if self.currentLevel == 'lobby' else self.screen_height / 4)
         self.scroll = [self.player.rect().centerx - self.screen_width / 4,
                        self.player.rect().centery - self.screen_height / 4]
         
         self.screenshake = 0
         self.transition = -30
+
+        if self.currentLevel == 'lobby':
+            self.caveDarkness = 0
+        else:
+            self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
 
         self.update_dialogues()
         self.checkNewDialogue()

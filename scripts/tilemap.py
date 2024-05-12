@@ -104,6 +104,9 @@ class tileMap:
         corridorLengthMin = int(size / 4)
         corridorLengthMax = int(size / 2)
 
+        glowwormCount = 0
+        glowwwormMax = 15
+
         horBuffer = game.screen_height // (self.tile_size * 4) + 4
         vertBuffer = game.screen_width // (self.tile_size * 4) + 4
         mapHeight = int(size + 2 * vertBuffer) 
@@ -200,6 +203,12 @@ class tileMap:
             elif loc in self.tilemap and locUnder not in self.tilemap and random.random() < 0.1:
                 to_add = {'type': 'large_decor', 'variant': 3, 'pos': [x * self.tile_size, (y+1) * self.tile_size]}
                 self.offgrid_tiles.append(to_add)
+            
+            #Glowworms
+            elif glowwormCount < glowwwormMax:
+                to_add = {'type': 'spawners', 'variant': 5, 'pos': [self.tile_size * (x + random.random()), self.tile_size * (y + random.random())]}
+                self.offgrid_tiles.append(to_add)
+                glowwormCount += 1
 
 
         # plt.imshow(map)
