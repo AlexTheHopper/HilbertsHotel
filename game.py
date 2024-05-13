@@ -417,6 +417,7 @@ class Game:
                 if self.interractionFrame and not self.textCooldown:
                     self.currentTextIndex += 1
                     self.textCooldown = self.maxTextCooldown
+                   
                 
                 if self.currentTextIndex >= self.endTextIndex:
                     self.talking = False
@@ -635,30 +636,45 @@ class Game:
         #Hilbert:
         if self.money >= 5:
             self.dialogueHistory['Hilbert']['2available'] = True
+        elif not self.dialogueHistory['Hilbert']['2said']:
+            self.dialogueHistory['Hilbert']['2available'] = False
 
         if self.money >= 50:
             self.dialogueHistory['Hilbert']['3available'] = True
-
+        elif not self.dialogueHistory['Hilbert']['3said']:
+            self.dialogueHistory['Hilbert']['3available'] = False
+       
         if self.money >= 100:
             self.dialogueHistory['Hilbert']['4available'] = True
-
+        elif not self.dialogueHistory['Hilbert']['4said']:
+            self.dialogueHistory['Hilbert']['4available'] = False
+        
 
         #Noether:
         if self.currentLevel == 'lobby' and self.charactersMet['Noether']:
             self.dialogueHistory['Noether']['1available'] = True
-
+        elif not self.dialogueHistory['Noether']['1said']:
+            self.dialogueHistory['Noether']['1available'] = False
+        
         if self.money >= 5 and self.dialogueHistory['Noether']['1said']:
             self.dialogueHistory['Noether']['2available'] = True
-
+        elif not self.dialogueHistory['Noether']['2said']:
+            self.dialogueHistory['Noether']['2available'] = False
+        
         if self.money >= 20 and self.dialogueHistory['Noether']['1said']:
             self.dialogueHistory['Noether']['3available'] = True
+        elif not self.dialogueHistory['Noether']['3said']:
+            self.dialogueHistory['Noether']['3available'] = False
 
         if self.money >= 50 and self.dialogueHistory['Noether']['1said']:
             self.dialogueHistory['Noether']['4available'] = True
-
+        elif not self.dialogueHistory['Noether']['4said']:
+            self.dialogueHistory['Noether']['4available'] = False
+    
         if self.money >= 100 and self.dialogueHistory['Noether']['1said']:
             self.dialogueHistory['Noether']['5available'] = True
-
+        elif not self.dialogueHistory['Noether']['5said']:
+            self.dialogueHistory['Noether']['5available'] = False
        
 
     def darknessCircle(self, transparency, radius, pos):
