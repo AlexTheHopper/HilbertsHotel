@@ -43,7 +43,7 @@ class Game:
 
         self.movement = [False, False, False, False]
         self.paused = False
-        self.caveDarknessRange = (150,250)
+        self.caveDarknessRange = (50,250)
         self.caveDarkness = True
 
         self.interractionFrame = False
@@ -71,7 +71,27 @@ class Game:
                     '3available': False,
                     '3said': False,
                     '4available': False,
-                    '4said': False}
+                    '4said': False},
+
+            'Noether': {'0available': True,
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False,
+                    '4available': False,
+                    '4said': False,
+                    '5available': False,
+                    '5said': False}
+
+
+        }
+
+        self.charactersMet = {
+            'Hilbert': True,
+            'Noether': False
         }
         
        
@@ -110,12 +130,15 @@ class Game:
             'hilbert/idle': Animation(load_images('entities/hilbert/idle'), img_dur = 10),
             'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
             'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
+            'noether/idle': Animation(load_images('entities/noether/idle'), img_dur = 10),
+            'noether/run': Animation(load_images('entities/noether/run'), img_dur = 4),
+            'noether/jump': Animation(load_images('entities/noether/jump'), img_dur = 5),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
             'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 6, loop = False),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
             'particle/dust': Animation(load_images('particles/dust'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
-            'coin/idle': Animation(load_images('entities/coin/idle'),img_dur=6),
+            'cog/idle': Animation(load_images('entities/cog/idle'),img_dur=6),
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)
 
         }
@@ -312,11 +335,11 @@ class Game:
                       pos = (rect.x + rect.width / 2, rect.y + rect.height)
                       self.particles.append(Particle(self, 'dust', pos, vel = [0, 0.3], frame = random.randint(0, 20)))
 
-            for coin in self.coins:
+            for cog in self.cogs:
                 if not self.paused:
-                    if coin.update(self.tilemap, (0, 0)):
-                        self.coins.remove(coin)
-                coin.render(self.display_outline, offset = self.render_scroll)
+                    if cog.update(self.tilemap, (0, 0)):
+                        self.cogs.remove(cog)
+                cog.render(self.display_outline, offset = self.render_scroll)
             
             
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
@@ -347,26 +370,30 @@ class Game:
                     particle.pos[0] += math.sin(particle.animation.frame * 0.035 + particle.randomness) * 0.2
                 if kill:
                     self.particles.remove(particle)  
-
+           
             
-            #Displaying HUD:
+            #Displaying HUD and text:
             if pygame.time.get_ticks() % 60 == 0:
                 self.displayFPS = round(self.clock.get_fps())
-            self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-35, 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
+            self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-35, self.screen_height - 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
             
-            self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (0, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5) 
+            
+            if self.currentLevel != 'lobby':
+                self.draw_text('Floor: ' + str(self.floor), (self.screen_width - 10, 20), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')  
+                self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width - 10, 40), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')       
+            else:
+                self.draw_text('Floor: Lobby', (self.screen_width - 10, 20), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right') 
+                
 
-            self.HUDdisplay.blit(pygame.transform.scale(self.assets['coin/idle'].images[0], (28,28)), ((self.screen_width - self.assets['coin/idle'].images[0].get_width()) / 2 - 50 , 45))
-            self.draw_text(str(self.money) + ' + ('+str(self.moneyThisRun)+')', ((self.screen_width - self.assets['coin/idle'].images[0].get_width()) / 2 - 10, 48), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            
+            moneyDisplay = str(self.money) + (' + ('+str(self.moneyThisRun)+')' if self.currentLevel != 'lobby' else '')
+            if self.money > 0 or self.moneyThisRun > 0:
+                self.HUDdisplay.blit(pygame.transform.scale(self.assets['cog/idle'].images[0], (28,28)), (0, 10))
+                self.draw_text(moneyDisplay, (30, 13), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
             
             for _ in range(self.health):
                 self.HUDdisplay.blit(pygame.transform.scale(self.assets['heart'], (32, 32)), (self.screen_width / 2 - (self.health * 30) / 2 + _ * 30, 10))
-            # self.draw_text('Health: ' + str(self.health), (20, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            
-            if self.currentLevel != 'lobby':
-                self.draw_text('Floor: ' + str(self.floor), (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
-            else:
-                self.draw_text('Floor: Lobby', (0, 0), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)        
+            # self.draw_text('Health: ' + str(self.health), (20, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)               
             
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
@@ -394,7 +421,11 @@ class Game:
                 if self.currentTextIndex >= self.endTextIndex:
                     self.talking = False
                     self.paused = False
+                    
+                    
                     self.checkNewDialogue()
+                    
+                    
                     
 
 
@@ -463,27 +494,31 @@ class Game:
                 if self.dead == 90:
                     self.transitionToLevel('lobby')
 
-            #Level transition circle
-            if self.transition:
-                transition_surface = pygame.Surface(self.display_outline.get_size())
-                pygame.draw.circle(transition_surface, (255, 255, 255), (self.display_outline.get_width() // 2, self.display_outline.get_height() // 2), (30 - abs(self.transition)) * (self.display_outline.get_width() / 30))
-                transition_surface.set_colorkey((255, 255, 255))
-                self.display_outline.blit(transition_surface, (0, 0))
+            
 
             #Darkness effect blit:
             if self.caveDarkness:
                 # self.darkness_surface.convert_alpha()
                 # self.darkness_surface.set_colorkey((255, 255, 255))
-                self.display_outline.blit(self.darkness_surface, (0, 0))
+                self.display_outline.blit(self.darkness_surface, (0, 0))         
             
 
 
             self.display.blit(self.display_outline, (0, 0))
-
-
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) 
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
+         
             self.screen.blit(self.HUDdisplay, (0, 0))
+
+            #Level transition circle
+            if self.transition:
+                transition_surface = pygame.Surface(self.screen.get_size())
+                pygame.draw.circle(transition_surface, (255, 255, 255), (self.screen.get_width() // 2, self.screen.get_height() // 2), (30 - abs(self.transition)) * (self.screen.get_width() / 30))
+                transition_surface.set_colorkey((255, 255, 255))
+                self.screen.blit(transition_surface, (0, 0))
+
+
+
             pygame.display.update()
             self.clock.tick(self.fps)
             (self.clock.get_fps())
@@ -509,6 +544,7 @@ class Game:
         self.talking = True
         self.talkingTo = character
         convoInfo = character.getConversation()
+        self.update_dialogues()
         self.currentTextList = convoInfo[0]
         character.conversationAction(convoInfo[1])
         self.currentTextIndex = 0
@@ -518,11 +554,13 @@ class Game:
 
         f = open('data/saves/' + str(saveSlot) + '.json', 'w')
         json.dump({'totalMoney': self.money,
+                   'maxHealth': self.maxHealth,
                    'floor': self.floor,
                    'dialogue': self.dialogueHistory,
                    'difficulty': self.currentDifficulty,
                    'mapSize': self.currentLevelSize,
-                   'availableEnemyVariants': self.availableEnemyVariants}, f)
+                   'availableEnemyVariants': self.availableEnemyVariants,
+                   'charactersMet': self.charactersMet}, f)
         
         f.close()
 
@@ -559,11 +597,13 @@ class Game:
             f.close()
 
             self.money = saveData['totalMoney']
+            self.maxHealth = saveData['maxHealth']
             self.floor = saveData['floor']
             self.dialogueHistory = saveData['dialogue']
             self.currentDifficulty = saveData['difficulty']
             self.currentLevelSize = saveData['mapSize']
             self.availableEnemyVariants = saveData['availableEnemyVariants']
+            self.charactersMet = saveData['charactersMet']
             
 
         except FileNotFoundError:
@@ -583,19 +623,43 @@ class Game:
         for character in self.characters:
             dialogue = self.dialogueHistory[str(character.name)]
             character.newDialogue = False
+           
             
             for index in range(int(len(dialogue) / 2)):
                 if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
                     character.newDialogue = True
+                    
 
     def update_dialogues(self):
+        #Need both conditions with the previous text so you cant spend more money than you have.
         #Hilbert:
         if self.money >= 5:
             self.dialogueHistory['Hilbert']['2available'] = True
+
         if self.money >= 50:
             self.dialogueHistory['Hilbert']['3available'] = True
+
         if self.money >= 100:
             self.dialogueHistory['Hilbert']['4available'] = True
+
+
+        #Noether:
+        if self.currentLevel == 'lobby' and self.charactersMet['Noether']:
+            self.dialogueHistory['Noether']['1available'] = True
+
+        if self.money >= 5 and self.dialogueHistory['Noether']['1said']:
+            self.dialogueHistory['Noether']['2available'] = True
+
+        if self.money >= 20 and self.dialogueHistory['Noether']['1said']:
+            self.dialogueHistory['Noether']['3available'] = True
+
+        if self.money >= 50 and self.dialogueHistory['Noether']['1said']:
+            self.dialogueHistory['Noether']['4available'] = True
+
+        if self.money >= 100 and self.dialogueHistory['Noether']['1said']:
+            self.dialogueHistory['Noether']['5available'] = True
+
+       
 
     def darknessCircle(self, transparency, radius, pos):
         pygame.draw.circle(self.darkness_surface, (0, 0, 0, transparency), pos, radius)
@@ -607,7 +671,7 @@ class Game:
 
         self.particles = []
         self.projectiles = []
-        self.coins = []
+        self.cogs = []
         self.sparks = []
         self.health = self.maxHealth
         self.moneyThisRun = 0
@@ -629,18 +693,24 @@ class Game:
             ('spawners', 2), #portal
             ('spawners', 3), #gunguy
             ('spawners', 4), #bat
-            ('spawners', 5) #glowworm
+            ('spawners', 5), #glowworm
+            ('spawners', 6) #noether
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
-            
+           
             #Player
             if spawner['variant'] == 0:
                 self.player.pos = spawner['pos']
                 self.player.air_time = 0
-
-            #Character
-            elif spawner['variant'] == 1:
+            
+            #Character - Hilbert
+            elif spawner['variant'] == 1 and self.charactersMet['Hilbert']:
                 self.characters.append(Hilbert(self, spawner['pos'], (8,15)))
+               
+
+            #Character - Noether
+            elif spawner['variant'] == 6 and (self.charactersMet['Noether'] or self.currentLevel != 'lobby'):
+                self.characters.append(Noether(self, spawner['pos'], (8,15)))
 
             #Portal
             elif spawner['variant'] == 2:
@@ -660,9 +730,9 @@ class Game:
                 
             #Bat
             elif spawner['variant'] == 4:
-                self.enemies.append(Bat(self, spawner['pos'], (12, 7)))
+                self.enemies.append(Bat(self, spawner['pos'], (10, 10)))
             
-
+           
                 
 
         

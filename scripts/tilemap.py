@@ -79,6 +79,7 @@ class tileMap:
 
                 if not keep:
                     del self.tilemap[loc]
+        
         return matches
             
     def nearby_tiles(self, pixPos):
@@ -170,6 +171,7 @@ class tileMap:
         #placing entities:
         player_placed = False
         portal_placed = False
+        noether_placed = False
         difficultyProgress = 0
         while not player_placed or not portal_placed or difficultyProgress < difficulty:
             
@@ -185,6 +187,12 @@ class tileMap:
                     if not player_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                         player_placed = True
+
+                    elif not self.game.charactersMet['Noether'] and self.game.floor > 7 and not noether_placed and random.random() < 0.5:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 6, 'pos': [x, y]}
+                        noether_placed = True
+                        
+
                     elif not portal_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
                         portal_placed = True
