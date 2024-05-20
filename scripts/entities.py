@@ -124,8 +124,8 @@ class physicsEntity:
 
 
 
-    def kill(self, cogCount, cogValue, screenshakeValue = 10, intensity = 10):
-        self.game.screenshake = max(screenshakeValue, self.game.screenshake)
+    def kill(self, intensity = 10, cogCount = 0, heartFragmentCount = 0, wingCount = 0):
+        self.game.screenshake = max(intensity, self.game.screenshake)
         self.game.sfx['hit'].play()
         for _ in range(intensity):
             angle = random.random() * math.pi * 2
@@ -137,19 +137,27 @@ class physicsEntity:
         self.game.sparks.append(Spark(self.rect().center, 0, intensity / 2))
         self.game.sparks.append(Spark(self.rect().center, math.pi, intensity / 2))
 
-        #Create cogs
+        #Create currencies
         spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
         spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
         
         for _ in range(cogCount):
-            self.game.cogs.append(Cog(self.game, spawnLoc, cogValue))
+            self.game.cogs.append(Cog(self.game, spawnLoc))
+        for _ in range(heartFragmentCount):
+            self.game.cogs.append(HeartFragment(self.game, spawnLoc))
+        for _ in range(wingCount):
+            self.game.wings.append(Wing(self.game, spawnLoc))
+
+
 
 class Bat(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'bat', pos, size)
 
-        self.cogCount = 3
-        self.cogValue = 1
+        self.cogCount = random.randint(0,3)
+        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.wingCount = (1 if random.random() < 0.8 else 0)
+
         self.attackPower = 1
 
         self.deathIntensity = 5
@@ -160,7 +168,7 @@ class Bat(physicsEntity):
         self.graceDone = False
         self.set_action('grace')
         self.isAttacking = False
-        self.anim_offset = [-4, -3]
+        self.anim_offset = [-4, -1]
         self.timer = 0
         self.slingTimer = 0
         self.pos[1] += 3
@@ -175,6 +183,9 @@ class Bat(physicsEntity):
 
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)
+        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
+        
+                
 
         if not self.graceDone:
             self.grace = max(0, self.grace - 1)
@@ -235,13 +246,13 @@ class Bat(physicsEntity):
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
-                self.kill(self.cogCount, self.cogValue, screenshakeValue = 10, intensity = self.deathIntensity)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, wingCount = self.wingCount)
                 return True
             
         #Also dies if hit by bullet:
         for projectile in self.game.projectiles:
             if self.rect().collidepoint(projectile.pos):
-                self.kill(self.cogCount, self.cogValue, screenshakeValue = 10, intensity = self.deathIntensity)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, wingCount = self.wingCount)
                 self.game.projectiles.remove(projectile)
                 return True
 
@@ -265,8 +276,9 @@ class GunGuy(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'gunguy', pos, size)
 
-        self.cogCount = random.randint(1,3)
-        self.cogValue = 1
+        self.cogCount = random.randint(2,3)
+        self.heartFragmentCount = (1 if random.random() < 0.1 else 0)
+        self.wingCount = 0
 
         self.deathIntensity = 5
 
@@ -378,13 +390,6 @@ class GunGuy(physicsEntity):
                         self.shootCountdown = 60
                         self.walking = 0
                        
-            
-            
-           
-           
-            
-
-
             super().update(tilemap, movement = movement)
 
             #Setting animation type
@@ -402,7 +407,7 @@ class GunGuy(physicsEntity):
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
-                self.kill(self.cogCount, self.cogValue, screenshakeValue = 10, intensity = self.deathIntensity)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount)
                 return True
 
                 
@@ -459,9 +464,6 @@ class Portal(physicsEntity):
         #Collision and level change
         playerRect = self.game.player.rect()
         if self.rect().colliderect(playerRect) and self.action == 'active' and self.game.transition == 0:
-            
-            if self.game.currentLevel == 'lobby':
-                self.game.floor += 1
             self.game.transitionToLevel(self.destination)
 
                 
@@ -481,13 +483,17 @@ class Player(physicsEntity):
         self.spark_timer_max = 60
         self.gravityAffected = True
         self.nearestEnemy = False
+        self.damageCooldown = 0
 
     def update(self, tilemap, movement = (0, 0)):
+        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
         super().update(tilemap, movement = movement)
 
         if self.game.caveDarkness and self.game.transition <= 0:
             self.game.darknessCircle(0, 90, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
 
+        if self.damageCooldown:
+            self.damageCooldown = max(self.damageCooldown - 1, 0) 
         
         self.air_time += 1
         if self.air_time > 180 and not self.wall_slide:
@@ -636,50 +642,112 @@ class Player(physicsEntity):
         self.nearestEnemy = returnEnemy
 
     def damage(self, damageAmount):
+        if not self.damageCooldown:
+            self.damageCooldown = 60
+            self.game.health = max(0, self.game.health - damageAmount)
+            self.game.sfx['hit'].play()
+            if self.game.health == 0:
 
-        self.game.health = max(0, self.game.health - damageAmount)
-        self.game.sfx['hit'].play()
-        if self.game.health == 0:
-
-            self.game.screenshake = max(50, self.game.screenshake)
-            for _ in range(30):
-                    angle = random.random() * math.pi * 2
-                    speed = random.random() * 5
-                    self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
-                    self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
-            self.game.dead += 1
-        else:
-            self.game.screenshake = max(5, self.game.screenshake)
-            for _ in range(10):
-                    angle = random.random() * math.pi * 2
-                    speed = random.random() * 5
-                    self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
-                    self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+                self.game.screenshake = max(50, self.game.screenshake)
+                for _ in range(30):
+                        angle = random.random() * math.pi * 2
+                        speed = random.random() * 5
+                        self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
+                        self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
+                self.game.dead += 1
+            else:
+                self.game.screenshake = max(5, self.game.screenshake)
+                for _ in range(10):
+                        angle = random.random() * math.pi * 2
+                        speed = random.random() * 5
+                        self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
+                        self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
     
 
 class Cog(physicsEntity):
-    def __init__(self, game, pos, value, size = (6,6)):
+    def __init__(self, game, pos, size = (6,6)):
         super().__init__(game, 'cog', pos, size)
 
         #All spawn at the same point with 0 vel.
-        self.velocity = [(random.random()-0.5), -1.5]
-        self.value = value
+        self.velocity = [2 * (random.random()-0.5), -1.5]
+        self.value = 1
         self.size = list(size)
         self.gravityAffected = True
+        self.lightSize = 5
+        
         self.animation.img_duration += (self.animation.img_duration*random.random()) 
         
-
-        
-
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)
         self.velocity[0] *= 0.95
 
+        if self.game.caveDarkness:
+            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2 - 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2 - 2))
 
 
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
-            self.game.moneyThisRun += self.value
+            self.game.walletTemp['cogs'] += self.value
+            self.game.sfx['coin'].play()
+            return True
+    
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+class HeartFragment(physicsEntity):
+    def __init__(self, game, pos, size = (6,6)):
+        super().__init__(game, 'heartFragment', pos, size)
+
+        #All spawn at the same point with 0 vel.
+        self.velocity = [2 * (random.random()-0.5), -1.5]
+        self.value = 1
+        self.size = list(size)
+        self.gravityAffected = True
+        self.lightSize = 5
+        
+        self.animation.img_duration += (self.animation.img_duration*random.random()) 
+        
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
+        self.velocity[0] *= 0.95
+
+        if self.game.caveDarkness:
+            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2 - 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2 - 2))
+
+
+        #Check for player collision
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
+            self.game.walletTemp['heartFragments'] += self.value
+            self.game.sfx['coin'].play()
+            return True
+    
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+class Wing(physicsEntity):
+    def __init__(self, game, pos, size = (6,6)):
+        super().__init__(game, 'wing', pos, size)
+
+        #All spawn at the same point with 0 vel.
+        self.velocity = [2 * (random.random()-0.5), -1.5]
+        self.value = 1
+        self.size = list(size)
+        self.gravityAffected = True
+        self.lightSize = 5
+        
+        self.animation.img_duration += (self.animation.img_duration*random.random()) 
+        
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
+        self.velocity[0] *= 0.95
+
+        if self.game.caveDarkness:
+            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2 - 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2 - 2))
+
+
+        #Check for player collision
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
+            self.game.walletTemp['wings'] += self.value
             self.game.sfx['coin'].play()
             return True
     
@@ -834,7 +902,7 @@ class Character(physicsEntity):
         else:
             self.set_action('idle')
 
-        if self.canTalk:#
+        if self.canTalk:
             distToPlayer = math.dist(self.rect().center, self.game.player.rect().center)
             if distToPlayer < 15:
                 xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
@@ -924,20 +992,20 @@ class Hilbert(Character):
 
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 5
-            self.game.currentLevelSize = 30
-            self.game.money -= 5
+            self.game.currentLevelSize = 25
+            self.game.wallet['cogs'] -= 5
 
         elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 20
-            self.game.currentLevelSize = 50
-            self.game.money -= 50
+            self.game.currentLevelSize = 35
+            self.game.wallet['cogs'] -= 50
 
             self.game.availableEnemyVariants['4'] = 3
             
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 50
-            self.game.currentLevelSize = 75
-            self.game.money -= 100
+            self.game.currentLevelSize = 50
+            self.game.wallet['cogs'] -= 100
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
        
@@ -953,20 +1021,22 @@ class Noether(Character):
                     'Do you know the way back to the lobby?',
                     'Brilliant, cheers Ill follow you back!'],
 
-            '1': ['Oh yeah by the way Ive got some spare hearts.',
-                  'They can be yours, but I want me some cogs!',
+            '1': ['Oh yeah by the way Im also quite useful \'round here.',
+                  'I can make you extra hearts!',
+                  'I just need a few Heart Fragments!',
                   'Bring me 5 and the heart is yours!'],
 
-            '2': ['Youve got two hearts! Woo!',
-                    'Ill give ya another for 20 cogs.'],
+            '2': ['You\'ve got two hearts! Woo!',
+                    'Ill give ya another for 20 fragments.'],
 
-            '3': ['Youve got three hearts! Woo!',
-                    'Ill give ya another for 50 cogs.'],
+            '3': ['You\'ve got three hearts! Woo!',
+                    'Ill give ya another for 50 fragments.'],
 
-            '4': ['Youve got four hearts! Woo!',
-                    'Ill give ya another for 100 cogs.'],
+            '4': ['You\'ve got four hearts! Woo!',
+                    'Ill give ya another for 100 fragments.'],
                      
-            '5': ['Sorry chief! All out of hearts for now :('] }
+            '5': ['You\'ve got five hearts! Woo!',
+                  'Sorry chief! All out of hearts for now :('] }
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -986,29 +1056,83 @@ class Noether(Character):
             self.game.maxHealth += 1
             self.game.health = self.game.maxHealth
 
-            self.game.money -= 5
+            self.game.wallet['heartFragments'] -= 5
 
         elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.maxHealth += 1
             self.game.health = self.game.maxHealth
 
-            self.game.money -= 20
+            self.game.wallet['heartFragments'] -= 20
             
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.maxHealth += 1
             self.game.health = self.game.maxHealth
 
-            self.game.money -= 50
+            self.game.wallet['heartFragments'] -= 50
 
         elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.maxHealth += 1
             self.game.health = self.game.maxHealth
 
-            self.game.money -= 100
+            self.game.wallet['heartFragments'] -= 100
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
         
 
+class Curie(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Curie')
+
+        self.dialogue = {
+            '0': ['Oh by golly gosh am I lost!',
+                    'Do you know the way back to the lobby?',
+                    'Brilliant, cheers Ill follow you back!'],
+
+            '1': ['Oh yeah by the way Im also quite useful \'round here.',
+                  'I can make you winged boots!',
+                  'They let you jump more in the air!',
+                  'I just need a few bat wings!',
+                  'Bring me 5 and the extra jump is yours!'],
+
+            '2': ['You\'ve got two jumps! Woo!',
+                    'Ill give ya another for 50 wings.'],
+
+            '3': ['You\'ve got three jumps! Woo!',
+                    'Ill give ya another for 100 wings.'],
+            
+            '4': ['You\'ve got four jumps! Woo!',
+                  'Sorry chief! All out of boots for now.']}
+
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement)
+
+    def getConversation(self):
+        return super().getConversation()
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Curie'] = True
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.player.total_jumps += 1
+
+            self.game.wallet['wings'] -= 5
+
+        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.player.total_jumps += 1
+
+            self.game.wallet['wings'] -= 50
+
+        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.player.total_jumps += 1
+
+            self.game.wallet['wings'] -= 100
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
             
 

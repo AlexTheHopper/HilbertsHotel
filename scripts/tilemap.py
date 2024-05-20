@@ -12,8 +12,8 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
-PHYSICS_TILES = {'grass', 'stone'}
-AUTOTILE_TYPES = {'grass', 'stone'}
+PHYSICS_TILES = {'grass', 'stone', 'walls'}
+AUTOTILE_TYPES = {'grass', 'stone', 'walls'}
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
     tuple(sorted([(1, 0)])): 0, #Added
@@ -63,6 +63,7 @@ class tileMap:
     def extract(self, id_pairs, keep=False):
         matches = []
         for tile in self.offgrid_tiles.copy():
+            
             if (tile['type'], tile['variant']) in id_pairs:
                 matches.append(tile.copy())
 
@@ -166,13 +167,16 @@ class tileMap:
         for i in range(mapHeight):
             for j in range(mapWidth):
                 if map[i,j] == 1:
-                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'stone', 'variant': 1, 'pos': [i, j]}
+                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'walls', 'variant': 1, 'pos': [i, j]}
 
         #placing entities:
         player_placed = False
         portal_placed = False
         noether_placed = False
+        curie_placed = False
         difficultyProgress = 0
+        potplantNum = 0
+        potplantNumMax = int(size / 2)
         while not player_placed or not portal_placed or difficultyProgress < difficulty:
             
             
@@ -184,19 +188,31 @@ class tileMap:
             locUnderRight = str(x + 1) + ';' + str(y + 1)
             if locUnder in self.tilemap:
                 if loc not in self.tilemap and self.tilemap[locUnder]['type'] in PHYSICS_TILES:
+                    #Player
                     if not player_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                         player_placed = True
 
-                    elif not self.game.charactersMet['Noether'] and self.game.floor > 7 and not noether_placed and random.random() < 0.5:
+                    #Characters
+                    elif not self.game.charactersMet['Noether'] and self.game.floor > 7 and not noether_placed and random.random() < 0.25:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 6, 'pos': [x, y]}
                         noether_placed = True
+                    elif not self.game.charactersMet['Curie'] and self.game.floor > 10 and not curie_placed and random.random() < 0.25:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
+                        curie_placed = True
                         
-
+                    #Portal
                     elif not portal_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
                         portal_placed = True
-                    
+
+                    #Potplants
+                    elif random.random() < 0.5 and potplantNum < potplantNumMax:
+                        to_add = {'type': 'potplants', 'variant': random.randint(0,len(self.game.assets['potplants']) - 1), 'pos': [x * self.tile_size, y * self.tile_size]}
+                        self.offgrid_tiles.append(to_add)
+                        potplantNum += 1
+                        
+                    #Rocks
                     elif random.random() < 0.5 and locUnderRight in self.tilemap and locRight not in self.tilemap:
                         if self.tilemap[locUnder]['type'] in PHYSICS_TILES and self.tilemap[locUnderRight]['type'] in PHYSICS_TILES:
                             to_add = {'type': 'large_decor', 'variant': 0, 'pos': [x * self.tile_size + random.randint(-4,4), y * self.tile_size + self.tile_size / 2 + random.randint(0,6)]}
@@ -207,10 +223,6 @@ class tileMap:
                         variant, enemyDifficulty = random.choice(list(self.game.availableEnemyVariants.items()))
                         self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
                         difficultyProgress += enemyDifficulty
-
-            elif loc in self.tilemap and locUnder not in self.tilemap and random.random() < 0.1:
-                to_add = {'type': 'large_decor', 'variant': 3, 'pos': [x * self.tile_size, (y+1) * self.tile_size]}
-                self.offgrid_tiles.append(to_add)
             
             #Glowworms
             elif glowwormCount < glowwwormMax:

@@ -26,6 +26,8 @@ class Editor:
             'grass': load_images('tiles/grass'),
             'large_decor': load_images('tiles/large_decor'),
             'stone': load_images('tiles/stone'),
+            'potplants': load_images('tiles/potplants'),
+            'walls': load_images('tiles/walls'),
             'spawners': load_images('tiles/spawners')
         }
         
@@ -53,6 +55,8 @@ class Editor:
 
         self.ongrid = True
 
+        self.floodfill = False
+        self.floodfillLocs = [[0, 0], [0, 0]]
 
 
     def run(self):
@@ -84,6 +88,32 @@ class Editor:
 
             if self.clicking and self.ongrid:
                 self.tilemap.tilemap[str(tile_pos[0]) + ';' + str(tile_pos[1])] = {'type': self.tile_list[self.tile_group], 'variant': self.tile_variant, 'pos': tile_pos}
+
+                if self.floodfill:
+                    
+                    self.floodfill = False
+
+                    if self.floodfillLocs == [[0, 0], [0, 0]]:
+                        self.floodfillLocs[0] = tile_pos
+                        print(self.floodfillLocs)
+                    elif self.floodfillLocs[0] != [0, 0] and self.floodfillLocs[1] == [0, 0]:
+                        self.floodfillLocs[1] = tile_pos
+                        print(self.floodfillLocs)
+                    
+
+                        x1 = min(self.floodfillLocs[0][0], self.floodfillLocs[1][0])
+                        x2 = max(self.floodfillLocs[0][0], self.floodfillLocs[1][0])
+                        y1 = min(self.floodfillLocs[0][1], self.floodfillLocs[1][1])
+                        y2 = max(self.floodfillLocs[0][1], self.floodfillLocs[1][1])
+                        print(x1,x2,y1,y2)
+
+                        for i in range(x1,x2+1):
+                            for j in range(y1,y2+1):
+                                print(i,j)
+                                self.tilemap.tilemap[str(i) + ';' + str(j)] = {'type': self.tile_list[self.tile_group], 'variant': self.tile_variant, 'pos': (i,j)}
+
+                        self.floodfillLocs = [[0, 0], [0, 0]]
+                        
                 
             if self.right_clicking:
                 tile_loc = str(tile_pos[0]) + ';' + str(tile_pos[1])
@@ -160,6 +190,8 @@ class Editor:
                         self.tilemap.load_random_tilemap(15)
                     if event.key == pygame.K_o:
                         self.tilemap.save_tilemap(self.savename)
+                    if event.key == pygame.K_f:
+                        self.floodfill = True
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_a:
