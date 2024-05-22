@@ -16,7 +16,7 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        pygame.display.set_caption('Hilbert''s Hotel v0.1.1')
+        pygame.display.set_caption('Hilbert\'s Hotel v0.1.2')
 
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
@@ -35,6 +35,8 @@ class Game:
         self.interractionFrame = False
         self.caveDarknessRange = (50,250)
         self.caveDarkness = True
+        self.minimapActive = False
+        self.minimapList = {}
 
         self.currentTextList = []
         self.maxTextCooldown = 30
@@ -43,15 +45,13 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.floor = 0
+        self.floor = 1
 
         #Format: variant: difficulty
+        #Begins just with gunguy
         self.availableEnemyVariants = {
             '3': 1
         }
-        
-
-        
         #Screen and display
         self.screen_width = 1080
         self.screen_height = 720
@@ -62,6 +62,7 @@ class Game:
         self.display = pygame.Surface((self.screen_width / 2, self.screen_height / 2))
         self.HUDdisplay = pygame.Surface((self.screen_width, self.screen_height))
         self.HUDdisplay.set_colorkey((0, 0, 0))
+        self.minimapdisplay = pygame.Surface((self.screen_width / 4, self.screen_height / 4), pygame.SRCALPHA)
         self.darkness_surface = pygame.Surface(self.display_outline.get_size(), pygame.SRCALPHA)
 
         #VALUES THAT SAVE
@@ -146,7 +147,8 @@ class Game:
             'caveBackground': load_image('caveBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
-            'guns': load_images('guns'),
+            'weapons/gun': load_images('weapons/gun'),
+            'weapons/staff': load_images('weapons/staff'),
             'projectile': load_image('projectile.png'),
             'heart': load_image('heart.png'),
             'heartEmpty': load_image('heartEmpty.png'),
@@ -158,7 +160,6 @@ class Game:
             'gunguy/idle': Animation(load_images('entities/gunguy/idle'), img_dur = 10),
             'gunguy/run': Animation(load_images('entities/gunguy/run'), img_dur = 4,),
             'gunguy/grace': Animation(load_images('entities/gunguy/grace'), img_dur = 4),
-            'gunguy/shooting': Animation(load_images('entities/gunguy/shooting'), img_dur = 20, loop = False),
             'gunguy/jump': Animation(load_images('entities/gunguy/jump'), img_dur = 20),
             'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
             'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
@@ -176,7 +177,7 @@ class Game:
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
             'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 6, loop = False),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
-            'particle/dust': Animation(load_images('particles/dust'),img_dur=20, loop = False),
+            'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
             'cog/idle': Animation(load_images('entities/cog/idle'),img_dur=6),
             'wing/idle': Animation(load_images('entities/wing/idle'),img_dur=6),
@@ -232,6 +233,7 @@ class Game:
             background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
             self.display_outline.blit(background, (0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
+            
 
             self.clouds.update()
             self.clouds.render(self.display_outline, offset = self.render_scroll)
@@ -311,8 +313,6 @@ class Game:
         self.load_level()
 
         while self.game_running:
-           
-            
             #Camera movement
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
             self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 30
@@ -324,8 +324,16 @@ class Game:
             self.display_outline.fill((0, 0, 0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
             self.darkness_surface.fill((0, 0, 0, self.caveDarkness))
-            
+            self.minimapdisplay.fill((0, 0, 0, 0))
             self.screenshake = max(0, self.screenshake - 1)
+
+            #Minimap:
+            if self.minimapActive:
+                pygame.draw.rect(self.minimapdisplay, (255,100,100, 255), ((self.player.pos[0] - self.render_scroll[0] + self.player.anim_offset[0]) / 16 * 8, (self.player.pos[1] - self.render_scroll[1] + self.player.anim_offset[1]) / 16 * 8, 8, 8))
+                for loc in self.minimapList:
+                    tile = self.minimapList[loc]
+                    pygame.draw.rect(self.minimapdisplay, (255,255,255, 200), (tile[0] * 8, tile[1] * 8, 8, 8))
+                self.minimapList = {}
 
             #RENDER AND UPDATE ALL THE THINGS
             for portal in self.portals:
@@ -334,6 +342,7 @@ class Game:
                 portal.render(self.display_outline, offset = self.render_scroll)
             
             for enemy in self.enemies.copy():
+                
                 enemy.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if enemy.update(self.tilemap, (0, 0)):
@@ -357,9 +366,9 @@ class Game:
 
             
             for rect in self.potplants:
-                  if random.random() < 0.01:
+                  if random.random() < 0.01 and not self.paused:
                       pos = (rect.x + rect.width / 2, rect.y + rect.height)
-                      self.particles.append(Particle(self, 'dust', pos, vel = [0, 0.3], frame = random.randint(0, 20)))
+                      self.particles.append(Particle(self, 'leaf', pos, vel = [0, 0.3], frame = random.randint(0, 20)))
 
             for cog in self.cogs:
                 if not self.paused:
@@ -400,12 +409,13 @@ class Game:
                 self.display.blit(display_outline_sillhouette, offset)
 
             for particle in self.particles.copy():
-                kill = particle.update()
                 particle.render(self.display_outline, offset = self.render_scroll)
-                if particle.type == 'dust':
-                    particle.pos[0] += math.sin(particle.animation.frame * 0.035 + particle.randomness) * 0.2
-                if kill:
-                    self.particles.remove(particle)  
+                if not self.paused:
+                    kill = particle.update()
+                    if particle.type == 'leaf':
+                        particle.pos[0] += math.sin(particle.animation.frame * 0.035 + particle.randomness) * 0.2
+                    if kill:
+                        self.particles.remove(particle)  
            
             
             #Displaying HUD and text:
@@ -526,10 +536,21 @@ class Game:
                     if event.key == pygame.K_t:
                         for currency in self.wallet:
                             self.wallet[currency] += 1
-                    if event.key == pygame.K_t:
+                    if event.key == pygame.K_k:
                         for e in self.enemies.copy():
                             e.kill()
                             self.enemies.remove(e)
+                    if event.key == pygame.K_p:
+                        horBuffer = 720 // (16 * 4) + 4
+                        vertBuffer = 1080 // (16 * 4) + 4
+                        mapHeight = int(self.currentLevelSize + 2 * vertBuffer) 
+                        mapWidth = int(self.currentLevelSize + 2 * horBuffer) 
+                        for e in self.enemies.copy():
+                            print(e.type, e.pos)
+                        print('bounds: ', horBuffer * 16,vertBuffer * 16, ",",(mapWidth - horBuffer)*16,( mapHeight - vertBuffer)*16)
+                        
+                            
+                    
                     
 
                 if event.type == pygame.KEYUP:
@@ -560,6 +581,7 @@ class Game:
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) 
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
             self.screen.blit(self.HUDdisplay, (0, 0))
+            self.screen.blit(self.minimapdisplay, (3 * self.screen_width / 4, 3 * self.screen_height / 4))
 
             #Level transition circle
             if self.transition:
@@ -654,6 +676,7 @@ class Game:
         self.wings = []
         self.sparks = []
         self.player.dashing = 0
+        self.minimapList = {}
         
         if self.dead:
             self.health = self.maxHealth
@@ -669,7 +692,7 @@ class Game:
               
         
 
-        #Spawn in dust particle spawners
+        #Spawn in leaf particle spawners
         self.potplants = []
         for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3)], keep = True):
             self.potplants.append(pygame.Rect(plant['pos'][0],plant['pos'][1], 16, 16))
@@ -681,7 +704,7 @@ class Game:
         self.glowworms = []
         self.spawner_list = [
             ('spawners', 0), #player
-            ('spawners', 1), #character
+            ('spawners', 1), #hilbert
             ('spawners', 2), #portal
             ('spawners', 3), #gunguy
             ('spawners', 4), #bat

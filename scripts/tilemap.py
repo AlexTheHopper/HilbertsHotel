@@ -25,12 +25,17 @@ AUTOTILE_MAP = {
     tuple(sorted([(-1, 0), (0, -1), (0, 1)])): 3,
     tuple(sorted([(-1, 0), (0, -1)])): 4,
     tuple(sorted([(-1, 0), (0, -1), (1, 0)])): 5,
+    tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 5,
     tuple(sorted([(0, 1)])): 1, #Added
     tuple(sorted([(0, -1)])): 5, #Added
     tuple(sorted([(0, 1), (0, -1)])): 5, #added
     tuple(sorted([(1, 0), (0, -1)])): 6,
     tuple(sorted([(1, 0), (0, -1), (0, 1)])): 7,
-    tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 8
+    tuple(sorted([(0, 1), (0, -1)])): 8,
+    tuple(sorted([(0, -1)])): 8,
+    tuple(sorted([(0, 1)])): 9,
+    tuple(sorted([])): 9
+    
     
 }
 
@@ -59,6 +64,13 @@ class tileMap:
                     asset = self.game.assets[tile['type']][tile['variant']]
                     position = (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1])
                     surface.blit(asset, position)
+                    
+
+                    #Add tiles to minimap:
+                    if self.game.minimapActive and tile['type'] in PHYSICS_TILES:
+                        self.game.minimapList[loc] = [(tile['pos'][0] * self.tile_size - offset[0]) / 16, (tile['pos'][1] * self.tile_size - offset[1]) / 16]
+
+
 
     def extract(self, id_pairs, keep=False):
         matches = []
@@ -95,7 +107,6 @@ class tileMap:
     
     def load_random_tilemap(self, game, size, difficulty = 5):
         ##generate random level
-        #needs to return tilemap (and maybe offgrid tiles)
         self.tilemap = {}
         self.offgrid_tiles = []
       
@@ -105,9 +116,6 @@ class tileMap:
         roomSize = size
         corridorLengthMin = int(size / 4)
         corridorLengthMax = int(size / 2)
-
-        glowwormCount = 0
-        glowwwormMax = 15
 
         horBuffer = game.screen_height // (self.tile_size * 4) + 4
         vertBuffer = game.screen_width // (self.tile_size * 4) + 4
@@ -177,9 +185,10 @@ class tileMap:
         difficultyProgress = 0
         potplantNum = 0
         potplantNumMax = int(size / 2)
+        glowwormCount = 0
+        glowwwormMax = 15
+
         while not player_placed or not portal_placed or difficultyProgress < difficulty:
-            
-            
             y = random.choice(range(horBuffer, mapWidth - horBuffer))
             x = random.choice(range(vertBuffer, mapHeight - vertBuffer))
             loc = str(x) + ';' + str(y)
@@ -208,7 +217,8 @@ class tileMap:
 
                     #Potplants
                     elif random.random() < 0.5 and potplantNum < potplantNumMax:
-                        to_add = {'type': 'potplants', 'variant': random.randint(0,len(self.game.assets['potplants']) - 1), 'pos': [x * self.tile_size, y * self.tile_size]}
+                        randomXOffset = random.randint(-4,4)
+                        to_add = {'type': 'potplants', 'variant': random.randint(0,len(self.game.assets['potplants']) - 1), 'pos': [x * self.tile_size + randomXOffset, y * self.tile_size]}
                         self.offgrid_tiles.append(to_add)
                         potplantNum += 1
                         
@@ -230,7 +240,7 @@ class tileMap:
                 self.offgrid_tiles.append(to_add)
                 glowwormCount += 1
 
-
+       
         # plt.imshow(map)
         # plt.show()
         self.autotile()
@@ -281,7 +291,7 @@ class tileMap:
                 check_loc  = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
                 if check_loc in self.tilemap:
 
-                    if self.tilemap[check_loc]['type'] == tile['type']:
+                    if self.tilemap[check_loc]['type'] in AUTOTILE_TYPES:# == tile['type']:
                         neighbours.add(shift)
 
             neighbours = tuple(sorted(neighbours))

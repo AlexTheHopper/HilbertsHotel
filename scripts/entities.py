@@ -275,12 +275,16 @@ class Bat(physicsEntity):
 class GunGuy(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'gunguy', pos, size)
+        self.deathIntensity = 5
+
+        self.intelligence = math.floor(self.game.floor / 5)
+        self.weapon = 'gun' if self.intelligence < 2 else ('staff' if random.random() < 0.25 else 'gun')
+        self.staffCooldown = 120
+        self.trajectory = [0, 0]
 
         self.cogCount = random.randint(2,3)
-        self.heartFragmentCount = (1 if random.random() < 0.1 else 0)
+        self.heartFragmentCount = 1 if self.weapon == 'staff' else (1 if random.random() < 0.1 else 0)
         self.wingCount = 0
-
-        self.deathIntensity = 5
 
 
         if random.random() < 0.5:
@@ -290,7 +294,7 @@ class GunGuy(physicsEntity):
         self.attack_dist_y = 24
         self.bullet_speed = 1.5
         self.shootCountdown = 0
-        self.gunIndex = 0
+        self.weaponIndex = 0
         self.gravityAffected = True
         
 
@@ -301,6 +305,7 @@ class GunGuy(physicsEntity):
         self.set_action('grace')
     
     def update(self, tilemap, movement = (0, 0)):
+
         # Only update/render at close distances
         renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
         if renderDistToPlayer > self.renderDistance:
@@ -323,25 +328,43 @@ class GunGuy(physicsEntity):
             self.velocity[0] = max(self.velocity[0] - 0.1, 0)
         else:
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
+
+        if self.staffCooldown:
+            self.staffCooldown = max(self.staffCooldown - 1, 0)
+      
            
             
         if self.graceDone:
             #Walking logic, turning around etc
             if self.shootCountdown:
                 self.shootCountdown = max(self.shootCountdown - 1, 0)
-                self.gunIndex = math.ceil(self.shootCountdown / 20)
+                self.weaponIndex = math.ceil(self.shootCountdown / 20)
+
                 
+                #Shoot condition
                 if not self.shootCountdown:
+                    #offsets for asset sizes
+                    bulletOffset = [4, -4] if self.weapon == 'staff' else [5, 0]
+                    bulletVelocity = [-self.bullet_speed, 0] if self.flip_x else [self.bullet_speed, 0]
+
+                    #Vector to player if staff
+                    if self.weapon == 'staff':
+
+
+                        toPlayer = (self.game.player.pos[0] - self.pos[0] + (bulletOffset[0] if self.flip_x else -bulletOffset[0]), self.game.player.pos[1] - self.pos[1])
+                        bulletVelocity = toPlayer / np.linalg.norm(toPlayer) * 1.5      
                     
-                    
+                    #Create bullet
                     if self.flip_x:
                         self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - 5, self.rect().centery], -self.bullet_speed))
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
+                    
+                    
                     if not self.flip_x:
                         self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + 5, self.rect().centery], self.bullet_speed))
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
                     
@@ -351,7 +374,7 @@ class GunGuy(physicsEntity):
                 inFront = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery))
                 above = tilemap.solid_check((self.rect().centerx, self.rect().centery - 16))
                 
-                if inFront and not above and self.collisions['down']:
+                if inFront and not above and self.collisions['down'] and self.intelligence > 0:
                     aboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 16))
                     aboveAboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 32))
 
@@ -368,27 +391,55 @@ class GunGuy(physicsEntity):
                         self.velocity[1] = -2
                         self.velocity[0] =(-0.5 if self.flip_x else 0.5)
                     
-
+                #Turn around if bump into a wall
                 if (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
                     self.flip_x = not self.flip_x
                 else:
-                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
-               
+                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])               
                 self.walking = max(self.walking - 1, 0)
+
+            #also turn around if stopped to face player
+            # elif random.random() < 0.05 and self.intelligence > 0:
+            #     distx = self.game.player.pos[0] - self.pos[0]
+            #     if (self.flip_x and distx > 0) or (not self.flip_x and distx < 0):
+            #         self.flip_x = not self.flip_x
 
             elif random.random() < 0.01:
                 self.walking = random.randint(30, 120)
 
             #Attack condition
             if (random.random() < 0.02 and not self.shootCountdown):
-                disty = self.game.player.pos[1] - self.pos[1]
-                distx = self.game.player.pos[0] - self.pos[0]
-                #Y axis condition:
-                if abs(disty) < self.attack_dist_y and not self.game.dead:
-                    #X axis condition
-                    if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
+                #Gun:
+                if self.weapon == 'gun':
+                    disty = self.game.player.pos[1] - self.pos[1]
+                    distx = self.game.player.pos[0] - self.pos[0]
+                    #Y axis condition:
+                    if abs(disty) < self.attack_dist_y and not self.game.dead:
+                        #X axis condition
+                        if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
+                            self.shootCountdown = 60
+                            self.walking = 0
+                elif self.weapon == 'staff' and not self.staffCooldown:
+                   
+                    x1, y1 = self.pos[0], self.pos[1]
+                    x2, y2 = self.game.player.pos[0], self.game.player.pos[1]
+                
+                    xDist = x2 - x1
+                    yDist = y2 - y1
+                    clear = True
+                    self.staffCooldown = 120
+                    for n in range(50):
+                        x = int((x1 + (n/50) * xDist) // 16)
+                        y = int((y1 + (n/50) * yDist) // 16)
+                        loc = str(x) + ';' + str(y)
+                        if loc in self.game.tilemap.tilemap:
+                            clear = False
+                            
+                    if clear:
                         self.shootCountdown = 60
                         self.walking = 0
+                        
+
                        
             super().update(tilemap, movement = movement)
 
@@ -416,14 +467,16 @@ class GunGuy(physicsEntity):
         super().render(surface, offset = offset)
 
         if self.action != 'grace':
+            yOffset = (4 if self.weapon == 'staff' else 0) + (3 if (self.weapon == 'staff' and self.shootCountdown) else 0)
+
             if self.flip_x:
-                xpos = self.rect().centerx - 2 - self.game.assets['guns'][self.gunIndex].get_width() - offset[0]
-                ypos = self.rect().centery - offset[1]
-                surface.blit(pygame.transform.flip(self.game.assets['guns'][self.gunIndex], True, False), (xpos, ypos))
+                xpos = self.rect().centerx - 2 - self.game.assets['weapons/' + self.weapon][self.weaponIndex].get_width() - offset[0]
+                ypos = self.rect().centery - offset[1] - yOffset
+                surface.blit(pygame.transform.flip(self.game.assets['weapons/' + self.weapon][self.weaponIndex], True, False), (xpos, ypos))
             else:
                 xpos = self.rect().centerx + 2 - offset[0]
-                ypos = self.rect().centery - offset[1]
-                surface.blit(self.game.assets['guns'][self.gunIndex], (xpos, ypos))
+                ypos = self.rect().centery - offset[1] - yOffset
+                surface.blit(self.game.assets['weapons/' + self.weapon][self.weaponIndex], (xpos, ypos))
 
 class Portal(physicsEntity):
     def __init__(self, game, pos, size, destination):
@@ -831,7 +884,7 @@ class Bullet():
     def __init__(self, game, pos, speed):
         self.pos = list(pos)
         self.game = game
-        self.speed = speed
+        self.speed = list(speed)
         self.type = 'projectile'
         self.img = self.game.assets[self.type]
         self.anim_offset = (-2, 0)
@@ -840,17 +893,18 @@ class Bullet():
 
     def update(self, game):
         self.game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - self.game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - self.game.render_scroll[1]))
-        self.pos[0] += self.speed
+        self.pos[0] += self.speed[0]
+        self.pos[1] += self.speed[1]
 
         if self.game.caveDarkness:
-            self.game.darknessCircle(0, 15, (int(self.pos[0]) - self.game.render_scroll[0], int(self.pos[1]) - self.game.render_scroll[1]))
+            self.game.darknessCircle(0, 15, (int(self.pos[0]) - self.game.render_scroll[0] + (1 if self.speed[0] < 0 else -1), int(self.pos[1]) - self.game.render_scroll[1]))
 
 
         
         #Check to destroy
         if self.game.tilemap.solid_check(self.pos):
             for _ in range(4):
-                self.game.sparks.append(Spark(self.pos, random.random() - 0.5 + (math.pi if self.speed > 0 else 0), 2 + random.random()))
+                self.game.sparks.append(Spark(self.pos, random.random() - 0.5 + (math.pi if self.speed[0] > 0 else 0), 2 + random.random()))
             return True
         
         #Check for player collision:
@@ -951,15 +1005,15 @@ class Hilbert(Character):
         self.dialogue = {
             '0': ['Oh no! My hotel was attacked!',
                     'The whole thing has collapsed into the ground!',
-                    'Would you be able to help me take back control...',
+                    'Would you be able to help me take back control,',
                     '...and find my friends somewhere in the hotel?',
                     'Oh! You can dash attack with your x key?',
-                    'How original.'],
+                    'How original...'],
 
-            '1': ['Anyway, well need to fix the portal elevator over there.',
-                  'It works a bit but itll only take you up one floor.',
+            '1': ['Anyway, we\'ll need to fix the portal elevator over there.',
+                  'It works a bit but it\'ll only take you up one floor.',
                   'Please bring my back the cogs that were stolen!',
-                  'I am gonna need about 5 cogs to start these repairs.'],
+                  'I\'m gonna need about 5 cogs to start these repairs.'],
 
             '2': ['Thanks for getting some cogs woow!',
                     'I just realised I actually need another 50 though.',
@@ -997,14 +1051,14 @@ class Hilbert(Character):
 
         elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 20
-            self.game.currentLevelSize = 35
+            self.game.currentLevelSize = 30
             self.game.wallet['cogs'] -= 50
 
             self.game.availableEnemyVariants['4'] = 3
             
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 50
-            self.game.currentLevelSize = 50
+            self.game.currentLevelSize = 40
             self.game.wallet['cogs'] -= 100
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
@@ -1021,21 +1075,28 @@ class Noether(Character):
                     'Do you know the way back to the lobby?',
                     'Brilliant, cheers Ill follow you back!'],
 
-            '1': ['Oh yeah by the way Im also quite useful \'round here.',
+            '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you extra hearts!',
                   'I just need a few Heart Fragments!',
                   'Bring me 5 and the heart is yours!'],
 
             '2': ['You\'ve got two hearts! Woo!',
-                    'Ill give ya another for 20 fragments.'],
+                    'Ew, these things are disgusting,',
+                    '...and still beating! EW!',
+                    'Hearts are super useful!',
+                    'If you run out, you\'ll lose half your stuff :(',
+                    'I\'ll give ya another for 20 fragments.'],
 
             '3': ['You\'ve got three hearts! Woo!',
-                    'Ill give ya another for 50 fragments.'],
+                    'Look at you go, youll be a cat in no time!',
+                    'I\'ll give ya another for 50 fragments.'],
 
             '4': ['You\'ve got four hearts! Woo!',
-                    'Ill give ya another for 100 fragments.'],
+                    'Did you know that hagfish also have four hearts?',
+                    'I\'ll give ya another for 100 fragments.'],
                      
             '5': ['You\'ve got five hearts! Woo!',
+                  'Similarly, earthworms also have five!',
                   'Sorry chief! All out of hearts for now :('] }
 
     def render(self, surface, offset = (0, 0)):
@@ -1086,21 +1147,24 @@ class Curie(Character):
         self.dialogue = {
             '0': ['Oh by golly gosh am I lost!',
                     'Do you know the way back to the lobby?',
-                    'Brilliant, cheers Ill follow you back!'],
+                    'Brilliant, cheers I\'ll follow you back!'],
 
-            '1': ['Oh yeah by the way Im also quite useful \'round here.',
+            '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you winged boots!',
                   'They let you jump more in the air!',
                   'I just need a few bat wings!',
                   'Bring me 5 and the extra jump is yours!'],
 
             '2': ['You\'ve got two jumps! Woo!',
-                    'Ill give ya another for 50 wings.'],
+                    'Isn\'t this such a novel mechanic?',
+                    'I\'ll give ya another for 50 wings.'],
 
             '3': ['You\'ve got three jumps! Woo!',
-                    'Ill give ya another for 100 wings.'],
+                    'We\'re really pushing this double jump idea.',
+                    'I\'ll give ya another for 100 wings.'],
             
             '4': ['You\'ve got four jumps! Woo!',
+                  'How many is too many?',
                   'Sorry chief! All out of boots for now.']}
 
     def render(self, surface, offset = (0, 0)):

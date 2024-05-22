@@ -57,6 +57,7 @@ class Editor:
 
         self.floodfill = False
         self.floodfillLocs = [[0, 0], [0, 0]]
+        self.minimapActive = False
 
 
     def run(self):
