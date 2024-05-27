@@ -5,6 +5,7 @@ import random
 import math
 import os
 from scripts.entities import *
+from scripts.characters import *
 from scripts.utilities import *
 from scripts.tilemap import *
 from scripts.clouds import *
@@ -16,7 +17,7 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        pygame.display.set_caption('Hilbert\'s Hotel v0.1.2')
+        pygame.display.set_caption('Hilbert\'s Hotel v0.1.3')
 
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
@@ -79,11 +80,7 @@ class Game:
             'wings': 0
         }
 
-        #(this one doesnt save)
-        self.walletTemp = {}
-        for currency in self.wallet:
-            self.walletTemp[currency] = 0
-
+        
         self.dialogueHistory = {
             'Hilbert': {'0available': True,
                     '0said': False,
@@ -94,7 +91,9 @@ class Game:
                     '3available': False,
                     '3said': False,
                     '4available': False,
-                    '4said': False},
+                    '4said': False,
+                    '5available': False,
+                    '5said': False},
 
             'Noether': {'0available': True,
                     '0said': False,
@@ -151,6 +150,7 @@ class Game:
             'weapons/staff': load_images('weapons/staff'),
             'projectile': load_image('projectile.png'),
             'heart': load_image('heart.png'),
+            'light': load_image('light.png'),
             'heartEmpty': load_image('heartEmpty.png'),
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
             'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
@@ -185,6 +185,14 @@ class Game:
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)
 
         }
+
+        self.walletTemp = {}
+        self.currencyIcons = {}
+        for currency in self.wallet:
+            self.walletTemp[currency] = 0
+            self.currencyIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+
+        
        
         self.sfx = {
            'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
@@ -360,9 +368,10 @@ class Game:
                 self.player.render(self.display_outline, offset = self.render_scroll)
             
             for projectile in self.projectiles.copy():
-                if not self.paused:
-                    if projectile.update(self):
-                        self.projectiles.remove(projectile)
+                
+                if projectile.update(self):
+                    self.projectiles.remove(projectile)
+                
 
             
             for rect in self.potplants:
@@ -370,25 +379,12 @@ class Game:
                       pos = (rect.x + rect.width / 2, rect.y + rect.height)
                       self.particles.append(Particle(self, 'leaf', pos, vel = [0, 0.3], frame = random.randint(0, 20)))
 
-            for cog in self.cogs:
+            for currencyItem in self.currencyEntities:
                 if not self.paused:
-                    if cog.update(self.tilemap, (0, 0)):
-                        self.cogs.remove(cog)
-                cog.render(self.display_outline, offset = self.render_scroll)
-            for fragment in self.heartFragments:
-                if not self.paused:
-                    if fragment.update(self.tilemap, (0, 0)):
-                        self.heartFragments.remove(fragment)
-                fragment.render(self.display_outline, offset = self.render_scroll)
-            for wing in self.wings:
-                
-                if not self.paused:
-                    if wing.update(self.tilemap, (0, 0)):
-                        self.wings.remove(wing)
-                wing.render(self.display_outline, offset = self.render_scroll)
-           
+                    if currencyItem.update(self.tilemap, (0, 0)):
+                        self.currencyEntities.remove(currencyItem)
+                currencyItem.render(self.display_outline, offset = self.render_scroll)
           
-            
             
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
   
@@ -434,7 +430,7 @@ class Game:
                 if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
                    
                     currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if self.currentLevel != 'lobby' else '')
-                    self.HUDdisplay.blit(pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28)), (10, 10 + depth*30))
+                    self.HUDdisplay.blit(self.currencyIcons[currency], (10, 10 + depth*30))
                     self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)
                     depth += 1
   
@@ -535,7 +531,7 @@ class Game:
                         self.transitionToLevel(self.currentLevel)
                     if event.key == pygame.K_t:
                         for currency in self.wallet:
-                            self.wallet[currency] += 1
+                            self.wallet[currency] += 20
                     if event.key == pygame.K_k:
                         for e in self.enemies.copy():
                             e.kill()
@@ -546,12 +542,11 @@ class Game:
                         mapHeight = int(self.currentLevelSize + 2 * vertBuffer) 
                         mapWidth = int(self.currentLevelSize + 2 * horBuffer) 
                         for e in self.enemies.copy():
-                            print(e.type, e.pos)
+                            if (e.pos[1] < horBuffer * 16 or e.pos[1] > (mapWidth - horBuffer)*16) or (e.pos[0] < vertBuffer * 16 or e.pos[0] > ( mapHeight - vertBuffer)*16):
+                                print(e.type, e.pos)
+                                print('OUT OF BOUNDS^')
                         print('bounds: ', horBuffer * 16,vertBuffer * 16, ",",(mapWidth - horBuffer)*16,( mapHeight - vertBuffer)*16)
-                        
-                            
-                    
-                    
+                                            
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
@@ -598,71 +593,19 @@ class Game:
 
 
     def update_dialogues(self):
-        #Need both conditions with the previous text so you cant spend more money than you have.
-        #Hilbert:
-        if self.wallet['cogs'] >= 5:
-            self.dialogueHistory['Hilbert']['2available'] = True
-        elif not self.dialogueHistory['Hilbert']['2said']:
-            self.dialogueHistory['Hilbert']['2available'] = False
+        #Checks to see if the player has the required currency to unlock new dialogues.
+        for character in self.characters:
+            for index in character.currencyRequirements:
+                success = True
 
-        if self.wallet['cogs'] >= 50:
-            self.dialogueHistory['Hilbert']['3available'] = True
-        elif not self.dialogueHistory['Hilbert']['3said']:
-            self.dialogueHistory['Hilbert']['3available'] = False
-       
-        if self.wallet['cogs'] >= 100:
-            self.dialogueHistory['Hilbert']['4available'] = True
-        elif not self.dialogueHistory['Hilbert']['4said']:
-            self.dialogueHistory['Hilbert']['4available'] = False
-        
-
-        #Noether:
-        if self.currentLevel == 'lobby' and self.charactersMet['Noether']:
-            self.dialogueHistory['Noether']['1available'] = True
-        elif not self.dialogueHistory['Noether']['1said']:
-            self.dialogueHistory['Noether']['1available'] = False
-        
-        if self.wallet['heartFragments'] >= 5 and self.dialogueHistory['Noether']['1said']:
-            self.dialogueHistory['Noether']['2available'] = True
-        elif not self.dialogueHistory['Noether']['2said']:
-            self.dialogueHistory['Noether']['2available'] = False
-        
-        if self.wallet['heartFragments'] >= 20 and self.dialogueHistory['Noether']['1said']:
-            self.dialogueHistory['Noether']['3available'] = True
-        elif not self.dialogueHistory['Noether']['3said']:
-            self.dialogueHistory['Noether']['3available'] = False
-
-        if self.wallet['heartFragments'] >= 50 and self.dialogueHistory['Noether']['1said']:
-            self.dialogueHistory['Noether']['4available'] = True
-        elif not self.dialogueHistory['Noether']['4said']:
-            self.dialogueHistory['Noether']['4available'] = False
-    
-        if self.wallet['heartFragments'] >= 100 and self.dialogueHistory['Noether']['1said']:
-            self.dialogueHistory['Noether']['5available'] = True
-        elif not self.dialogueHistory['Noether']['5said']:
-            self.dialogueHistory['Noether']['5available'] = False
-
-        #Curie:
-        if self.currentLevel == 'lobby' and self.charactersMet['Curie']:
-            self.dialogueHistory['Curie']['1available'] = True
-        elif not self.dialogueHistory['Curie']['1said']:
-            self.dialogueHistory['Curie']['1available'] = False
-        
-        if self.wallet['wings'] >= 5 and self.dialogueHistory['Curie']['1said']:
-            self.dialogueHistory['Curie']['2available'] = True
-        elif not self.dialogueHistory['Curie']['2said']:
-            self.dialogueHistory['Curie']['2available'] = False
-        
-        if self.wallet['wings'] >= 50 and self.dialogueHistory['Curie']['1said']:
-            self.dialogueHistory['Curie']['3available'] = True
-        elif not self.dialogueHistory['Curie']['3said']:
-            self.dialogueHistory['Curie']['3available'] = False
-
-        if self.wallet['wings'] >= 100 and self.dialogueHistory['Curie']['1said']:
-            self.dialogueHistory['Curie']['4available'] = True
-        elif not self.dialogueHistory['Curie']['4said']:
-            self.dialogueHistory['Curie']['4available'] = False
-
+                for trade in character.currencyRequirements[index]:
+                    if self.wallet[trade[0]] < trade[1]:
+                        success = False
+                
+                if success:
+                    self.dialogueHistory[character.name][str(index) + 'available'] = True
+                elif not self.dialogueHistory[character.name][str(index) + 'said']:
+                    self.dialogueHistory[character.name][str(index) + 'available'] = False
     
     def load_level(self):
         
@@ -671,9 +614,7 @@ class Game:
 
         self.particles = []
         self.projectiles = []
-        self.cogs = []
-        self.heartFragments = []
-        self.wings = []
+        self.currencyEntities = []
         self.sparks = []
         self.player.dashing = 0
         self.minimapList = {}
@@ -683,6 +624,7 @@ class Game:
             for currency in self.wallet:
                 self.wallet[currency] = int((self.wallet[currency] + 1) / 2)
                 self.walletTemp[currency] = 0
+
         elif not self.dead:
             for currency in self.wallet:
                 self.wallet[currency] += self.walletTemp[currency]
@@ -811,6 +753,7 @@ class Game:
         self.transition += 1
 
     def checkNewDialogue(self):
+
         for character in self.characters:
             dialogue = self.dialogueHistory[str(character.name)]
             character.newDialogue = False
@@ -819,13 +762,17 @@ class Game:
             for index in range(int(len(dialogue) / 2)):
                 if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
                     character.newDialogue = True
+                elif dialogue[str(index) + 'said']:
+                    character.currentDialogueIndex = index
        
 
     def darknessCircle(self, transparency, radius, pos):
         pygame.draw.circle(self.darkness_surface, (0, 0, 0, transparency), pos, radius)
-
+        
 
     def save_game(self, saveSlot):
+        if self.health <= 0:
+            self.health = self.maxHealth
         f = open('data/saves/' + str(saveSlot) + '.json', 'w')
         json.dump({'wallet': self.wallet,
                    'maxHealth': self.maxHealth,
@@ -888,8 +835,5 @@ class Game:
             json.dump({'floor': self.floor}, f)
             f.close()
         
-
-            
-
 
 Game().loadMenu()

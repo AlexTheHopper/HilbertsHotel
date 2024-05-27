@@ -142,11 +142,11 @@ class physicsEntity:
         spawnLoc = ((spawnLoc[0] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2, (spawnLoc[1] * self.game.tilemap.tile_size) + self.game.tilemap.tile_size/2)
         
         for _ in range(cogCount):
-            self.game.cogs.append(Cog(self.game, spawnLoc))
+            self.game.currencyEntities.append(Currency(self.game, 'cog', spawnLoc))
         for _ in range(heartFragmentCount):
-            self.game.cogs.append(HeartFragment(self.game, spawnLoc))
+            self.game.currencyEntities.append(Currency(self.game, 'heartFragment', spawnLoc))
         for _ in range(wingCount):
-            self.game.wings.append(Wing(self.game, spawnLoc))
+            self.game.currencyEntities.append(Currency(self.game, 'wing', spawnLoc))
 
 
 
@@ -168,14 +168,15 @@ class Bat(physicsEntity):
         self.graceDone = False
         self.set_action('grace')
         self.isAttacking = False
-        self.anim_offset = [-4, -1]
+        self.anim_offset = [-2, -1]
         self.timer = 0
         self.slingTimer = 0
-        self.pos[1] += 3
+        self.pos[1] += 9
+        self.pos[0] += 4
+        
 
         self.toPlayer = [0, 0]
-        self.pos[0] += 2
-        self.pos[1] += 8
+        
     
         
 
@@ -185,14 +186,13 @@ class Bat(physicsEntity):
         super().update(tilemap, movement = movement)
         # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
         
-                
-
+        
         if not self.graceDone:
             self.grace = max(0, self.grace - 1)
             if self.grace == 0:
                 self.set_action('idle')
                 self.timer = random.randint(180,500)
-                self.velocity = [random.random(), random.random()]
+                self.velocity = [random.random() - 1/2, random.random()*0.5 + 0.5]
                 self.graceDone = True
                 
                 
@@ -207,7 +207,6 @@ class Bat(physicsEntity):
                     self.velocity[1] *= 0.99
 
                 if not self.timer:
-                    
                     self.set_action('charging')
                     toPlayer = (self.game.player.pos[0] - self.pos[0] + 4, self.game.player.pos[1] - self.pos[1] + 5)
                     self.toPlayer = toPlayer / np.linalg.norm(toPlayer) 
@@ -224,6 +223,7 @@ class Bat(physicsEntity):
                     self.velocity[1] = self.toPlayer[1] * 2
                     self.timer = 120
                     self.set_action('attacking')
+                
 
 
 
@@ -268,10 +268,9 @@ class Bat(physicsEntity):
         if self.action in ['charging', 'attacking']:
             angle = math.atan2(-self.velocity[1], self.velocity[0]) + math.pi/2 + (math.pi if self.action == 'attacking' else 0)
            
-
+        angle = 0
         super().render(surface, offset = offset, rotation = angle)
         
-
 class GunGuy(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'gunguy', pos, size)
@@ -282,7 +281,7 @@ class GunGuy(physicsEntity):
         self.staffCooldown = 120
         self.trajectory = [0, 0]
 
-        self.cogCount = random.randint(2,3)
+        self.cogCount = random.randint(2,4)
         self.heartFragmentCount = 1 if self.weapon == 'staff' else (1 if random.random() < 0.1 else 0)
         self.wingCount = 0
 
@@ -310,10 +309,6 @@ class GunGuy(physicsEntity):
         renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
         if renderDistToPlayer > self.renderDistance:
             return False
-        
-        if self.game.caveDarkness:
-            self.game.darknessCircle(0, 30, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
-
         
         
         if not self.graceDone:
@@ -352,7 +347,8 @@ class GunGuy(physicsEntity):
 
 
                         toPlayer = (self.game.player.pos[0] - self.pos[0] + (bulletOffset[0] if self.flip_x else -bulletOffset[0]), self.game.player.pos[1] - self.pos[1])
-                        bulletVelocity = toPlayer / np.linalg.norm(toPlayer) * 1.5      
+                        bulletVelocity = toPlayer / np.linalg.norm(toPlayer) * 1.5 
+                        self.staffCooldown = 0     
                     
                     #Create bullet
                     if self.flip_x:
@@ -361,12 +357,12 @@ class GunGuy(physicsEntity):
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
                     
-                    
-                    if not self.flip_x:
+                    else:
                         self.game.sfx['shoot'].play()
                         self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
+                    
                     
 
             elif self.walking:
@@ -428,9 +424,9 @@ class GunGuy(physicsEntity):
                     yDist = y2 - y1
                     clear = True
                     self.staffCooldown = 120
-                    for n in range(50):
-                        x = int((x1 + (n/50) * xDist) // 16)
-                        y = int((y1 + (n/50) * yDist) // 16)
+                    for n in range(10):
+                        x = int((x1 + (n/10) * xDist) // 16)
+                        y = int((y1 + (n/10) * yDist) // 16)
                         loc = str(x) + ';' + str(y)
                         if loc in self.game.tilemap.tilemap:
                             clear = False
@@ -466,6 +462,10 @@ class GunGuy(physicsEntity):
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
 
+        if self.game.caveDarkness:
+            self.game.darknessCircle(0, 30, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+
+
         if self.action != 'grace':
             yOffset = (4 if self.weapon == 'staff' else 0) + (3 if (self.weapon == 'staff' and self.shootCountdown) else 0)
 
@@ -487,11 +487,6 @@ class Portal(physicsEntity):
 
     def update(self, game):
         self.animation.update()
-       
-
-        if self.game.caveDarkness and self.action in ['opening', 'active']:
-            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
-
 
         #Changing state/action
         if self.game.currentLevel == 'lobby':
@@ -519,7 +514,11 @@ class Portal(physicsEntity):
         if self.rect().colliderect(playerRect) and self.action == 'active' and self.game.transition == 0:
             self.game.transitionToLevel(self.destination)
 
-                
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset)
+    
+        if self.game.caveDarkness and self.action in ['opening', 'active']:
+            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))              
             
 class Player(physicsEntity):
 
@@ -542,9 +541,7 @@ class Player(physicsEntity):
         # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
         super().update(tilemap, movement = movement)
 
-        if self.game.caveDarkness and self.game.transition <= 0:
-            self.game.darknessCircle(0, 90, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
-
+        
         if self.damageCooldown:
             self.damageCooldown = max(self.damageCooldown - 1, 0) 
         
@@ -651,6 +648,10 @@ class Player(physicsEntity):
     def render(self, surface, offset = (0, 0)):
         if abs(self.dashing) <= 50 and self.game.transition < 1:
             super().render(surface, offset = offset)
+        
+        if self.game.caveDarkness and self.game.transition <= 0:
+            self.game.darknessCircle(0, 90, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+
 
     def jump(self):
         if self.wall_slide:
@@ -716,14 +717,14 @@ class Player(physicsEntity):
                         self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
                         self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
     
-
-class Cog(physicsEntity):
-    def __init__(self, game, pos, size = (6,6)):
-        super().__init__(game, 'cog', pos, size)
+class Currency(physicsEntity):
+    def __init__(self, game, currencyType, pos, size = (6,6)):
+        super().__init__(game, currencyType, pos, size)
 
         #All spawn at the same point with 0 vel.
         self.velocity = [2 * (random.random()-0.5), -1.5]
         self.value = 1
+        self.currencyType = currencyType
         self.size = list(size)
         self.gravityAffected = True
         self.lightSize = 5
@@ -734,78 +735,23 @@ class Cog(physicsEntity):
         super().update(tilemap, movement = movement)
         self.velocity[0] *= 0.95
 
-        if self.game.caveDarkness:
-            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2 - 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2 - 2))
-
+        
+        if np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1])) < 20:
+            if self.pos[0] - self.game.player.pos[0] > 0:
+                self.velocity[0] = -1
+            else:
+                self.velocity[0] = 1
 
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
-            self.game.walletTemp['cogs'] += self.value
+            self.game.walletTemp[str(self.currencyType) + 's'] += self.value
             self.game.sfx['coin'].play()
             return True
     
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
-
-class HeartFragment(physicsEntity):
-    def __init__(self, game, pos, size = (6,6)):
-        super().__init__(game, 'heartFragment', pos, size)
-
-        #All spawn at the same point with 0 vel.
-        self.velocity = [2 * (random.random()-0.5), -1.5]
-        self.value = 1
-        self.size = list(size)
-        self.gravityAffected = True
-        self.lightSize = 5
-        
-        self.animation.img_duration += (self.animation.img_duration*random.random()) 
-        
-    def update(self, tilemap, movement = (0, 0)):
-        super().update(tilemap, movement = movement)
-        self.velocity[0] *= 0.95
-
         if self.game.caveDarkness:
             self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2 - 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2 - 2))
-
-
-        #Check for player collision
-        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
-            self.game.walletTemp['heartFragments'] += self.value
-            self.game.sfx['coin'].play()
-            return True
-    
-    def render(self, surface, offset = (0, 0)):
-        super().render(surface, offset = offset)
-
-class Wing(physicsEntity):
-    def __init__(self, game, pos, size = (6,6)):
-        super().__init__(game, 'wing', pos, size)
-
-        #All spawn at the same point with 0 vel.
-        self.velocity = [2 * (random.random()-0.5), -1.5]
-        self.value = 1
-        self.size = list(size)
-        self.gravityAffected = True
-        self.lightSize = 5
-        
-        self.animation.img_duration += (self.animation.img_duration*random.random()) 
-        
-    def update(self, tilemap, movement = (0, 0)):
-        super().update(tilemap, movement = movement)
-        self.velocity[0] *= 0.95
-
-        if self.game.caveDarkness:
-            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2 - 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2 - 2))
-
-
-        #Check for player collision
-        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
-            self.game.walletTemp['wings'] += self.value
-            self.game.sfx['coin'].play()
-            return True
-    
-    def render(self, surface, offset = (0, 0)):
-        super().render(surface, offset = offset)
 
 class Glowworm(physicsEntity):
     def __init__(self, game, pos, size = (5,5)):
@@ -871,15 +817,14 @@ class Glowworm(physicsEntity):
         self.pos[0] += self.direction[0] + (random.random() - 0.5)
         self.pos[1] += self.direction[1] + (random.random() - 0.5)
         
-        if self.game.caveDarkness:
-            self.game.darknessCircle(0, 6, (int(self.pos[0]) - self.game.render_scroll[0] + self.animation.img().get_width() / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.animation.img().get_height() / 2))
         
         super().update(tilemap, movement = movement)
 
-    
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
-
+        if self.game.caveDarkness:
+            self.game.darknessCircle(0, 6, (int(self.pos[0]) - self.game.render_scroll[0] + self.animation.img().get_width() / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.animation.img().get_height() / 2))
+        
 class Bullet():
     def __init__(self, game, pos, speed):
         self.pos = list(pos)
@@ -893,14 +838,11 @@ class Bullet():
 
     def update(self, game):
         self.game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - self.game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - self.game.render_scroll[1]))
-        self.pos[0] += self.speed[0]
-        self.pos[1] += self.speed[1]
-
-        if self.game.caveDarkness:
-            self.game.darknessCircle(0, 15, (int(self.pos[0]) - self.game.render_scroll[0] + (1 if self.speed[0] < 0 else -1), int(self.pos[1]) - self.game.render_scroll[1]))
-
-
         
+        if not self.game.paused:
+            self.pos[0] += self.speed[0]
+            self.pos[1] += self.speed[1]
+       
         #Check to destroy
         if self.game.tilemap.solid_check(self.pos):
             for _ in range(4):
@@ -913,293 +855,8 @@ class Bullet():
                 self.game.player.damage(self.attackPower)
                 return True
             
-        
-class Character(physicsEntity):
-    def __init__(self, game, pos, size, name):
-        
-        super().__init__(game, name.lower(), pos, size)
-        self.type = name.lower()
-        self.name = name
-
-        self.walking = 0
-        self.canTalk = True
-        self.newDialogue = False
-        self.gravityAffected = True
-
-
-    def update(self, tilemap, movement = (0, 0)):   
 
         if self.game.caveDarkness:
-            self.game.darknessCircle(0, 50, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
-
-
-        #Walking logic, turning around etc
-        
-        if self.walking:
-            if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
-                if (self.collisions['left'] or self.collisions['right']):
-                    self.flip_x = not self.flip_x
-                else:
-                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
-            else:
-                self.flip_x = not self.flip_x
-            self.walking = max(self.walking - 1, 0)
-
-        elif random.random() < 0.01:
-            self.walking = random.randint(30, 120)
-
-        super().update(self.game.tilemap, movement = movement)
-
-        #Setting animation type
-        if movement[0] != 0:
-            self.set_action('run')
-        else:
-            self.set_action('idle')
-
-        if self.canTalk:
-            distToPlayer = math.dist(self.rect().center, self.game.player.rect().center)
-            if distToPlayer < 15:
-                xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
-                ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 15
-                
-                self.game.draw_text('(z)', (xpos, ypos), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
-                if self.game.interractionFrame:
-                    
-                    self.game.run_text(self)
-            elif distToPlayer >= 15 and self.newDialogue:
-                xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
-                ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 15
-                
-                self.game.draw_text('(!)', (xpos, ypos), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
-                
-
-    def render(self, surface, offset = (0, 0)):
-        super().render(surface, offset = offset)
-
-
-
-    def getConversation(self):
-        self.game.update_dialogues()
-        dialogue = self.game.dialogueHistory[self.name]
-        
-        for index in range(int(len(dialogue) / 2)):
-            available = dialogue[str(index) + 'available']
-            said = dialogue[str(index) + 'said']
-            
-
-            if not available:
-                return(self.dialogue[str(index - 1)], index - 1)
-            
-            elif available and not said:
-                #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
-                return(self.dialogue[str(index)], index)
-        
-        index = int(len(dialogue) / 2) - 1
-        #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
-        return(self.dialogue[str(index)], int(index))
-
-class Hilbert(Character):
-    def __init__(self, game, pos, size):
-        super().__init__(game, pos, size, 'Hilbert')
-
-        self.dialogue = {
-            '0': ['Oh no! My hotel was attacked!',
-                    'The whole thing has collapsed into the ground!',
-                    'Would you be able to help me take back control,',
-                    '...and find my friends somewhere in the hotel?',
-                    'Oh! You can dash attack with your x key?',
-                    'How original...'],
-
-            '1': ['Anyway, we\'ll need to fix the portal elevator over there.',
-                  'It works a bit but it\'ll only take you up one floor.',
-                  'Please bring my back the cogs that were stolen!',
-                  'I\'m gonna need about 5 cogs to start these repairs.'],
-
-            '2': ['Thanks for getting some cogs woow!',
-                    'I just realised I actually need another 50 though.',
-                    'Be careful! The floors get bigger as you ascend!',
-                    'Which makes no structural sense, I dont know how it works!',
-                    'Oh and if you get lost, follow the fireflies!'],
-
-            '3': ['Amazing job wow!',
-                    'Really sorry but I still need 100 more.',
-                    'I think I heard some bats around earlier, watch out for them.',
-                    'They fly around and suddenly go AHHH at you, ya know?'],
-
-            '4': ['Phenomenal work, my little slave!!',
-                  'I dont know what else to do but please keep exploring!']  }
-
-    def render(self, surface, offset = (0, 0)):
-        super().render(surface, offset = offset)
-
-    def update(self, tilemap, movement = (0, 0)):
-        super().update(tilemap, movement)
-
-    def getConversation(self):
-        return super().getConversation()
-
-    def conversationAction(self, key):
-        #Runs when dialogue matching key is said for thr first time.
-
-        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.dialogueHistory[self.name]['1available'] = True
-
-        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 5
-            self.game.currentLevelSize = 25
-            self.game.wallet['cogs'] -= 5
-
-        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 20
-            self.game.currentLevelSize = 30
-            self.game.wallet['cogs'] -= 50
-
-            self.game.availableEnemyVariants['4'] = 3
-            
-        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 50
-            self.game.currentLevelSize = 40
-            self.game.wallet['cogs'] -= 100
-
-        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
-       
-
-
-
-class Noether(Character):
-    def __init__(self, game, pos, size):
-        super().__init__(game, pos, size, 'Noether')
-
-        self.dialogue = {
-            '0': ['Oh by golly gosh am I lost!',
-                    'Do you know the way back to the lobby?',
-                    'Brilliant, cheers Ill follow you back!'],
-
-            '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
-                  'I can make you extra hearts!',
-                  'I just need a few Heart Fragments!',
-                  'Bring me 5 and the heart is yours!'],
-
-            '2': ['You\'ve got two hearts! Woo!',
-                    'Ew, these things are disgusting,',
-                    '...and still beating! EW!',
-                    'Hearts are super useful!',
-                    'If you run out, you\'ll lose half your stuff :(',
-                    'I\'ll give ya another for 20 fragments.'],
-
-            '3': ['You\'ve got three hearts! Woo!',
-                    'Look at you go, youll be a cat in no time!',
-                    'I\'ll give ya another for 50 fragments.'],
-
-            '4': ['You\'ve got four hearts! Woo!',
-                    'Did you know that hagfish also have four hearts?',
-                    'I\'ll give ya another for 100 fragments.'],
-                     
-            '5': ['You\'ve got five hearts! Woo!',
-                  'Similarly, earthworms also have five!',
-                  'Sorry chief! All out of hearts for now :('] }
-
-    def render(self, surface, offset = (0, 0)):
-        super().render(surface, offset = offset)
-
-    def update(self, tilemap, movement = (0, 0)):
-        super().update(tilemap, movement)
-
-    def getConversation(self):
-        return super().getConversation()
-
-    def conversationAction(self, key):
-        #Runs when dialogue matching key is said for thr first time.
-        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.charactersMet['Noether'] = True
-
-        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.maxHealth += 1
-            self.game.health = self.game.maxHealth
-
-            self.game.wallet['heartFragments'] -= 5
-
-        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.maxHealth += 1
-            self.game.health = self.game.maxHealth
-
-            self.game.wallet['heartFragments'] -= 20
-            
-        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.maxHealth += 1
-            self.game.health = self.game.maxHealth
-
-            self.game.wallet['heartFragments'] -= 50
-
-        elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.maxHealth += 1
-            self.game.health = self.game.maxHealth
-
-            self.game.wallet['heartFragments'] -= 100
-
-        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
-        
-
-class Curie(Character):
-    def __init__(self, game, pos, size):
-        super().__init__(game, pos, size, 'Curie')
-
-        self.dialogue = {
-            '0': ['Oh by golly gosh am I lost!',
-                    'Do you know the way back to the lobby?',
-                    'Brilliant, cheers I\'ll follow you back!'],
-
-            '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
-                  'I can make you winged boots!',
-                  'They let you jump more in the air!',
-                  'I just need a few bat wings!',
-                  'Bring me 5 and the extra jump is yours!'],
-
-            '2': ['You\'ve got two jumps! Woo!',
-                    'Isn\'t this such a novel mechanic?',
-                    'I\'ll give ya another for 50 wings.'],
-
-            '3': ['You\'ve got three jumps! Woo!',
-                    'We\'re really pushing this double jump idea.',
-                    'I\'ll give ya another for 100 wings.'],
-            
-            '4': ['You\'ve got four jumps! Woo!',
-                  'How many is too many?',
-                  'Sorry chief! All out of boots for now.']}
-
-    def render(self, surface, offset = (0, 0)):
-        super().render(surface, offset = offset)
-
-    def update(self, tilemap, movement = (0, 0)):
-        super().update(tilemap, movement)
-
-    def getConversation(self):
-        return super().getConversation()
-
-    def conversationAction(self, key):
-        #Runs when dialogue matching key is said for thr first time.
-        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.charactersMet['Curie'] = True
-
-        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.player.total_jumps += 1
-
-            self.game.wallet['wings'] -= 5
-
-        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.player.total_jumps += 1
-
-            self.game.wallet['wings'] -= 50
-
-        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.player.total_jumps += 1
-
-            self.game.wallet['wings'] -= 100
-
-        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+            self.game.darknessCircle(0, 15, (int(self.pos[0]) - self.game.render_scroll[0] + (1 if self.speed[0] < 0 else -1), int(self.pos[1]) - self.game.render_scroll[1]))
 
             
-
-        
-
-    

@@ -113,7 +113,7 @@ class tileMap:
         size = max(size, 10)
         vertexNum = int(size / 2)
         roomCount = int((size / 5) ** 1.3)
-        roomSize = size
+        roomSize = size * 1.5
         corridorLengthMin = int(size / 4)
         corridorLengthMax = int(size / 2)
 
@@ -295,8 +295,12 @@ class tileMap:
                         neighbours.add(shift)
 
             neighbours = tuple(sorted(neighbours))
+
             if (tile['type'] in AUTOTILE_TYPES) and (neighbours in AUTOTILE_MAP):
-                tile['variant'] = AUTOTILE_MAP[neighbours]
+                if AUTOTILE_MAP[neighbours] == 5:
+                    tile['variant'] = random.choice([10,11,12]) if random.random() < 0.01 else 5
+                else:
+                    tile['variant'] = AUTOTILE_MAP[neighbours]
 
     def physics_rects_around(self, pos):
         rects = []
