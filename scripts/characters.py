@@ -18,6 +18,7 @@ class Character(physicsEntity):
     def update(self, tilemap, movement = (0, 0)):   
         #Walking logic, turning around etc
         
+        
         if self.walking:
             if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
                 if (self.collisions['left'] or self.collisions['right']):
@@ -59,8 +60,11 @@ class Character(physicsEntity):
                         self.game.HUDdisplay.blit(self.game.currencyIcons[requirement[0]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 12))
                         colour = (0,150,0) if self.game.wallet[str(requirement[0])] >= requirement[1] else (150,0,0)
                         self.game.draw_text(str(requirement[1]), (xpos + 45 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos), self.game.text_font, colour, (0, 0), mode = 'center', scale = 0.75)
-
                         offsetN += 1
+
+            elif distToPlayer >= 15 and self.newDialogue:
+                self.game.draw_text('(!)', (xpos, ypos - (30 if requirementNum else 0)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
+
 
             if distToPlayer < 15:
                 self.game.draw_text('(z)', (xpos, ypos - (30 if requirementNum else 0)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
@@ -68,9 +72,7 @@ class Character(physicsEntity):
                 if self.game.interractionFrame:
                     self.game.run_text(self)
 
-            elif distToPlayer >= 15 and self.newDialogue:
-                self.game.draw_text('(!)', (xpos, ypos - (30 if requirementNum else 0)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
-
+            
 
                 
 
@@ -110,9 +112,10 @@ class Hilbert(Character):
             0: [],
             1: [],
             2: [['cogs', 5]],
-            3: [['cogs', 50]],
-            4: [['cogs', 100]],
-            5: [['cogs', 150]]
+            3: [],
+            4: [['cogs', 50]],
+            5: [['cogs', 100]],
+            6: [['cogs', 150]]
         }
 
         self.dialogue = {
@@ -134,15 +137,19 @@ class Hilbert(Character):
                     'Which makes no structural sense, I dont know how it works!',
                     'Oh and if you get lost, follow the fireflies!'],
 
-            '3': ['Amazing job wow!',
+            '3': ['Also, yes I know its dark as hell up there sometimes.',
+                  'I dunno, maybe find some extra eyes.',
+                  'I#m sure that\'d help you see better.'],
+
+            '4': ['Amazing job wow!',
                     'Really sorry but I still need 100 more.',
                     'I think I heard some bats around earlier, watch out for them.',
                     'They fly around and suddenly go AHHH at you, ya know?'],
 
-            '4': ['You know the drill...',
+            '5': ['You know the drill...',
                   'This time I\'ll need 150 cogs.'],
                     
-            '5': ['Phenomenal work, my little slave!!',
+            '6': ['Phenomenal work, my little slave!!',
                   'I dont know what else to do but please keep exploring!']  }
 
 
@@ -157,19 +164,19 @@ class Hilbert(Character):
             self.game.currentLevelSize = 25
             self.game.wallet['cogs'] -= 5
 
-        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 20
             self.game.currentLevelSize = 30
             self.game.wallet['cogs'] -= 50
 
             self.game.availableEnemyVariants['4'] = 3
             
-        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+        elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 50
             self.game.currentLevelSize = 40
             self.game.wallet['cogs'] -= 100
 
-        elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+        elif key == 6 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currentDifficulty = 75
             self.game.currentLevelSize = 50
             self.game.wallet['cogs'] -= 150
@@ -204,16 +211,16 @@ class Noether(Character):
                     'Ew, these things are disgusting,',
                     '...and still beating! EW!',
                     'Hearts are super useful!',
-                    'If you run out, you\'ll lose half your stuff :(',
+                    'If you run out, you\'ll lose a quarter of everything :(',
                     'I\'ll give ya another for 20 fragments.'],
 
             '3': ['You\'ve got three hearts! Woo!',
                     'Look at you go, youll be a cat in no time!',
-                    'I\'ll give ya another for 50 fragments.'],
+                    'Keep \'em comin\' please.'],
 
             '4': ['You\'ve got four hearts! Woo!',
                     'Did you know that hagfish also have four hearts?',
-                    'I\'ll give ya another for 100 fragments.'],
+                    'I\'ve only got one more, sorry!'],
                      
             '5': ['You\'ve got five hearts! Woo!',
                   'Similarly, earthworms also have five!',
@@ -308,6 +315,44 @@ class Curie(Character):
             self.game.wallet['wings'] -= 100
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+
+
+
+class Planck(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Planck')
+
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [['heartFragments', 5]]
+        }
+
+        self.dialogue = {
+            '0': ['Oh by golly gosh am I lost!',
+                    'Do you know the way back to the lobby?',
+                    'Brilliant, cheers I\'ll follow you back!'],
+
+            '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
+                  'I can make you temporary hearts!',
+                  'They will only last until you get hit.',
+                  'They\'re each yours for just 5 heart fragments!'],
+
+            '2': ['Here\'s a temporary heart!',
+                    'Don\'t go losing it all at once!']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Planck'] = True
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['heartFragments'] -= 5
+            self.game.temporaryHealth += 1
+
+        if key != 2:
+            self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
             
 

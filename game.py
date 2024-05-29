@@ -17,7 +17,7 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        pygame.display.set_caption('Hilbert\'s Hotel v0.1.3')
+        pygame.display.set_caption('Hilbert\'s Hotel v0.1.4')
 
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
@@ -69,6 +69,7 @@ class Game:
         #VALUES THAT SAVE
         self.maxHealth = 1
         self.health = self.maxHealth
+        self.temporaryHealth = 0
         
         self.currentDifficulty = 1
         self.currentLevelSize = 15
@@ -77,7 +78,8 @@ class Game:
         self.wallet = {
             'cogs': 0,
             'heartFragments': 0,
-            'wings': 0
+            'wings': 0,
+            'eyes': 0
         }
 
         
@@ -93,7 +95,9 @@ class Game:
                     '4available': False,
                     '4said': False,
                     '5available': False,
-                    '5said': False},
+                    '5said': False,
+                    '6available': False,
+                    '6said': False},
 
             'Noether': {'0available': True,
                     '0said': False,
@@ -117,7 +121,14 @@ class Game:
                     '3available': False,
                     '3said': False,
                     '4available': False,
-                    '4said': False}
+                    '4said': False},
+
+            'Planck': {'0available': True,
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False}
 
 
         }
@@ -125,7 +136,8 @@ class Game:
         self.charactersMet = {
             'Hilbert': True,
             'Noether': False,
-            'Curie': False
+            'Curie': False,
+            'Planck': False
         }
         
        
@@ -140,18 +152,19 @@ class Game:
             'potplants': load_images('tiles/potplants'),
             'stone': load_images('tiles/stone'),
             'walls': load_images('tiles/walls'),
-            'menuBackground': load_image('menuBackground.png'),
-            'menuBackgroundHH': load_image('menuBackgroundHH.png'),
-            'menuBackgroundHHForeground': load_image('menuBackgroundHHForeground.png'),
-            'caveBackground': load_image('caveBackground.png'),
+            'menuBackground': load_image('misc/menuBackground.png'),
+            'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
+            'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
+            'caveBackground': load_image('misc/caveBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'weapons/gun': load_images('weapons/gun'),
             'weapons/staff': load_images('weapons/staff'),
-            'projectile': load_image('projectile.png'),
-            'heart': load_image('heart.png'),
-            'light': load_image('light.png'),
-            'heartEmpty': load_image('heartEmpty.png'),
+            'projectile': load_image('misc/projectile.png'),
+            'heart': load_image('misc/heart.png'),
+            'light': load_image('misc/light.png'),
+            'heartEmpty': load_image('misc/heartEmpty.png'),
+            'heartTemp': load_image('misc/heartTemp.png'),
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
             'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
             'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
@@ -174,14 +187,18 @@ class Game:
             'curie/idle': Animation(load_images('entities/curie/idle'), img_dur = 10),
             'curie/run': Animation(load_images('entities/curie/run'), img_dur = 4),
             'curie/jump': Animation(load_images('entities/curie/jump'), img_dur = 5),
+            'planck/idle': Animation(load_images('entities/planck/idle'), img_dur = 10),
+            'planck/run': Animation(load_images('entities/planck/run'), img_dur = 4),
+            'planck/jump': Animation(load_images('entities/planck/jump'), img_dur = 5),
             'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
             'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 6, loop = False),
             'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
-            'cog/idle': Animation(load_images('entities/cog/idle'),img_dur=6),
-            'wing/idle': Animation(load_images('entities/wing/idle'),img_dur=6),
-            'heartFragment/idle': Animation(load_images('entities/heartFragment/idle'),img_dur=10),
+            'cog/idle': Animation(load_images('currencies/cog/idle'),img_dur=6),
+            'wing/idle': Animation(load_images('currencies/wing/idle'),img_dur=6),
+            'heartFragment/idle': Animation(load_images('currencies/heartFragment/idle'),img_dur=10),
+            'eye/idle': Animation(load_images('currencies/eye/idle'),img_dur=6),
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)
 
         }
@@ -435,12 +452,15 @@ class Game:
                     depth += 1
   
 
-            for n in range(self.maxHealth):
+            for n in range(self.maxHealth + self.temporaryHealth):
                 if n < self.health:
                     heartImg = pygame.transform.scale(self.assets['heart'], (32, 32))
-                else:
+                elif n < self.maxHealth:
                     heartImg = pygame.transform.scale(self.assets['heartEmpty'], (32, 32))
-                self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - (self.maxHealth * 30) / 2 + n * 30, 10))
+                else:
+                    heartImg = pygame.transform.scale(self.assets['heartTemp'], (32, 32))
+
+                self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - ((self.maxHealth + self.temporaryHealth) * 30) / 2 + n * 30, 10))
             
             if self.paused and not self.talking:
                 self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
@@ -532,6 +552,7 @@ class Game:
                     if event.key == pygame.K_t:
                         for currency in self.wallet:
                             self.wallet[currency] += 20
+                       
                     if event.key == pygame.K_k:
                         for e in self.enemies.copy():
                             e.kill()
@@ -559,10 +580,10 @@ class Game:
                         self.movement[3] = False
 
             if self.dead:
-                self.dead = min(self.dead + 1, 90)
+                self.dead = min(self.dead + 1, 120)
                 self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
                 
-                if self.dead == 90:
+                if self.dead == 120:
                     self.transitionToLevel('lobby')
 
             
@@ -589,7 +610,8 @@ class Game:
 
             pygame.display.update()
             self.clock.tick(self.fps)
-            (self.clock.get_fps())
+            # self.clock.tick()
+            
 
 
     def update_dialogues(self):
@@ -599,13 +621,34 @@ class Game:
                 success = True
 
                 for trade in character.currencyRequirements[index]:
-                    if self.wallet[trade[0]] < trade[1]:
+                    #To unlock dialogue you need required currency (sometimes 0)
+                    if self.wallet[trade[0]] < trade[1] or index > character.currentDialogueIndex + 1:
                         success = False
+                #Also the previous dialogue needs to have been said:
+                if index != 0:
+                    if not self.dialogueHistory[character.name][str(index - 1) + 'said']:
+                        success = False
+
+                #SPECIAL CASES:
+                #e.g. dont unlock dialogue if in wrong floor etc.
                 
+                if (character.name == 'Noether') & (index == 1) & (self.currentLevel != 'lobby'):
+                    success = False
+
+                if (character.name == 'Curie') & (index == 1) & (self.currentLevel != 'lobby'):
+                    success = False
+                
+                if (character.name == 'Planck') & (index == 1) & (self.currentLevel != 'lobby'):
+                    success = False
+                
+
                 if success:
                     self.dialogueHistory[character.name][str(index) + 'available'] = True
                 elif not self.dialogueHistory[character.name][str(index) + 'said']:
                     self.dialogueHistory[character.name][str(index) + 'available'] = False
+
+
+
     
     def load_level(self):
         
@@ -622,7 +665,6 @@ class Game:
         if self.dead:
             self.health = self.maxHealth
             for currency in self.wallet:
-                self.wallet[currency] = int((self.wallet[currency] + 1) / 2)
                 self.walletTemp[currency] = 0
 
         elif not self.dead:
@@ -652,7 +694,8 @@ class Game:
             ('spawners', 4), #bat
             ('spawners', 5), #glowworm
             ('spawners', 6), #noether
-            ('spawners', 7) #curie
+            ('spawners', 7), #curie
+            ('spawners', 8) #planck
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
            
@@ -672,6 +715,10 @@ class Game:
             #Character - Noether
             elif spawner['variant'] == 7 and (self.charactersMet['Curie'] or self.currentLevel != 'lobby'):
                 self.characters.append(Curie(self, spawner['pos'], (8,15)))
+
+            #Character - Planck
+            elif spawner['variant'] == 8 and (self.charactersMet['Planck'] or self.currentLevel != 'lobby'):
+                self.characters.append(Planck(self, spawner['pos'], (8,15)))
 
 
             #Portal
@@ -776,6 +823,7 @@ class Game:
         f = open('data/saves/' + str(saveSlot) + '.json', 'w')
         json.dump({'wallet': self.wallet,
                    'maxHealth': self.maxHealth,
+                   'tempHealth': self.temporaryHealth,
                    'totalJumps': self.player.total_jumps,
                    'health': self.health,
                    'floor': self.floor,
@@ -820,6 +868,7 @@ class Game:
 
             self.wallet = saveData['wallet']
             self.maxHealth = saveData['maxHealth']
+            self.temporaryHealth = saveData['tempHealth']
             self.player.total_jumps = saveData['totalJumps']
             self.health = saveData['health']
             self.floor = saveData['floor']

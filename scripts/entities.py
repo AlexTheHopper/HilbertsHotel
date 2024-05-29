@@ -124,7 +124,7 @@ class physicsEntity:
 
 
 
-    def kill(self, intensity = 10, cogCount = 0, heartFragmentCount = 0, wingCount = 0):
+    def kill(self, intensity = 10, cogCount = 0, heartFragmentCount = 0, wingCount = 0, eyeCount = 0):
         self.game.screenshake = max(intensity, self.game.screenshake)
         self.game.sfx['hit'].play()
         for _ in range(intensity):
@@ -147,6 +147,8 @@ class physicsEntity:
             self.game.currencyEntities.append(Currency(self.game, 'heartFragment', spawnLoc))
         for _ in range(wingCount):
             self.game.currencyEntities.append(Currency(self.game, 'wing', spawnLoc))
+        for _ in range(eyeCount):
+            self.game.currencyEntities.append(Currency(self.game, 'eye', spawnLoc))
 
 
 
@@ -284,6 +286,7 @@ class GunGuy(physicsEntity):
         self.cogCount = random.randint(2,4)
         self.heartFragmentCount = 1 if self.weapon == 'staff' else (1 if random.random() < 0.1 else 0)
         self.wingCount = 0
+        # self.eyeCount = random.randint(0,3)
 
 
         if random.random() < 0.5:
@@ -454,7 +457,7 @@ class GunGuy(physicsEntity):
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
-                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, eyeCount = self.eyeCount)
                 return True
 
                 
@@ -536,11 +539,13 @@ class Player(physicsEntity):
         self.gravityAffected = True
         self.nearestEnemy = False
         self.damageCooldown = 0
+        self.lightSize = 90
 
     def update(self, tilemap, movement = (0, 0)):
         # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
         super().update(tilemap, movement = movement)
 
+        self.lightSize = 90 + self.game.wallet['eyes'] if 90 + self.game.wallet['eyes'] < 250 else 500
         
         if self.damageCooldown:
             self.damageCooldown = max(self.damageCooldown - 1, 0) 
@@ -650,7 +655,7 @@ class Player(physicsEntity):
             super().render(surface, offset = offset)
         
         if self.game.caveDarkness and self.game.transition <= 0:
-            self.game.darknessCircle(0, 90, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
+            self.game.darknessCircle(0, self.lightSize, (int(self.pos[0]) - self.game.render_scroll[0] + self.size[0] / 2, int(self.pos[1]) - self.game.render_scroll[1] + self.size[1] / 2))
 
 
     def jump(self):
@@ -698,10 +703,13 @@ class Player(physicsEntity):
     def damage(self, damageAmount):
         if not self.damageCooldown:
             self.damageCooldown = 60
-            self.game.health = max(0, self.game.health - damageAmount)
+            if self.game.temporaryHealth:
+                self.game.temporaryHealth -= 1
+            else:
+                self.game.health = max(0, self.game.health - damageAmount)
             self.game.sfx['hit'].play()
-            if self.game.health == 0:
 
+            if self.game.health == 0:
                 self.game.screenshake = max(50, self.game.screenshake)
                 for _ in range(30):
                         angle = random.random() * math.pi * 2
@@ -709,6 +717,11 @@ class Player(physicsEntity):
                         self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
                         self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
                 self.game.dead += 1
+
+                for currency in self.game.wallet:
+                    self.game.wallet[currency] = int(self.game.wallet[currency] * 0.75)
+
+
             else:
                 self.game.screenshake = max(5, self.game.screenshake)
                 for _ in range(10):
@@ -721,7 +734,6 @@ class Currency(physicsEntity):
     def __init__(self, game, currencyType, pos, size = (6,6)):
         super().__init__(game, currencyType, pos, size)
 
-        #All spawn at the same point with 0 vel.
         self.velocity = [2 * (random.random()-0.5), -1.5]
         self.value = 1
         self.currencyType = currencyType
@@ -736,11 +748,11 @@ class Currency(physicsEntity):
         self.velocity[0] *= 0.95
 
         
-        if np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1])) < 20:
+        if np.linalg.norm((self.pos[0] - self.game.player.pos[0] - self.game.player.size[0] / 2, self.pos[1] - self.game.player.pos[1] - self.game.player.size[1] / 2)) < 15:
             if self.pos[0] - self.game.player.pos[0] > 0:
-                self.velocity[0] = -1
+                self.velocity[0] = -0.5
             else:
-                self.velocity[0] = 1
+                self.velocity[0] = 0.5
 
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:

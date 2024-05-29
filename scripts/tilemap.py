@@ -209,6 +209,9 @@ class tileMap:
                     elif not self.game.charactersMet['Curie'] and self.game.floor > 10 and not curie_placed and random.random() < 0.25:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
                         curie_placed = True
+                    elif not self.game.charactersMet['Planck'] and self.game.floor > 5 and not curie_placed and random.random() < 0.25:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
+                        curie_placed = True
                         
                     #Portal
                     elif not portal_placed:
