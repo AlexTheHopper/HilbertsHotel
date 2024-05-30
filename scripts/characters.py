@@ -23,10 +23,12 @@ class Character(physicsEntity):
             if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
                 if (self.collisions['left'] or self.collisions['right']):
                     self.flip_x = not self.flip_x
+                    
                 else:
                     movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])
             else:
                 self.flip_x = not self.flip_x
+                self.walking = 0
             self.walking = max(self.walking - 1, 0)
 
         elif random.random() < 0.01:
@@ -139,7 +141,7 @@ class Hilbert(Character):
 
             '3': ['Also, yes I know its dark as hell up there sometimes.',
                   'I dunno, maybe find some extra eyes.',
-                  'I#m sure that\'d help you see better.'],
+                  'I\'m sure that\'d help you see better.'],
 
             '4': ['Amazing job wow!',
                     'Really sorry but I still need 100 more.',
@@ -354,8 +356,54 @@ class Planck(Character):
         if key != 2:
             self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
+
+class Faraday(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Faraday')
+
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [['cogs', 100]],
+            3: []
+        }
+
+        self.dialogue = {
+            '0': ['Oh by golly gosh am I lost!',
+                    'Do you know the way back to the lobby?',
+                    'Brilliant, cheers I\'ll follow you back!'],
+
+            '1': ['Pssst... I really don\'t think you should trust Hilbert.',
+                  'He\'s been doing some real sneaky things recently.',
+                  'I would be really careful about ascending too far in the hotel.',
+                  'The hotel is much bigger than you think.',
+                  'There are infinite dimensions stacked side by side.',
+                  'The one you\'ve been exploring is unstable.',
+                  'Bring me 100 cogs and I\'ll show you more.'],
+
+            '2': ['Amazing, I\'ll build another elevator for you!',
+                  'I\'ll hide it under Hilbert so he wont see it!',
+                  'Give me a jiffy and it\'ll be ready!'],
+
+            '3': ['There are so many areas of this hotel.',
+                    'You should go explore them all!',
+                    'We need to find out what Hilbert is up to!']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Faraday'] = True
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['cogs'] -= 100
+            self.game.portalsMet['three'] = True
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+
             
 
         
 
+    
     

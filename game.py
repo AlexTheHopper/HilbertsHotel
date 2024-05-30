@@ -17,7 +17,7 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        pygame.display.set_caption('Hilbert\'s Hotel v0.1.4')
+        pygame.display.set_caption('Hilbert\'s Hotel v0.2.0')
 
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
@@ -82,7 +82,7 @@ class Game:
             'eyes': 0
         }
 
-        
+        #Prep dialogue management.
         self.dialogueHistory = {
             'Hilbert': {'0available': True,
                     '0said': False,
@@ -128,7 +128,16 @@ class Game:
                     '1available': False,
                     '1said': False,
                     '2available': False,
-                    '2said': False}
+                    '2said': False},
+
+            'Faraday': {'0available': True,
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False}
 
 
         }
@@ -137,7 +146,13 @@ class Game:
             'Hilbert': True,
             'Noether': False,
             'Curie': False,
-            'Planck': False
+            'Planck': False,
+            'Faraday': False
+        }
+        self.portalsMet = {
+            'lobby': True,
+            'normal': True,
+            'three': False
         }
         
        
@@ -145,7 +160,6 @@ class Game:
         #Import assets, this could be cleaned up immensely
             #BASE_PATH = 'data/images/'
         self.assets = {
-            'player': load_image('entities/player.png'),
             'decor': load_images('tiles/decor'),
             'grass': load_images('tiles/grass'),
             'large_decor': load_images('tiles/large_decor'),
@@ -156,6 +170,7 @@ class Game:
             'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
             'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
             'caveBackground': load_image('misc/caveBackground.png'),
+            'grassBackground': load_image('misc/backgroundGrass.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'weapons/gun': load_images('weapons/gun'),
@@ -165,11 +180,13 @@ class Game:
             'light': load_image('misc/light.png'),
             'heartEmpty': load_image('misc/heartEmpty.png'),
             'heartTemp': load_image('misc/heartTemp.png'),
+
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
             'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
             'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
             'player/slide': Animation(load_images('entities/player/slide'), img_dur = 5),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
+
             'gunguy/idle': Animation(load_images('entities/gunguy/idle'), img_dur = 10),
             'gunguy/run': Animation(load_images('entities/gunguy/run'), img_dur = 4,),
             'gunguy/grace': Animation(load_images('entities/gunguy/grace'), img_dur = 4),
@@ -178,30 +195,26 @@ class Game:
             'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
             'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
             'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 20, loop = False),
-            'hilbert/idle': Animation(load_images('entities/hilbert/idle'), img_dur = 10),
-            'hilbert/run': Animation(load_images('entities/hilbert/run'), img_dur = 4),
-            'hilbert/jump': Animation(load_images('entities/hilbert/jump'), img_dur = 5),
-            'noether/idle': Animation(load_images('entities/noether/idle'), img_dur = 10),
-            'noether/run': Animation(load_images('entities/noether/run'), img_dur = 4),
-            'noether/jump': Animation(load_images('entities/noether/jump'), img_dur = 5),
-            'curie/idle': Animation(load_images('entities/curie/idle'), img_dur = 10),
-            'curie/run': Animation(load_images('entities/curie/run'), img_dur = 4),
-            'curie/jump': Animation(load_images('entities/curie/jump'), img_dur = 5),
-            'planck/idle': Animation(load_images('entities/planck/idle'), img_dur = 10),
-            'planck/run': Animation(load_images('entities/planck/run'), img_dur = 4),
-            'planck/jump': Animation(load_images('entities/planck/jump'), img_dur = 5),
-            'portal/idle': Animation(load_images('entities/portal/idle'), img_dur = 6),
-            'portal/opening': Animation(load_images('entities/portal/opening'), img_dur = 6, loop = False),
-            'portal/active': Animation(load_images('entities/portal/active'), img_dur = 6),
+
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
             'cog/idle': Animation(load_images('currencies/cog/idle'),img_dur=6),
             'wing/idle': Animation(load_images('currencies/wing/idle'),img_dur=6),
             'heartFragment/idle': Animation(load_images('currencies/heartFragment/idle'),img_dur=10),
             'eye/idle': Animation(load_images('currencies/eye/idle'),img_dur=6),
-            'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)
+            'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)}
 
-        }
+       
+        for portal in ['lobby', 'normal', 'three']:
+            self.assets[f'portal{portal}/idle'] = Animation(load_images(f'entities/portal{portal}/idle'), img_dur = 6)
+            self.assets[f'portal{portal}/opening'] = Animation(load_images(f'entities/portal{portal}/opening'), img_dur = 6, loop = False)
+            self.assets[f'portal{portal}/active'] = Animation(load_images(f'entities/portal{portal}/active'), img_dur = 6)
+
+        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday']:
+            self.assets[f'{character}/idle'] = Animation(load_images(f'entities/{character}/idle'), img_dur = 10)
+            self.assets[f'{character}/run'] = Animation(load_images(f'entities/{character}/run'), img_dur = 4)
+            self.assets[f'{character}/jump'] = Animation(load_images(f'entities/{character}/jump'), img_dur = 5)
+
 
         self.walletTemp = {}
         self.currencyIcons = {}
@@ -334,6 +347,8 @@ class Game:
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1)
 
+        self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
+
         self.tilemap.load_tilemap('lobby')
         self.load_level()
 
@@ -344,8 +359,7 @@ class Game:
             self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
             #Background
-            background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
-            self.display.blit(background, (0, 0))
+            self.display.blit(self.background, (0, 0))
             self.display_outline.fill((0, 0, 0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
             self.darkness_surface.fill((0, 0, 0, self.caveDarkness))
@@ -552,21 +566,18 @@ class Game:
                     if event.key == pygame.K_t:
                         for currency in self.wallet:
                             self.wallet[currency] += 20
-                       
                     if event.key == pygame.K_k:
                         for e in self.enemies.copy():
                             e.kill()
                             self.enemies.remove(e)
                     if event.key == pygame.K_p:
-                        horBuffer = 720 // (16 * 4) + 4
-                        vertBuffer = 1080 // (16 * 4) + 4
-                        mapHeight = int(self.currentLevelSize + 2 * vertBuffer) 
-                        mapWidth = int(self.currentLevelSize + 2 * horBuffer) 
                         for e in self.enemies.copy():
-                            if (e.pos[1] < horBuffer * 16 or e.pos[1] > (mapWidth - horBuffer)*16) or (e.pos[0] < vertBuffer * 16 or e.pos[0] > ( mapHeight - vertBuffer)*16):
+                            if (e.pos[1] < 0 or e.pos[1] > self.mapHeight*16) or (e.pos[0] < 0 or e.pos[0] > self.mapWidth*16):
                                 print(e.type, e.pos)
                                 print('OUT OF BOUNDS^')
-                        print('bounds: ', horBuffer * 16,vertBuffer * 16, ",",(mapWidth - horBuffer)*16,( mapHeight - vertBuffer)*16)
+                        print('player: ', self.player.pos)
+                        print('bounds: ', 0,0, ",",self.mapWidth*16, self.mapHeight*16)
+
                                             
 
                 if event.type == pygame.KEYUP:
@@ -640,6 +651,9 @@ class Game:
                 
                 if (character.name == 'Planck') & (index == 1) & (self.currentLevel != 'lobby'):
                     success = False
+
+                if (character.name == 'Faraday') & (index == 1) & (self.currentLevel != 'lobby'):
+                    success = False
                 
 
                 if success:
@@ -689,13 +703,13 @@ class Game:
         self.spawner_list = [
             ('spawners', 0), #player
             ('spawners', 1), #hilbert
-            ('spawners', 2), #portal
             ('spawners', 3), #gunguy
             ('spawners', 4), #bat
             ('spawners', 5), #glowworm
             ('spawners', 6), #noether
             ('spawners', 7), #curie
-            ('spawners', 8) #planck
+            ('spawners', 8), #planck
+            ('spawners', 2) #faraday
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
            
@@ -720,14 +734,9 @@ class Game:
             elif spawner['variant'] == 8 and (self.charactersMet['Planck'] or self.currentLevel != 'lobby'):
                 self.characters.append(Planck(self, spawner['pos'], (8,15)))
 
-
-            #Portal
-            elif spawner['variant'] == 2:
-                if self.currentLevel == 'lobby':
-                    portalDest = 'random'
-                else:
-                    portalDest = 'lobby'
-                self.portals.append(Portal(self, spawner['pos'], (16,16), portalDest))
+            #Character - Faraday
+            elif spawner['variant'] == 2 and (self.charactersMet['Faraday'] or self.currentLevel != 'lobby'):
+                self.characters.append(Faraday(self, spawner['pos'], (8,15)))
 
             #GlowWorm
             elif spawner['variant'] == 5:
@@ -742,6 +751,27 @@ class Game:
                 self.enemies.append(Bat(self, spawner['pos'], (10, 10)))
             
 
+        self.portal_list = [
+            ('spawnersPortal', 0), #To Lobby
+            ('spawnersPortal', 1), #To Normal
+            ('spawnersPortal', 2)
+        ]
+
+        for portal in self.tilemap.extract(self.portal_list):
+
+            #To Lobby
+            if portal['variant'] == 0 and self.portalsMet['lobby']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'lobby'))
+
+            #To normal
+            elif portal['variant'] == 1 and self.portalsMet['normal']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'normal'))
+
+            #To normal
+            elif portal['variant'] == 2 and self.portalsMet['three']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'three'))
+                
+
         self.dead = False
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
@@ -753,12 +783,20 @@ class Game:
         self.scroll = [self.player.rect().centerx - self.screen_width / 4,
                        self.player.rect().centery - self.screen_height / 4]
         
-        
+        self.horBuffer = self.screen_height // (self.tilemap.tilesize * 4) + 4
+        self.vertBuffer = self.screen_width // (self.tilemap.tilesize * 4) + 4
+        self.mapHeight = int(self.currentLevelSize + 2 * self.vertBuffer) 
+        self.mapWidth = int(self.currentLevelSize + 2 * self.horBuffer) 
 
         if self.currentLevel == 'lobby':
+            self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = self.caveDarknessRange[0]
-        else:
+        elif self.currentLevel == 'normal':
+            self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
+        elif self.currentLevel == 'three':
+            self.background = pygame.transform.scale(self.assets['grassBackground'], (self.screen_width / 2, self.screen_height / 2))
+            self.caveDarkness = 0
 
         self.update_dialogues()
         self.checkNewDialogue()
@@ -831,6 +869,7 @@ class Game:
                    'difficulty': self.currentDifficulty,
                    'mapSize': self.currentLevelSize,
                    'availableEnemyVariants': self.availableEnemyVariants,
+                   'portalsMet': self.portalsMet,
                    'charactersMet': self.charactersMet}, f)
         f.close()
 
@@ -876,6 +915,7 @@ class Game:
             self.currentDifficulty = saveData['difficulty']
             self.currentLevelSize = saveData['mapSize']
             self.availableEnemyVariants = saveData['availableEnemyVariants']
+            self.portalsMet = saveData['portalsMet']
             self.charactersMet = saveData['charactersMet']
             
 

@@ -194,7 +194,7 @@ class Bat(physicsEntity):
             if self.grace == 0:
                 self.set_action('idle')
                 self.timer = random.randint(180,500)
-                self.velocity = [random.random() - 1/2, random.random()*0.5 + 0.5]
+                self.velocity = [random.random() - 1/2, random.random()*0.5 + 0.5]                
                 self.graceDone = True
                 
                 
@@ -286,7 +286,7 @@ class GunGuy(physicsEntity):
         self.cogCount = random.randint(2,4)
         self.heartFragmentCount = 1 if self.weapon == 'staff' else (1 if random.random() < 0.1 else 0)
         self.wingCount = 0
-        # self.eyeCount = random.randint(0,3)
+        self.eyeCount = 0#random.randint(0,3)
 
 
         if random.random() < 0.5:
@@ -483,10 +483,11 @@ class GunGuy(physicsEntity):
 
 class Portal(physicsEntity):
     def __init__(self, game, pos, size, destination):
-        super().__init__(game, 'portal', pos, size)
+        super().__init__(game, 'portal' + str(destination), pos, size)
         self.anim_offset = (0, 0)
         self.destination = destination
         self.lightSize = 0
+        self.colours = [(58, 6, 82), (111, 28, 117)]
 
     def update(self, game):
         self.animation.update()
@@ -504,13 +505,13 @@ class Portal(physicsEntity):
                 self.set_action('active')
             self.lightSize += 0.5
 
+
         #Decals
         if self.action in ['opening', 'active']:
             if random.random() < (0.1 + (0.1 if self.action == 'active' else 0)):
                 angle = (random.random()) * 2 * math.pi
-                speed = random.random() * (2.5 if self.action == 'active' else 2)
-                colours = [(58, 6, 82), (111, 28, 117)]
-                self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice(colours)))
+                speed = random.random() * (3 if self.action == 'active' else 2)
+                self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice(self.colours)))
 
         #Collision and level change
         playerRect = self.game.player.rect()
@@ -698,6 +699,14 @@ class Player(physicsEntity):
             if np.linalg.norm((self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1])) < distance:
                 returnEnemy = enemy
                 distance = np.linalg.norm((self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1]))
+
+            #Remove enemy if it got out of bounds.
+            # if enemy.pos[1] < 0 or enemy.pos[1] > self.game.mapHeight*16 or enemy.pos[0] < 0 or enemy.pos[0] > self.game.mapWidth*16:
+            #     self.game.enemies.remove(enemy)
+            #     print('removing enemy ',enemy.type, ' at ', enemy.pos) #debug
+            #     print('bounds: ', 0,0, ",",self.game.mapWidth*16,self.game.mapHeight*16)
+                        
+                    
         self.nearestEnemy = returnEnemy
 
     def damage(self, damageAmount):
@@ -774,7 +783,7 @@ class Glowworm(physicsEntity):
         self.size = list(size)
         self.gravityAffected = False
         self.collideWall = False
-        self.hoverDistance = 100
+        self.hoverDistance = 50
         self.anim_offset = (0, 0)
         self.animation.img_duration += (self.animation.img_duration*random.random())  
         self.direction = [random.random(), random.random()]      

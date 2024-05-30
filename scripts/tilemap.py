@@ -105,7 +105,7 @@ class tileMap:
                 potentialTiles.append(self.tilemap[check_loc])
         return potentialTiles
     
-    def load_random_tilemap(self, game, size, difficulty = 5):
+    def load_random_tilemap(self, game, size, difficulty = 5, levelType = ''):
         ##generate random level
         self.tilemap = {}
         self.offgrid_tiles = []
@@ -175,13 +175,14 @@ class tileMap:
         for i in range(mapHeight):
             for j in range(mapWidth):
                 if map[i,j] == 1:
-                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'walls', 'variant': 1, 'pos': [i, j]}
+                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'walls' if levelType == 'normal' else 'grass', 'variant': 1, 'pos': [i, j]}
 
         #placing entities:
         player_placed = False
         portal_placed = False
         noether_placed = False
         curie_placed = False
+        faraday_placed = False
         difficultyProgress = 0
         potplantNum = 0
         potplantNumMax = int(size / 2)
@@ -209,13 +210,16 @@ class tileMap:
                     elif not self.game.charactersMet['Curie'] and self.game.floor > 10 and not curie_placed and random.random() < 0.25:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
                         curie_placed = True
-                    elif not self.game.charactersMet['Planck'] and self.game.floor > 5 and not curie_placed and random.random() < 0.25:
+                    elif not self.game.charactersMet['Planck'] and self.game.floor > 15 and not curie_placed and random.random() < 0.25:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
                         curie_placed = True
+                    elif not self.game.charactersMet['Faraday'] and self.game.floor > 20 and not faraday_placed and random.random() < 0.25:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
+                        faraday_placed = True
                         
                     #Portal
                     elif not portal_placed:
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawnersPortal', 'variant': 0, 'pos': [x, y]}
                         portal_placed = True
 
                     #Potplants
@@ -234,6 +238,7 @@ class tileMap:
                     #Add enemies:
                     else:
                         variant, enemyDifficulty = random.choice(list(self.game.availableEnemyVariants.items()))
+                       
                         self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
                         difficultyProgress += enemyDifficulty
             
@@ -255,11 +260,12 @@ class tileMap:
     
     def load_tilemap(self, name = '', size = 50, difficulty = 5):
 
-        if name == 'random':
-            self.load_random_tilemap(self.game, size, difficulty)
+        if name in ['normal', 'three']:
+            self.load_random_tilemap(self.game, size, difficulty, levelType = name)
             return()
+        
     
-        elif name == '':
+        elif name == 'editor':
             root = tkinter.Tk()
             root.withdraw()
 

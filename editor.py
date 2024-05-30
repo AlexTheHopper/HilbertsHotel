@@ -28,7 +28,8 @@ class Editor:
             'stone': load_images('tiles/stone'),
             'potplants': load_images('tiles/potplants'),
             'walls': load_images('tiles/walls'),
-            'spawners': load_images('tiles/spawners')
+            'spawners': load_images('tiles/spawners'),
+            'spawnersPortal': load_images('tiles/spawnersPortal')
         }
         
         
@@ -37,7 +38,7 @@ class Editor:
         self.tilemap = tileMap(self, tile_size = 16)
 
         try:
-            self.tilemap.load_tilemap()
+            self.tilemap.load_tilemap(name = 'editor')
         except:
             print("ERROR FETCHING MAP")
         self.savename = 'map.json'
