@@ -17,7 +17,7 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        pygame.display.set_caption('Hilbert\'s Hotel v0.2.0')
+        pygame.display.set_caption('Hilbert\'s Hotel v0.2.1')
 
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
@@ -40,8 +40,7 @@ class Game:
         self.minimapList = {}
 
         self.currentTextList = []
-        self.maxTextCooldown = 30
-        self.textCooldown = self.maxTextCooldown
+        self.maxCharactersLine = 55
         self.talkingTo = ''
 
         self.currentLevel = 'lobby'
@@ -352,6 +351,13 @@ class Game:
         self.tilemap.load_tilemap('lobby')
         self.load_level()
 
+
+
+
+
+        #####################################################
+        ######################GAME LOOP######################
+        #####################################################
         while self.game_running:
             #Camera movement
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
@@ -489,33 +495,51 @@ class Game:
 
             #Talking mechanics:
             if self.talking:
+
+                #Each frame an extra character is added to the displayed text.
+                #If the length of a line is larger than self.maxCharactersLine, it creates a new line IF there is a space to not chop words.
                 if self.textLength < self.textLengthEnd:
+                    if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
+                        self.displayTextList.append('')
+                    else:
+                        self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
                     self.textLength += 1
 
+                #If all text in current chunk is displayed, move to next chunk.
                 if self.interractionFrame and self.textLength > 1:
                     if self.textLength == self.textLengthEnd:
                         self.currentTextIndex += 1
-                        self.textCooldown = self.maxTextCooldown
                         self.textLength = 0
+                        self.displayTextList = [str(self.talkingTo.name) + ':', '']
                         try:
                             self.textLengthEnd = len(self.currentTextList[self.currentTextIndex])
                         except IndexError:
                             pass
+
+                    #Fills in current text if the player is impatient
                     else:
-                        self.textLength = self.textLengthEnd
-                   
+                        #Im sure this while loop will always end, right?
+                        while self.textLength < self.textLengthEnd:
+
+                            if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
+                                self.displayTextList.append('')
+                            else:
+                                self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
+                            self.textLength += 1
+                            
+
+                #When to end the dialogue:
                 if self.currentTextIndex >= self.endTextIndex:
                     self.talking = False
                     self.paused = False
                     self.update_dialogues()
                     self.checkNewDialogue()
 
-                try:
-                    text = str(self.talkingTo.name) +': ' + self.currentTextList[self.currentTextIndex][:self.textLength]
-                except IndexError:
-                        pass
-                self.draw_text(text, (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30), self.text_font, (255,255,255), (0, 0), mode = 'center')
+                #Actually display the text:
+                for n in range(len(self.displayTextList)):
+                    self.draw_text(str(self.displayTextList[n]), (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30 + 30*n), self.text_font, (255,255,255), (0, 0), mode = 'center')
                 
+
                     
     
             #Level transition
@@ -622,7 +646,12 @@ class Game:
             pygame.display.update()
             self.clock.tick(self.fps)
             # self.clock.tick()
+        #####################################################
+        ####################GAME LOOP END####################
+        #####################################################
             
+
+
 
 
     def update_dialogues(self):
@@ -830,6 +859,7 @@ class Game:
         self.endTextIndex = len(self.currentTextList)
         self.textLength = 0
         self.textLengthEnd = len(self.currentTextList[0])
+        self.displayTextList = [str(character.name) + ':', '']
 
             
     def transitionToLevel(self, newLevel):

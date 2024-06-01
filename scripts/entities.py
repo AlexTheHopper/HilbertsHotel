@@ -210,15 +210,17 @@ class Bat(physicsEntity):
 
                 if not self.timer:
                     self.set_action('charging')
+                    self.velocity = [-self.toPlayer[0] * 0.15, -self.toPlayer[1] * 0.15]
                     toPlayer = (self.game.player.pos[0] - self.pos[0] + 4, self.game.player.pos[1] - self.pos[1] + 5)
                     self.toPlayer = toPlayer / np.linalg.norm(toPlayer) 
+
                     self.timer = random.randint(90,120)
                     
 
             elif self.action == 'charging':
                 self.timer = max(self.timer - 1, 0)
-                self.velocity[0] = -self.toPlayer[0] * 0.15
-                self.velocity[1] = -self.toPlayer[1] * 0.15
+                # movement = (-self.toPlayer[0] * 0.15, -self.toPlayer[1] * 0.15)
+                # self.velocity[1] = -self.toPlayer[1] * 0.15
 
                 if self.timer == 0:
                     self.velocity[0] = self.toPlayer[0] * 2
@@ -389,13 +391,16 @@ class GunGuy(physicsEntity):
                         self.set_action('jump')
                         self.velocity[1] = -2
                         self.velocity[0] =(-0.5 if self.flip_x else 0.5)
-                    
+                
                 #Turn around if bump into a wall
                 if (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
                     self.flip_x = not self.flip_x
+                    
                 else:
-                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])               
+                    movement = (movement[0] - 0.5 if self.flip_x else 0.5, movement[1])       
+
                 self.walking = max(self.walking - 1, 0)
+                
 
             #also turn around if stopped to face player
             # elif random.random() < 0.05 and self.intelligence > 0:
@@ -701,10 +706,10 @@ class Player(physicsEntity):
                 distance = np.linalg.norm((self.pos[0] - enemy.pos[0], self.pos[1] - enemy.pos[1]))
 
             #Remove enemy if it got out of bounds.
-            # if enemy.pos[1] < 0 or enemy.pos[1] > self.game.mapHeight*16 or enemy.pos[0] < 0 or enemy.pos[0] > self.game.mapWidth*16:
-            #     self.game.enemies.remove(enemy)
-            #     print('removing enemy ',enemy.type, ' at ', enemy.pos) #debug
-            #     print('bounds: ', 0,0, ",",self.game.mapWidth*16,self.game.mapHeight*16)
+            if enemy.pos[0] < 0 or enemy.pos[0] > self.game.mapHeight*16 or enemy.pos[1] < 0 or enemy.pos[1] > self.game.mapWidth*16:
+                self.game.enemies.remove(enemy)
+                print('removing enemy ',enemy.type, ' at ', enemy.pos) #debug
+                print('bounds: ', 0,0, ",",self.game.mapWidth*16,self.game.mapHeight*16)
                         
                     
         self.nearestEnemy = returnEnemy
@@ -723,7 +728,7 @@ class Player(physicsEntity):
                 for _ in range(30):
                         angle = random.random() * math.pi * 2
                         speed = random.random() * 5
-                        self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
+                        self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random(), color = (200,0,0)))
                         self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
                 self.game.dead += 1
 
@@ -736,7 +741,7 @@ class Player(physicsEntity):
                 for _ in range(10):
                         angle = random.random() * math.pi * 2
                         speed = random.random() * 5
-                        self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random()))
+                        self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random(), color = (100,0,0)))
                         self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
     
 class Currency(physicsEntity):

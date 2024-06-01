@@ -121,38 +121,30 @@ class Hilbert(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh no! My hotel was attacked!',
-                    'The whole thing has collapsed into the ground!',
-                    'Would you be able to help me take back control,',
-                    '...and find my friends somewhere in the hotel?',
+            '0': ['Oh no! My hotel was attacked! The whole thing has collapsed into the ground!',
+                    'Would you be able to help me take back control, and find my friends somewhere in the hotel?',
                     'Oh! You can dash attack with your x key?',
                     'How original...'],
 
-            '1': ['Anyway, we\'ll need to fix the portal elevator over there.',
-                  'It works a bit but it\'ll only take you up one floor.',
-                  'Please bring my back the cogs that were stolen!',
-                  'I\'m gonna need about 5 cogs to start these repairs.'],
+            '1': ['Anyway, we\'ll need to fix the portal elevator over there. It works a bit but it\'ll only take you up one floor.',
+                  'Please bring my back the cogs that were stolen! I\'m gonna need about 5 to start these repairs.'],
 
             '2': ['Thanks for getting some cogs woow!',
                     'I just realised I actually need another 50 though.',
-                    'Be careful! The floors get bigger as you ascend!',
-                    'Which makes no structural sense, I dont know how it works!',
+                    'Be careful! The floors get bigger as you ascend! Which makes no structural sense, I dont know how it works!',
                     'Oh and if you get lost, follow the fireflies!'],
 
             '3': ['Also, yes I know its dark as hell up there sometimes.',
-                  'I dunno, maybe find some extra eyes.',
-                  'I\'m sure that\'d help you see better.'],
+                  'I dunno, maybe find some extra eyes. I\'m sure that\'d help you see better.'],
 
             '4': ['Amazing job wow!',
                     'Really sorry but I still need 100 more.',
-                    'I think I heard some bats around earlier, watch out for them.',
-                    'They fly around and suddenly go AHHH at you, ya know?'],
+                    'I think I heard some bats around earlier, watch out for them. They fly around and suddenly go AHHH at you, ya know?'],
 
             '5': ['You know the drill...',
                   'This time I\'ll need 150 cogs.'],
                     
-            '6': ['Phenomenal work, my little slave!!',
-                  'I dont know what else to do but please keep exploring!']  }
+            '6': ['Phenomenal work, my little slave!! I dont know what else to do but please keep exploring!']  }
 
 
     def conversationAction(self, key):
@@ -200,21 +192,16 @@ class Noether(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh by golly gosh am I lost!',
-                    'Do you know the way back to the lobby?',
+            '0': ['Oh by golly gosh am I lost! Do you know the way back to the lobby?',
                     'Brilliant, cheers Ill follow you back!'],
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
-                  'I can make you extra hearts!',
-                  'I just need a few Heart Fragments!',
+                  'I can make you extra hearts! I just need a few Heart Fragments!',
                   'Bring me 5 and the heart is yours!'],
 
             '2': ['You\'ve got two hearts! Woo!',
-                    'Ew, these things are disgusting,',
-                    '...and still beating! EW!',
-                    'Hearts are super useful!',
-                    'If you run out, you\'ll lose a quarter of everything :(',
-                    'I\'ll give ya another for 20 fragments.'],
+                    'Ew, these things are disgusting... and still beating! EW!',
+                    'Hearts are super useful! If you run out, you\'ll lose a quarter of everything :( I\'ll give ya another for 20 fragments.'],
 
             '3': ['You\'ve got three hearts! Woo!',
                     'Look at you go, youll be a cat in no time!',
@@ -274,26 +261,20 @@ class Curie(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh by golly gosh am I lost!',
-                    'Do you know the way back to the lobby?',
+            '0': ['Oh by golly gosh am I lost! Do you know the way back to the lobby?',
                     'Brilliant, cheers I\'ll follow you back!'],
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
-                  'I can make you winged boots!',
-                  'They let you jump more in the air!',
-                  'I just need a few bat wings!',
-                  'Bring me 5 and the extra jump is yours!'],
+                  'I can make you winged boots! They let you jump more in the air!',
+                  'I just need a few bat wings! Bring me 5 and the extra jump is yours!'],
 
-            '2': ['You\'ve got two jumps! Woo!',
-                    'Isn\'t this such a novel mechanic?',
+            '2': ['You\'ve got two jumps! Woo! Isn\'t this such a novel mechanic?',
                     'I\'ll give ya another for 50 wings.'],
 
-            '3': ['You\'ve got three jumps! Woo!',
-                    'We\'re really pushing this double jump idea.',
+            '3': ['You\'ve got three jumps! Woo! We\'re really pushing this double jump idea.',
                     'I\'ll give ya another for 100 wings.'],
             
-            '4': ['You\'ve got four jumps! Woo!',
-                  'How many is too many?',
+            '4': ['You\'ve got four jumps! Woo! How many is too many?',
                   'Sorry chief! All out of boots for now.']}
 
     def conversationAction(self, key):
@@ -332,13 +313,11 @@ class Planck(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh by golly gosh am I lost!',
-                    'Do you know the way back to the lobby?',
+            '0': ['Oh by golly gosh am I lost! Do you know the way back to the lobby?',
                     'Brilliant, cheers I\'ll follow you back!'],
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
-                  'I can make you temporary hearts!',
-                  'They will only last until you get hit.',
+                  'I can make you temporary hearts! They will only last until you get hit.',
                   'They\'re each yours for just 5 heart fragments!'],
 
             '2': ['Here\'s a temporary heart!',
@@ -370,25 +349,18 @@ class Faraday(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh by golly gosh am I lost!',
-                    'Do you know the way back to the lobby?',
+            '0': ['Oh by golly gosh am I lost! Do you know the way back to the lobby?',
                     'Brilliant, cheers I\'ll follow you back!'],
 
             '1': ['Pssst... I really don\'t think you should trust Hilbert.',
-                  'He\'s been doing some real sneaky things recently.',
-                  'I would be really careful about ascending too far in the hotel.',
-                  'The hotel is much bigger than you think.',
-                  'There are infinite dimensions stacked side by side.',
-                  'The one you\'ve been exploring is unstable.',
-                  'Bring me 100 cogs and I\'ll show you more.'],
+                  'He\'s been doing some real sneaky things recently and I would be really careful about ascending too far in the hotel.',
+                  'The hotel is much bigger than you think. There are infinite dimensions stacked side by side and some of them get... weird.',
+                  'Bring me 100 cogs and I\'ll show you one.'],
 
-            '2': ['Amazing, I\'ll build another elevator for you!',
-                  'I\'ll hide it under Hilbert so he wont see it!',
-                  'Give me a jiffy and it\'ll be ready!'],
+            '2': ['Amazing, I\'ll build another elevator for you! It will be ready next time you come back to the lobby.',
+                  'I\'ll hide it under Hilbert so he wont see it! Give me a jiffy and it\'ll be ready!'],
 
-            '3': ['There are so many areas of this hotel.',
-                    'You should go explore them all!',
-                    'We need to find out what Hilbert is up to!']}
+            '3': ['There are so many areas of this hotel. You should go explore them all! We need to find out what Hilbert is up to!']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.

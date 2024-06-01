@@ -238,7 +238,7 @@ class tileMap:
                     #Add enemies:
                     else:
                         variant, enemyDifficulty = random.choice(list(self.game.availableEnemyVariants.items()))
-                       
+                        
                         self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
                         difficultyProgress += enemyDifficulty
             
