@@ -175,7 +175,7 @@ class tileMap:
         for i in range(mapHeight):
             for j in range(mapWidth):
                 if map[i,j] == 1:
-                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'walls' if levelType == 'normal' else 'grass', 'variant': 1, 'pos': [i, j]}
+                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'walls' if levelType == 'normal' else levelType, 'variant': 1, 'pos': [i, j]}
 
         #placing entities:
         player_placed = False
@@ -204,16 +204,16 @@ class tileMap:
                         player_placed = True
 
                     #Characters
-                    elif not self.game.charactersMet['Noether'] and self.game.floor > 7 and not noether_placed and random.random() < 0.25:
+                    elif not self.game.charactersMet['Noether'] and self.game.floors[levelType] > 7 and not noether_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 6, 'pos': [x, y]}
                         noether_placed = True
-                    elif not self.game.charactersMet['Curie'] and self.game.floor > 10 and not curie_placed and random.random() < 0.25:
+                    elif not self.game.charactersMet['Curie'] and self.game.floors[levelType] > 10 and not curie_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
                         curie_placed = True
-                    elif not self.game.charactersMet['Planck'] and self.game.floor > 15 and not curie_placed and random.random() < 0.25:
+                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 15 and not curie_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
                         curie_placed = True
-                    elif not self.game.charactersMet['Faraday'] and self.game.floor > 20 and not faraday_placed and random.random() < 0.25:
+                    elif not self.game.charactersMet['Faraday'] and self.game.floors[levelType] > 20 and not faraday_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
                         faraday_placed = True
                         
@@ -237,10 +237,14 @@ class tileMap:
 
                     #Add enemies:
                     else:
-                        variant, enemyDifficulty = random.choice(list(self.game.availableEnemyVariants.items()))
-                        
+                        choices = self.game.availableEnemyVariants[levelType]
+                        weights = self.game.availableEnemyVariants[levelType + 'Weights'].copy()
+                        weightSum = sum(weights)
+                        for n in range(len(weights)):
+                            weights[n] /= weightSum
+                        variant = np.random.choice(choices, 1, p = weights)
                         self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
-                        difficultyProgress += enemyDifficulty
+                        difficultyProgress += 1
             
             #Glowworms
             elif glowwormCount < glowwwormMax:
@@ -260,7 +264,7 @@ class tileMap:
     
     def load_tilemap(self, name = '', size = 50, difficulty = 5):
 
-        if name in ['normal', 'three']:
+        if name in ['normal', 'grass']:
             self.load_random_tilemap(self.game, size, difficulty, levelType = name)
             return()
         
@@ -285,11 +289,14 @@ class tileMap:
         self.tilesize = map_data['tile_size']
         self.offgrid_tiles = map_data['offgrid']
 
-    def solid_check(self, pos):
+    def solid_check(self, pos, returnValue = ''):
         tile_loc = str(int(pos[0]) // self.tile_size) + ';' + str(int(pos[1]) // self.tile_size)
         if tile_loc in self.tilemap:
             if self.tilemap[tile_loc]['type'] in PHYSICS_TILES:
-                return self.tilemap[tile_loc]
+                if returnValue == 'pos':
+                    return tuple(self.tilemap[tile_loc]['pos'])
+                else:   
+                    return self.tilemap[tile_loc]
 
     def autotile(self):
         for loc in self.tilemap:

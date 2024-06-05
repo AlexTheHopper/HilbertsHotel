@@ -16,6 +16,7 @@ class physicsEntity:
         self.size = size
         self.velocity = [0, 0]
         self.collisions = {'up': False, 'down': False, 'left': False, 'right': False}
+        self.collideWallCheck = True
         self.collideWall = True
 
         self.terminal_vel = 5
@@ -54,7 +55,7 @@ class physicsEntity:
         self.frame_movement = (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
         self.last_movement = movement
 
-        if self.collideWall:
+        if self.collideWallCheck:
             #Check for collision with physics tiles
             self.pos[1] += self.frame_movement[1]
             entity_rect = self.rect()
@@ -69,8 +70,8 @@ class physicsEntity:
                     elif self.frame_movement[1] < 0:
                         entity_rect.top = rect.bottom
                         self.collisions['up'] = True
-                        
-                    self.pos[1] = entity_rect.y
+                    if self.collideWall:
+                        self.pos[1] = entity_rect.y
 
 
             self.pos[0] += self.frame_movement[0]
@@ -87,8 +88,8 @@ class physicsEntity:
                     elif self.frame_movement[0] < 0:
                         entity_rect.left = rect.right
                         self.collisions['left'] = True
-                        
-                    self.pos[0] = entity_rect.x
+                    if self.collideWall:
+                        self.pos[0] = entity_rect.x
 
         #Facing direction
         if movement[0] > 0:
@@ -172,7 +173,6 @@ class Bat(physicsEntity):
         self.isAttacking = False
         self.anim_offset = [-2, -1]
         self.timer = 0
-        self.slingTimer = 0
         self.pos[1] += 9
         self.pos[0] += 4
         
@@ -186,7 +186,6 @@ class Bat(physicsEntity):
 
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)
-        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
         
         
         if not self.graceDone:
@@ -210,17 +209,15 @@ class Bat(physicsEntity):
 
                 if not self.timer:
                     self.set_action('charging')
-                    self.velocity = [-self.toPlayer[0] * 0.15, -self.toPlayer[1] * 0.15]
                     toPlayer = (self.game.player.pos[0] - self.pos[0] + 4, self.game.player.pos[1] - self.pos[1] + 5)
                     self.toPlayer = toPlayer / np.linalg.norm(toPlayer) 
+                    self.velocity = [-self.toPlayer[0] * 0.15, -self.toPlayer[1] * 0.15]
 
                     self.timer = random.randint(90,120)
                     
 
             elif self.action == 'charging':
                 self.timer = max(self.timer - 1, 0)
-                # movement = (-self.toPlayer[0] * 0.15, -self.toPlayer[1] * 0.15)
-                # self.velocity[1] = -self.toPlayer[1] * 0.15
 
                 if self.timer == 0:
                     self.velocity[0] = self.toPlayer[0] * 2
@@ -228,8 +225,6 @@ class Bat(physicsEntity):
                     self.timer = 120
                     self.set_action('attacking')
                 
-
-
 
             elif self.action == 'attacking':
                 self.timer = max(self.timer - 1, 0)
@@ -240,7 +235,7 @@ class Bat(physicsEntity):
                         
 
 
-            if not self.slingTimer:
+            if self.action != 'charging':
                 if self.collisions['up'] or self.collisions['down']:
                     self.velocity[1] = -self.velocity[1] * 0.9
                 elif self.collisions['left'] or self.collisions['right']:
@@ -268,11 +263,13 @@ class Bat(physicsEntity):
 
 
     def render(self, surface, offset = (0, 0)):
+        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
+        
         angle = 0
         if self.action in ['charging', 'attacking']:
             angle = math.atan2(-self.velocity[1], self.velocity[0]) + math.pi/2 + (math.pi if self.action == 'attacking' else 0)
            
-        angle = 0
+        # angle = 0
         super().render(surface, offset = offset, rotation = angle)
         
 class GunGuy(physicsEntity):
@@ -280,7 +277,7 @@ class GunGuy(physicsEntity):
         super().__init__(game, 'gunguy', pos, size)
         self.deathIntensity = 5
 
-        self.intelligence = math.floor(self.game.floor / 5)
+        self.intelligence = math.floor(self.game.floors[str(self.game.currentLevel)] / 5) if self.game.currentLevel == 'normal' else 2
         self.weapon = 'gun' if self.intelligence < 2 else ('staff' if random.random() < 0.25 else 'gun')
         self.staffCooldown = 120
         self.trajectory = [0, 0]
@@ -373,9 +370,10 @@ class GunGuy(physicsEntity):
             elif self.walking:
                 #Check jump condition, tilemap infront and above:
                 inFront = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery))
+                inFrontDown = tilemap.solid_check((self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 16))
                 above = tilemap.solid_check((self.rect().centerx, self.rect().centery - 16))
                 
-                if inFront and not above and self.collisions['down'] and self.intelligence > 0:
+                if inFront and not above and self.collisions['down']:
                     aboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 16))
                     aboveAboveSide = tilemap.solid_check((self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 32))
 
@@ -391,6 +389,14 @@ class GunGuy(physicsEntity):
                         self.set_action('jump')
                         self.velocity[1] = -2
                         self.velocity[0] =(-0.5 if self.flip_x else 0.5)
+
+                elif not inFrontDown:
+                    inFrontDown2 = tilemap.solid_check((self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 32))
+                    inFrontDown3 = tilemap.solid_check((self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 48))
+                    if not inFrontDown2 and not inFrontDown3:
+                        self.flip_x = not self.flip_x
+                        self.walking = random.randint(5,15)
+
                 
                 #Turn around if bump into a wall
                 if (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
@@ -492,7 +498,10 @@ class Portal(physicsEntity):
         self.anim_offset = (0, 0)
         self.destination = destination
         self.lightSize = 0
-        self.colours = [(58, 6, 82), (111, 28, 117)]
+        self.colours = {
+            'lobby': [(58, 6, 82), (111, 28, 117)],
+            'normal': [(58, 6, 82), (111, 28, 117)],
+            'grass': [(36, 120, 29), (12, 62, 8)]}
 
     def update(self, game):
         self.animation.update()
@@ -516,7 +525,7 @@ class Portal(physicsEntity):
             if random.random() < (0.1 + (0.1 if self.action == 'active' else 0)):
                 angle = (random.random()) * 2 * math.pi
                 speed = random.random() * (3 if self.action == 'active' else 2)
-                self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice(self.colours)))
+                self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice(self.colours[self.destination])))
 
         #Collision and level change
         playerRect = self.game.player.rect()
@@ -546,9 +555,10 @@ class Player(physicsEntity):
         self.nearestEnemy = False
         self.damageCooldown = 0
         self.lightSize = 90
+        self.anim_offset = (-3, -6)
 
     def update(self, tilemap, movement = (0, 0)):
-        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
+        
         super().update(tilemap, movement = movement)
 
         self.lightSize = 90 + self.game.wallet['eyes'] if 90 + self.game.wallet['eyes'] < 250 else 500
@@ -657,6 +667,8 @@ class Player(physicsEntity):
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
 
     def render(self, surface, offset = (0, 0)):
+        # pygame.draw.rect(self.game.display_outline, (255,0,0), (1*(self.pos[0] - self.game.render_scroll[0]), 1*(self.pos[1] - self.game.render_scroll[1]), self.size[0], self.size[1] ))
+        
         if abs(self.dashing) <= 50 and self.game.transition < 1:
             super().render(surface, offset = offset)
         
@@ -731,6 +743,7 @@ class Player(physicsEntity):
                         self.game.sparks.append(Spark(self.game.player.rect().center, angle, 2 + random.random(), color = (200,0,0)))
                         self.game.particles.append(Particle(self.game, 'particle', self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
                 self.game.dead += 1
+                self.game.deathCount += 1
 
                 for currency in self.game.wallet:
                     self.game.wallet[currency] = int(self.game.wallet[currency] * 0.75)
@@ -787,7 +800,7 @@ class Glowworm(physicsEntity):
         self.velocity = [(random.random()-0.5), -1.5]
         self.size = list(size)
         self.gravityAffected = False
-        self.collideWall = False
+        self.collideWallCheck = False
         self.hoverDistance = 50
         self.anim_offset = (0, 0)
         self.animation.img_duration += (self.animation.img_duration*random.random())  
@@ -885,4 +898,81 @@ class Bullet():
         if self.game.caveDarkness:
             self.game.darknessCircle(0, 15, (int(self.pos[0]) - self.game.render_scroll[0] + (1 if self.speed[0] < 0 else -1), int(self.pos[1]) - self.game.render_scroll[1]))
 
+class RolyPoly(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'rolypoly', pos, size)
+
+        self.size = list(size)
+        self.speed = random.random() * 0.5 + 0.5
+        self.gravityAffected = False
+        self.collideWallCheck = True
+        self.collideWall = False
+        self.anim_offset = (0, 0)
+        self.heading = [-self.speed if random.random() < 0.5 else self.speed, 0]
+        self.wallSide = [0, self.speed]
+        self.timeSinceTurn = 0
+        self.pos[1] += 4.5
+        self.pos[0] += random.randint(0, 4)
+        self.grace = random.randint(120,180)
+        self.animation.img_duration += (self.animation.img_duration*random.random()) 
+
+        self.attackPower = 1
+        self.cogCount = random.randint(0,3)
+        self.eyeCount = random.randint(1,3)    
+
+    def update(self, tilemap, movement = (0, 0)):         
+        super().update(tilemap, movement = movement)  
+
+
+        if self.grace:
+            self.grace = max(self.grace - 1, 0)
+            if self.grace == 0:
+                self.set_action('run')
+                self.velocity[0] = self.heading[0]
+                self.velocity[1] = self.heading[1]
+        
+        elif self.action != 'idle':
+            if self.timeSinceTurn < 5:
+                self.timeSinceTurn += 1                     
+
+          
+            # Change direction if it leaves a tileblock:
+            if not any(x == True for x in self.collisions.values()) and self.timeSinceTurn > 2:  
+                self.wallSide, self.heading = [-self.heading[0], -self.heading[1]], self.wallSide
+                self.velocity = self.heading[:]
+                self.timeSinceTurn = 0
+                
+            #Also change direction if run into a wall:
+            elif any(self.collisions.values()) and self.timeSinceTurn > 2:
+                self.wallSide, self.heading = self.heading, [-self.wallSide[0], -self.wallSide[1]]
+                self.velocity = self.heading[:]
+                self.timeSinceTurn = 0
+
+
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.kill(cogCount = self.cogCount, eyeCount = self.eyeCount)
+                return True
             
+        #Also dies if hit by bullet:
+        for projectile in self.game.projectiles:
+            if self.rect().collidepoint(projectile.pos):
+                self.kill(cogCount = self.cogCount, eyeCount = self.eyeCount)
+                self.game.projectiles.remove(projectile)
+                return True
+            
+        #Check for player collision:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'idle':
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower)
+                
+
+ 
+
+
+    def render(self, surface, offset = (0, 0)):
+        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0]*2, self.size[1]*2))
+        
+        super().render(surface, offset = offset)
+       

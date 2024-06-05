@@ -33,6 +33,7 @@ class Game:
         self.paused = False
         self.talking = False
         self.dead = False
+        self.deathCount = 0
         self.interractionFrame = False
         self.caveDarknessRange = (50,250)
         self.caveDarkness = True
@@ -45,12 +46,15 @@ class Game:
 
         self.currentLevel = 'lobby'
         self.nextLevel = 'lobby'
-        self.floor = 1
+        self.floors = {
+            'normal': 1,
+            'grass': 1}
 
-        #Format: variant: difficulty
-        #Begins just with gunguy
         self.availableEnemyVariants = {
-            '3': 1
+            'normal': [3],
+            'normalWeights': [2],
+            'grass': [3, 9],
+            'grassWeights': [1, 0.5]
         }
         #Screen and display
         self.screen_width = 1080
@@ -151,7 +155,7 @@ class Game:
         self.portalsMet = {
             'lobby': True,
             'normal': True,
-            'three': False
+            'grass': False
         }
         
        
@@ -168,6 +172,7 @@ class Game:
             'menuBackground': load_image('misc/menuBackground.png'),
             'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
             'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
+            'lobbyBackground': load_image('misc/lobbyBackground.png'),
             'caveBackground': load_image('misc/caveBackground.png'),
             'grassBackground': load_image('misc/backgroundGrass.png'),
             'clouds': load_images('clouds'),
@@ -194,6 +199,8 @@ class Game:
             'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
             'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
             'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 20, loop = False),
+            'rolypoly/idle': Animation(load_images('entities/rolypoly/idle'), img_dur = 10),
+            'rolypoly/run': Animation(load_images('entities/rolypoly/run'), img_dur = 4),
 
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
@@ -204,7 +211,7 @@ class Game:
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)}
 
        
-        for portal in ['lobby', 'normal', 'three']:
+        for portal in ['lobby', 'normal', 'grass']:
             self.assets[f'portal{portal}/idle'] = Animation(load_images(f'entities/portal{portal}/idle'), img_dur = 6)
             self.assets[f'portal{portal}/opening'] = Animation(load_images(f'entities/portal{portal}/opening'), img_dur = 6, loop = False)
             self.assets[f'portal{portal}/active'] = Animation(load_images(f'entities/portal{portal}/active'), img_dur = 6)
@@ -240,7 +247,7 @@ class Game:
         self.sfx['ambience'].set_volume(0.2)
 
         #Initialise map 
-        self.player = Player(self, (50, 50), (8, 15))
+        self.player = Player(self, (0, 0), (8, 12))
         self.tilemap = tileMap(self, tile_size = 16)
         
     def loadMenu(self):
@@ -457,7 +464,7 @@ class Game:
             self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-35, self.screen_height - 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
             
             if self.currentLevel != 'lobby':
-                self.draw_text('Floor: ' + str(self.floor), (self.screen_width - 10, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')  
+                self.draw_text('Floor: ' + str(self.floors[self.currentLevel]), (self.screen_width - 10, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')  
                 self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width - 10, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')       
             else:
                 self.draw_text('Floor: Lobby', (self.screen_width - 10, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right') 
@@ -545,6 +552,7 @@ class Game:
             #Level transition
             if self.transition > 30:
                 self.tilemap.load_tilemap(self.nextLevel, self.currentLevelSize, self.currentDifficulty)
+                self.previousLevel = self.currentLevel
                 self.currentLevel = self.nextLevel
                 self.load_level()
                 self.dead = False
@@ -596,7 +604,7 @@ class Game:
                             self.enemies.remove(e)
                     if event.key == pygame.K_p:
                         for e in self.enemies.copy():
-                            if (e.pos[1] < 0 or e.pos[1] > self.mapHeight*16) or (e.pos[0] < 0 or e.pos[0] > self.mapWidth*16):
+                            if (e.pos[0] < 0 or e.pos[0] > self.mapHeight*16) or (e.pos[1] < 0 or e.pos[1] > self.mapWidth*16):
                                 print(e.type, e.pos)
                                 print('OUT OF BOUNDS^')
                         print('player: ', self.player.pos)
@@ -617,6 +625,7 @@ class Game:
             if self.dead:
                 self.dead = min(self.dead + 1, 120)
                 self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
+                self.draw_text('Deaths: ' + str(self.deathCount), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 
                 if self.dead == 120:
                     self.transitionToLevel('lobby')
@@ -715,7 +724,8 @@ class Game:
                 self.wallet[currency] += self.walletTemp[currency]
                 self.walletTemp[currency] = 0
             if not self.initialisingGame and self.currentLevel == 'lobby':
-                self.floor += 1
+                self.floors[self.previousLevel] += 1
+                
               
         
 
@@ -738,7 +748,8 @@ class Game:
             ('spawners', 6), #noether
             ('spawners', 7), #curie
             ('spawners', 8), #planck
-            ('spawners', 2) #faraday
+            ('spawners', 2), #faraday
+            ('spawners', 9) #rolypoly
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
            
@@ -755,7 +766,7 @@ class Game:
             elif spawner['variant'] == 6 and (self.charactersMet['Noether'] or self.currentLevel != 'lobby'):
                 self.characters.append(Noether(self, spawner['pos'], (8,15)))
 
-            #Character - Noether
+            #Character - Curie
             elif spawner['variant'] == 7 and (self.charactersMet['Curie'] or self.currentLevel != 'lobby'):
                 self.characters.append(Curie(self, spawner['pos'], (8,15)))
 
@@ -778,6 +789,10 @@ class Game:
             #Bat
             elif spawner['variant'] == 4:
                 self.enemies.append(Bat(self, spawner['pos'], (10, 10)))
+
+            #Rolypoly
+            elif spawner['variant'] == 9:
+                self.enemies.append(RolyPoly(self, spawner['pos'], (12, 12)))
             
 
         self.portal_list = [
@@ -797,8 +812,8 @@ class Game:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'normal'))
 
             #To normal
-            elif portal['variant'] == 2 and self.portalsMet['three']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'three'))
+            elif portal['variant'] == 2 and self.portalsMet['grass']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'grass'))
                 
 
         self.dead = False
@@ -818,12 +833,12 @@ class Game:
         self.mapWidth = int(self.currentLevelSize + 2 * self.horBuffer) 
 
         if self.currentLevel == 'lobby':
-            self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
+            self.background = pygame.transform.scale(self.assets['lobbyBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = self.caveDarknessRange[0]
         elif self.currentLevel == 'normal':
             self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
-        elif self.currentLevel == 'three':
+        elif self.currentLevel == 'grass':
             self.background = pygame.transform.scale(self.assets['grassBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = 0
 
@@ -894,7 +909,8 @@ class Game:
                    'tempHealth': self.temporaryHealth,
                    'totalJumps': self.player.total_jumps,
                    'health': self.health,
-                   'floor': self.floor,
+                   'deathCount': self.deathCount,
+                   'floors': self.floors,
                    'dialogue': self.dialogueHistory,
                    'difficulty': self.currentDifficulty,
                    'mapSize': self.currentLevelSize,
@@ -911,7 +927,7 @@ class Game:
                 saveData = json.load(f)
                 f.close()
 
-                floorList[i] = 'Floor: ' + str(saveData['floor'])
+                floorList[i] = 'Floor: ' + str(saveData['floors']['normal'])
                 
         
             except FileNotFoundError:
@@ -940,7 +956,8 @@ class Game:
             self.temporaryHealth = saveData['tempHealth']
             self.player.total_jumps = saveData['totalJumps']
             self.health = saveData['health']
-            self.floor = saveData['floor']
+            self.deathCount = saveData['deathCount']
+            self.floors = saveData['floors']
             self.dialogueHistory = saveData['dialogue']
             self.currentDifficulty = saveData['difficulty']
             self.currentLevelSize = saveData['mapSize']
@@ -951,7 +968,7 @@ class Game:
 
         except FileNotFoundError:
             f = open('data/saves/' + str(saveSlot) + '.json', 'w')
-            json.dump({'floor': self.floor}, f)
+            json.dump({'floor': self.floors}, f)
             f.close()
         
 

@@ -159,19 +159,20 @@ class Hilbert(Character):
             self.game.wallet['cogs'] -= 5
 
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 20
+            self.game.currentDifficulty = 15
             self.game.currentLevelSize = 30
             self.game.wallet['cogs'] -= 50
 
-            self.game.availableEnemyVariants['4'] = 3
+            self.game.availableEnemyVariants['normal'].append(4)
+            self.game.availableEnemyVariants['normalWeights'].append(1)
             
         elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 50
+            self.game.currentDifficulty = 25
             self.game.currentLevelSize = 40
             self.game.wallet['cogs'] -= 100
 
         elif key == 6 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 75
+            self.game.currentDifficulty = 30
             self.game.currentLevelSize = 50
             self.game.wallet['cogs'] -= 150
 
@@ -369,7 +370,7 @@ class Faraday(Character):
 
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.wallet['cogs'] -= 100
-            self.game.portalsMet['three'] = True
+            self.game.portalsMet['grass'] = True
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
