@@ -12,8 +12,9 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
-PHYSICS_TILES = {'grass', 'stone', 'walls'}
+PHYSICS_TILES = {'grass', 'stone', 'walls', 'cracked'}
 AUTOTILE_TYPES = {'grass', 'stone', 'walls'}
+
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
     tuple(sorted([(1, 0)])): 0, #Added
@@ -182,7 +183,6 @@ class tileMap:
         portal_placed = False
         noether_placed = False
         curie_placed = False
-        faraday_placed = False
         difficultyProgress = 0
         potplantNum = 0
         potplantNumMax = int(size / 2)
@@ -213,9 +213,7 @@ class tileMap:
                     elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 15 and not curie_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
                         curie_placed = True
-                    elif not self.game.charactersMet['Faraday'] and self.game.floors[levelType] > 20 and not faraday_placed:
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': 2, 'pos': [x, y]}
-                        faraday_placed = True
+
                         
                     #Portal
                     elif not portal_placed:
@@ -298,7 +296,7 @@ class tileMap:
                 else:   
                     return self.tilemap[tile_loc]
 
-    def autotile(self):
+    def autotile(self, windows = True):
         for loc in self.tilemap:
             tile = self.tilemap[loc]
 
@@ -307,13 +305,13 @@ class tileMap:
                 check_loc  = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
                 if check_loc in self.tilemap:
 
-                    if self.tilemap[check_loc]['type'] in AUTOTILE_TYPES:# == tile['type']:
+                    if self.tilemap[check_loc]['type'] in AUTOTILE_TYPES:
                         neighbours.add(shift)
 
             neighbours = tuple(sorted(neighbours))
 
             if (tile['type'] in AUTOTILE_TYPES) and (neighbours in AUTOTILE_MAP):
-                if AUTOTILE_MAP[neighbours] == 5:
+                if AUTOTILE_MAP[neighbours] == 5 and windows == True:
                     tile['variant'] = random.choice([10,11,12]) if random.random() < 0.01 else 5
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]

@@ -73,6 +73,10 @@ class physicsEntity:
                     if self.collideWall:
                         self.pos[1] = entity_rect.y
 
+                    if self.type == 'player':
+                        self.lastCollidedWall = self.game.tilemap.tilemap[str(rect.x // self.game.tilemap.tilesize) + ';' + str(rect.y // self.game.tilemap.tilesize)]
+                        
+
 
             self.pos[0] += self.frame_movement[0]
             entity_rect = self.rect()
@@ -90,6 +94,9 @@ class physicsEntity:
                         self.collisions['left'] = True
                     if self.collideWall:
                         self.pos[0] = entity_rect.x
+
+                    if self.type == 'player':
+                        self.lastCollidedWall = self.game.tilemap.tilemap[str(rect.x // self.game.tilemap.tilesize) + ';' + str(rect.y // self.game.tilemap.tilesize)]
 
         #Facing direction
         if movement[0] > 0:
@@ -548,6 +555,7 @@ class Player(physicsEntity):
         self.jumps = self.total_jumps
 
         self.wall_slide = False
+        self.lastCollidedWall = False
 
         self.spark_timer = 0
         self.spark_timer_max = 60
@@ -638,11 +646,28 @@ class Player(physicsEntity):
                 self.sideways = 1 - 2*self.flip_x    
             self.velocity[0] = self.sideways * 8
 
-            
-
             if abs(self.dashing) == 51:
                 self.velocity[0] *= 0.1
                 self.velocity[1] *= 0.1
+
+                #Breaking cracked tiles:
+                if any(self.collisions.values()) and self.game.wallet['hammers'] > 0:
+                    if self.lastCollidedWall['type'] == 'cracked':
+
+                        #Find correct tunnel:
+                        for tunnelName in self.game.tunnelStates.keys():
+                            if tuple(self.lastCollidedWall['pos']) in self.game.tunnelStates[tunnelName]['posList']:
+                                
+                                #Actually break all the tiles and save tunnel as broken:
+                                for loc in self.game.tunnelStates[tunnelName]['posList']:
+                                    del self.game.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
+                                    self.game.sparks.append(Spark((loc[0] * self.game.tilemap.tilesize, loc[1] * self.game.tilemap.tilesize), random.random() * math.pi * 2, random.random() * 5))
+
+                                self.game.tunnelStates[tunnelName]['broken'] = True
+
+                        self.game.wallet['hammers'] -= 1
+                    
+
             if self.game.transition < 1:
                 p_velocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
                 self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=[movement[0] + random.random(), movement[1] + random.random()], frame = random.randint(0,7)))
@@ -654,6 +679,8 @@ class Player(physicsEntity):
                     speed = random.random() * 0.5 + 0.5
                     p_velocity = [math.cos(angle) * speed, math.sin(angle) * speed]
                     self.game.particles.append(Particle(self.game, 'particle', self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
+
+            
         
         if self.dashing > 0:
             self.dashing = max(0, self.dashing - 1)

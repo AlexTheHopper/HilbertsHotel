@@ -28,6 +28,7 @@ class Editor:
             'stone': load_images('tiles/stone'),
             'potplants': load_images('tiles/potplants'),
             'walls': load_images('tiles/walls'),
+            'cracked': load_images('tiles/cracked'),
             'spawners': load_images('tiles/spawners'),
             'spawnersPortal': load_images('tiles/spawnersPortal')
         }
@@ -187,7 +188,7 @@ class Editor:
                     if event.key == pygame.K_g:
                         self.ongrid = not self.ongrid
                     if event.key == pygame.K_t:
-                        self.tilemap.autotile()
+                        self.tilemap.autotile(windows = False)
                     if event.key == pygame.K_r:
                         self.tilemap.load_random_tilemap(15)
                     if event.key == pygame.K_o:

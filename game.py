@@ -12,6 +12,8 @@ from scripts.clouds import *
 from scripts.particle import *
 from scripts.spark import *
 
+import cProfile
+
 class Game:
     def __init__(self):
 
@@ -82,7 +84,8 @@ class Game:
             'cogs': 0,
             'heartFragments': 0,
             'wings': 0,
-            'eyes': 0
+            'eyes': 0,
+            'hammers': 0
         }
 
         #Prep dialogue management.
@@ -150,12 +153,16 @@ class Game:
             'Noether': False,
             'Curie': False,
             'Planck': False,
-            'Faraday': False
+            'Faraday': True
         }
         self.portalsMet = {
             'lobby': True,
             'normal': True,
             'grass': False
+        }
+
+        self.tunnelStates = {
+            'tunnel1': {'broken': False, 'posList': [(x, y) for x in range(36, 54) for y in range(-1,1)]}
         }
         
        
@@ -169,6 +176,7 @@ class Game:
             'potplants': load_images('tiles/potplants'),
             'stone': load_images('tiles/stone'),
             'walls': load_images('tiles/walls'),
+            'cracked': load_images('tiles/cracked'),
             'menuBackground': load_image('misc/menuBackground.png'),
             'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
             'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
@@ -208,6 +216,7 @@ class Game:
             'wing/idle': Animation(load_images('currencies/wing/idle'),img_dur=6),
             'heartFragment/idle': Animation(load_images('currencies/heartFragment/idle'),img_dur=10),
             'eye/idle': Animation(load_images('currencies/eye/idle'),img_dur=6),
+            'hammer/idle': Animation(load_images('currencies/hammer/idle'),img_dur=6),
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)}
 
        
@@ -227,6 +236,8 @@ class Game:
         for currency in self.wallet:
             self.walletTemp[currency] = 0
             self.currencyIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+        
+   
 
         
        
@@ -690,8 +701,6 @@ class Game:
                 if (character.name == 'Planck') & (index == 1) & (self.currentLevel != 'lobby'):
                     success = False
 
-                if (character.name == 'Faraday') & (index == 1) & (self.currentLevel != 'lobby'):
-                    success = False
                 
 
                 if success:
@@ -811,7 +820,7 @@ class Game:
             elif portal['variant'] == 1 and self.portalsMet['normal']:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'normal'))
 
-            #To normal
+            #To grass
             elif portal['variant'] == 2 and self.portalsMet['grass']:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'grass'))
                 
@@ -820,6 +829,7 @@ class Game:
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
         self.player.updateNearestEnemy()
+            
 
         self.screenshake = 0
         self.transition = -30
@@ -835,6 +845,7 @@ class Game:
         if self.currentLevel == 'lobby':
             self.background = pygame.transform.scale(self.assets['lobbyBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = self.caveDarknessRange[0]
+            self.removeBrokenTunnels()
         elif self.currentLevel == 'normal':
             self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
             self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
@@ -909,6 +920,7 @@ class Game:
                    'tempHealth': self.temporaryHealth,
                    'totalJumps': self.player.total_jumps,
                    'health': self.health,
+                   'tunnelStates': self.tunnelStates,
                    'deathCount': self.deathCount,
                    'floors': self.floors,
                    'dialogue': self.dialogueHistory,
@@ -938,6 +950,13 @@ class Game:
             pass
             
         return floorList
+    
+    def removeBrokenTunnels(self):
+        for tunnel in self.tunnelStates:
+            if self.tunnelStates[tunnel]['broken'] == True:
+
+                for loc in self.tunnelStates[tunnel]['posList']:
+                    del self.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
 
     def delete_save(self, saveSlot):
         try:
@@ -956,6 +975,7 @@ class Game:
             self.temporaryHealth = saveData['tempHealth']
             self.player.total_jumps = saveData['totalJumps']
             self.health = saveData['health']
+            self.tunnelStates = saveData['tunnelStates']
             self.deathCount = saveData['deathCount']
             self.floors = saveData['floors']
             self.dialogueHistory = saveData['dialogue']
@@ -972,4 +992,6 @@ class Game:
             f.close()
         
 
-Game().loadMenu()
+if __name__ == '__main__':
+    Game().loadMenu()
+    # cProfile.run('Game().loadMenu()', sort = 'tottime')

@@ -350,25 +350,24 @@ class Faraday(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh by golly gosh am I lost! Do you know the way back to the lobby?',
-                    'Brilliant, cheers I\'ll follow you back!'],
+            '0': ['Psssst... Yay you found me woo!',
+                  'But also... it took me so long to put up that wall! :(',
+                    'Anyway, I\'ve been hiding from Hilbert. I dont think he really has the Hotel\'s best interests at heart!'],
 
-            '1': ['Pssst... I really don\'t think you should trust Hilbert.',
-                  'He\'s been doing some real sneaky things recently and I would be really careful about ascending too far in the hotel.',
+            '1': ['He\'s been doing some real sneaky things recently and I would be really careful about ascending too far in the hotel.',
                   'The hotel is much bigger than you think. There are infinite dimensions stacked side by side and some of them get... weird.',
                   'Bring me 100 cogs and I\'ll show you one.'],
 
             '2': ['Amazing, I\'ll build another elevator for you! It will be ready next time you come back to the lobby.',
-                  'I\'ll hide it under Hilbert so he wont see it! Give me a jiffy and it\'ll be ready!'],
+                  'I\'ll hide it here so Hilbert wont see it! Give me a jiffy and it\'ll be ready!'],
 
-            '3': ['There are so many areas of this hotel. You should go explore them all! We need to find out what Hilbert is up to!']}
+            '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to any other than the normal representation and this one through my portal!',
+                  'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
-        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.charactersMet['Faraday'] = True
 
-        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+        if key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.wallet['cogs'] -= 100
             self.game.portalsMet['grass'] = True
 
