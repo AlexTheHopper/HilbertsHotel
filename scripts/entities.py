@@ -126,9 +126,13 @@ class physicsEntity:
         posx = self.pos[0] - offset[0] + self.anim_offset[0]
         posy = self.pos[1] - offset[1] + self.anim_offset[1]
         
-        
-        image = pygame.transform.rotate(self.animation.img(), rotation * 180 / math.pi)
-        surface.blit(pygame.transform.flip(image, self.flip_x, False), (posx, posy))
+        if rotation != 0:
+            image = pygame.transform.rotate(self.animation.img(), rotation * 180 / math.pi)
+            surface.blit(pygame.transform.flip(image, self.flip_x, False), (posx, posy))
+        else:
+            surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
+
+
 
 
 
@@ -656,7 +660,7 @@ class Player(physicsEntity):
 
                         #Find correct tunnel:
                         for tunnelName in self.game.tunnelStates.keys():
-                            if tuple(self.lastCollidedWall['pos']) in self.game.tunnelStates[tunnelName]['posList']:
+                            if any(loc == self.lastCollidedWall['pos'] for loc in self.game.tunnelStates[tunnelName]['posList']):
                                 
                                 #Actually break all the tiles and save tunnel as broken:
                                 for loc in self.game.tunnelStates[tunnelName]['posList']:
@@ -811,6 +815,7 @@ class Currency(physicsEntity):
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
             self.game.walletTemp[str(self.currencyType) + 's'] += self.value
+            self.game.check_encounter(self.currencyType + 's')
             self.game.sfx['coin'].play()
             return True
     
@@ -1003,3 +1008,31 @@ class RolyPoly(physicsEntity):
         
         super().render(surface, offset = offset)
        
+
+class SpawnPoint(physicsEntity):
+    def __init__(self, game, pos, size, action = 'idle'):
+        super().__init__(game, 'spawnPoint', pos, size)
+        self.gravityAffected = False
+        self.collideWallCheck = False
+        self.collideWall = False
+        self.set_action(action)
+
+        self.anim_offset = [0,-1]
+
+    def update(self, tilemap, movement = (0, 0)):         
+        super().update(tilemap, movement = movement)  
+
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) > 50 and self.action == 'idle':
+            for point in self.game.spawnPoints:
+                if point.action == 'active':
+                    point.set_action('idle')
+            
+            self.set_action('active')
+            self.game.spawnPoint = self.pos[:]
+            self.game.check_encounter('spawnPoints')
+
+        if self.action == 'active':
+            if random.random() < 0.05:
+                angle = (random.random() + 1) * math.pi
+                speed = random.random() * 3
+                self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice([(58, 6, 82), (111, 28, 117)])))

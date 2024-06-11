@@ -1,5 +1,5 @@
 from scripts.entities import *
-       
+  
 class Character(physicsEntity):
     def __init__(self, game, pos, size, name):
         
@@ -59,7 +59,7 @@ class Character(physicsEntity):
                     offsetN = 0
                     for requirement in self.currencyRequirements[self.currentDialogueIndex + 1]:
 
-                        self.game.HUDdisplay.blit(self.game.currencyIcons[requirement[0]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 12))
+                        self.game.HUDdisplay.blit(self.game.displayIcons[requirement[0]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 12))
                         colour = (0,150,0) if self.game.wallet[str(requirement[0])] >= requirement[1] else (150,0,0)
                         self.game.draw_text(str(requirement[1]), (xpos + 45 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos), self.game.text_font, colour, (0, 0), mode = 'center', scale = 0.75)
                         offsetN += 1

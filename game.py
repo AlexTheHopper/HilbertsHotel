@@ -79,6 +79,8 @@ class Game:
         self.currentDifficulty = 1
         self.currentLevelSize = 15
 
+        self.spawnPoint = False
+
         
         self.wallet = {
             'cogs': 0,
@@ -161,8 +163,26 @@ class Game:
             'grass': False
         }
 
+        self.encountersCheck = {
+            'spawnPoints': False,
+            'cogs': False,
+            'heartFragments': False,
+            'wings': False,
+            'eyes': False,
+            'hammers': False
+        }
+
+        self.encountersCheckText = {
+            'spawnPoints': ['TEST TEXT SPAWN'],
+            'cogs': ['TEST TEXT COG'],
+            'heartFragments': ['TEST TEXT HEART'],
+            'wings': ['TEST TEXT WING'],
+            'eyes': ['TEST TEXT EYE'],
+            'hammers': ['TEST TEXT HAMMER']
+        }
+
         self.tunnelStates = {
-            'tunnel1': {'broken': False, 'posList': [(x, y) for x in range(36, 54) for y in range(-1,1)]}
+            'tunnel1': {'broken': False, 'posList': [[x, y] for x in range(36, 54) for y in range(-1,1)]}
         }
         
        
@@ -210,6 +230,9 @@ class Game:
             'rolypoly/idle': Animation(load_images('entities/rolypoly/idle'), img_dur = 10),
             'rolypoly/run': Animation(load_images('entities/rolypoly/run'), img_dur = 4),
 
+            'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
+            'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
+
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
             'cog/idle': Animation(load_images('currencies/cog/idle'),img_dur=6),
@@ -232,10 +255,11 @@ class Game:
 
 
         self.walletTemp = {}
-        self.currencyIcons = {}
+        self.displayIcons = {}
         for currency in self.wallet:
             self.walletTemp[currency] = 0
-            self.currencyIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+            self.displayIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+        self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
         
    
 
@@ -411,6 +435,11 @@ class Game:
                     if enemy.update(self.tilemap, (0, 0)):
                         self.enemies.remove(enemy)
                         self.player.updateNearestEnemy()
+
+            for spawnPoint in self.spawnPoints:
+                spawnPoint.render(self.display_outline, offset = self.render_scroll)
+                spawnPoint.update(self.tilemap)
+
             
             for character in self.characters.copy():
                 if not self.paused:
@@ -485,7 +514,7 @@ class Game:
                 if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
                    
                     currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if self.currentLevel != 'lobby' else '')
-                    self.HUDdisplay.blit(self.currencyIcons[currency], (10, 10 + depth*30))
+                    self.HUDdisplay.blit(self.displayIcons[currency], (10, 10 + depth*30))
                     self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)
                     depth += 1
   
@@ -509,55 +538,13 @@ class Game:
                     self.save_game(self.saveSlot)
                     self.__init__()
                     self.loadMenu()
+                self.darkness_surface.fill((0, 0, 0, 150))
 
 
-            #Talking mechanics:
+            
             if self.talking:
-
-                #Each frame an extra character is added to the displayed text.
-                #If the length of a line is larger than self.maxCharactersLine, it creates a new line IF there is a space to not chop words.
-                if self.textLength < self.textLengthEnd:
-                    if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
-                        self.displayTextList.append('')
-                    else:
-                        self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
-                    self.textLength += 1
-
-                #If all text in current chunk is displayed, move to next chunk.
-                if self.interractionFrame and self.textLength > 1:
-                    if self.textLength == self.textLengthEnd:
-                        self.currentTextIndex += 1
-                        self.textLength = 0
-                        self.displayTextList = [str(self.talkingTo.name) + ':', '']
-                        try:
-                            self.textLengthEnd = len(self.currentTextList[self.currentTextIndex])
-                        except IndexError:
-                            pass
-
-                    #Fills in current text if the player is impatient
-                    else:
-                        #Im sure this while loop will always end, right?
-                        while self.textLength < self.textLengthEnd:
-
-                            if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
-                                self.displayTextList.append('')
-                            else:
-                                self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
-                            self.textLength += 1
-                            
-
-                #When to end the dialogue:
-                if self.currentTextIndex >= self.endTextIndex:
-                    self.talking = False
-                    self.paused = False
-                    self.update_dialogues()
-                    self.checkNewDialogue()
-
-                #Actually display the text:
-                for n in range(len(self.displayTextList)):
-                    self.draw_text(str(self.displayTextList[n]), (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30 + 30*n), self.text_font, (255,255,255), (0, 0), mode = 'center')
-                
-
+                self.display_text()
+                self.darkness_surface.fill((0, 0, 0, 150))
                     
     
             #Level transition
@@ -708,8 +695,60 @@ class Game:
                 elif not self.dialogueHistory[character.name][str(index) + 'said']:
                     self.dialogueHistory[character.name][str(index) + 'available'] = False
 
+    def display_text(self):
+        #Each frame an extra character is added to the displayed text.
+        #If the length of a line is larger than self.maxCharactersLine, it creates a new line IF there is a space to not chop words.
+        if self.textLength < self.textLengthEnd:
+            if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
+                self.displayTextList.append('')
+            else:
+                self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
+            self.textLength += 1
+
+        #If all text in current chunk is displayed, move to next chunk.
+        if self.interractionFrame and self.textLength > 1:
+            if self.textLength == self.textLengthEnd:
+                self.currentTextIndex += 1
+                self.textLength = 0
+                self.displayTextList = self.talkingObject[:]
+                try:
+                    self.textLengthEnd = len(self.currentTextList[self.currentTextIndex])
+                except IndexError:
+                    pass
+
+            #Fills in current text if the player is impatient
+            else:
+                #Im sure this while loop will always end, right?
+                while self.textLength < self.textLengthEnd:
+
+                    if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
+                        self.displayTextList.append('')
+                    else:
+                        self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
+                    self.textLength += 1
+                    
+
+        #When to end the dialogue:
+        if self.currentTextIndex >= self.endTextIndex:
+            self.talking = False
+            self.paused = False
+            self.update_dialogues()
+            self.checkNewDialogue()
+
+        #Actually display the text (and icon):
+        for n in range(len(self.displayTextList)):
+            self.draw_text(str(self.displayTextList[n]), (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30 + 30*n), self.text_font, (255,255,255), (0, 0), mode = 'center')
+        if self.displayIcon:
+            icon = self.displayIcons[self.displayIcon]
+            icon = pygame.transform.scale(icon, (icon.get_width() * 2, icon.get_height() * 2))
+            self.HUDdisplay.blit(icon, (2*(self.player.pos[0]-self.render_scroll[0]) - icon.get_width() / 2, 2*(self.player.pos[1]-self.render_scroll[1]) - 90 - icon.get_height() / 2))
 
 
+
+    def check_encounter(self, entity):
+        if not self.encountersCheck[entity]:
+            self.run_text('Information', entity)
+            self.encountersCheck[entity] = True
     
     def load_level(self):
         
@@ -748,6 +787,7 @@ class Game:
         self.portals = []
         self.characters = []
         self.glowworms = []
+        self.spawnPoints = []
         self.spawner_list = [
             ('spawners', 0), #player
             ('spawners', 1), #hilbert
@@ -758,14 +798,24 @@ class Game:
             ('spawners', 7), #curie
             ('spawners', 8), #planck
             ('spawners', 2), #faraday
-            ('spawners', 9) #rolypoly
+            ('spawners', 9), #rolypoly
+            ('spawners', 10) #spawnPoint
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
            
             #Player
             if spawner['variant'] == 0:
-                self.player.pos = spawner['pos']
+                
+                #Spawn at spawnpoint if one is active, else default spawn pos.
+                if self.spawnPoint and self.currentLevel == 'lobby':
+                    self.player.pos = self.spawnPoint[:]
+                else:
+                    self.player.pos = spawner['pos']
+
                 self.player.air_time = 0
+                self.player.pos[0] += 4
+                self.player.pos[1] += 4
+                    
             
             #Character - Hilbert
             elif spawner['variant'] == 1 and self.charactersMet['Hilbert']:
@@ -802,6 +852,11 @@ class Game:
             #Rolypoly
             elif spawner['variant'] == 9:
                 self.enemies.append(RolyPoly(self, spawner['pos'], (12, 12)))
+
+            #SpawnPoint
+            elif spawner['variant'] == 10:
+                setAction = 'active' if spawner['pos'] == self.spawnPoint else 'idle'
+                self.spawnPoints.append(SpawnPoint(self, spawner['pos'], (16, 16), action = setAction))
             
 
         self.portal_list = [
@@ -872,20 +927,30 @@ class Game:
             yAdj = img.get_height()
         self.HUDdisplay.blit(img, (pos[0] - xAdj, pos[1] - yAdj))
 
-    def run_text(self, character):
+    def run_text(self, character, talkType = 'npc'):
         self.paused = True
         self.talking = True
         self.talkingTo = character
-        convoInfo = character.getConversation()
+        if talkType == 'npc':
+            convoInfo = character.getConversation()
+            self.currentTextList = convoInfo[0]
+            character.conversationAction(convoInfo[1])
+            self.displayTextList = [str(character.name) + ': ', ' ']
+            self.displayIcon = False
+        else:
+            self.currentTextList = self.encountersCheckText[talkType]
+            self.displayTextList = [character + ': ', '']
+            self.displayIcon = talkType
+
         self.update_dialogues()
         self.checkNewDialogue()
-        self.currentTextList = convoInfo[0]
-        character.conversationAction(convoInfo[1])
+        
+        self.talkingObject = self.displayTextList[:]
         self.currentTextIndex = 0
         self.endTextIndex = len(self.currentTextList)
         self.textLength = 0
         self.textLengthEnd = len(self.currentTextList[0])
-        self.displayTextList = [str(character.name) + ':', '']
+        
 
             
     def transitionToLevel(self, newLevel):
@@ -914,8 +979,8 @@ class Game:
     def save_game(self, saveSlot):
         if self.health <= 0:
             self.health = self.maxHealth
-        f = open('data/saves/' + str(saveSlot) + '.json', 'w')
-        json.dump({'wallet': self.wallet,
+        with open('data/saves/' + str(saveSlot) + '.json', 'w') as f:
+            json.dump({'wallet': self.wallet,
                    'maxHealth': self.maxHealth,
                    'tempHealth': self.temporaryHealth,
                    'totalJumps': self.player.total_jumps,
@@ -923,13 +988,14 @@ class Game:
                    'tunnelStates': self.tunnelStates,
                    'deathCount': self.deathCount,
                    'floors': self.floors,
+                   'spawnPoint': self.spawnPoint,
                    'dialogue': self.dialogueHistory,
                    'difficulty': self.currentDifficulty,
                    'mapSize': self.currentLevelSize,
                    'availableEnemyVariants': self.availableEnemyVariants,
                    'portalsMet': self.portalsMet,
-                   'charactersMet': self.charactersMet}, f)
-        f.close()
+                   'charactersMet': self.charactersMet,
+                   'encountersCheck': self.encountersCheck}, f)
 
     def getSavedFloors(self):
         floorList = ['No Data', 'No Data', 'No Data']
@@ -966,24 +1032,26 @@ class Game:
 
     def load_game(self, saveSlot):
         try:
-            f = open('data/saves/' + str(saveSlot) + '.json', 'r')
-            saveData = json.load(f)
-            f.close()
+            with open('data/saves/' + str(saveSlot) + '.json', 'r') as f:
+                saveData = json.load(f)
+                
 
-            self.wallet = saveData['wallet']
-            self.maxHealth = saveData['maxHealth']
-            self.temporaryHealth = saveData['tempHealth']
-            self.player.total_jumps = saveData['totalJumps']
-            self.health = saveData['health']
-            self.tunnelStates = saveData['tunnelStates']
-            self.deathCount = saveData['deathCount']
-            self.floors = saveData['floors']
-            self.dialogueHistory = saveData['dialogue']
-            self.currentDifficulty = saveData['difficulty']
-            self.currentLevelSize = saveData['mapSize']
-            self.availableEnemyVariants = saveData['availableEnemyVariants']
-            self.portalsMet = saveData['portalsMet']
-            self.charactersMet = saveData['charactersMet']
+                self.wallet = saveData['wallet']
+                self.maxHealth = saveData['maxHealth']
+                self.temporaryHealth = saveData['tempHealth']
+                self.player.total_jumps = saveData['totalJumps']
+                self.health = saveData['health']
+                self.tunnelStates = saveData['tunnelStates']
+                self.deathCount = saveData['deathCount']
+                self.floors = saveData['floors']
+                self.spawnPoint = saveData['spawnPoint']
+                self.dialogueHistory = saveData['dialogue']
+                self.currentDifficulty = saveData['difficulty']
+                self.currentLevelSize = saveData['mapSize']
+                self.availableEnemyVariants = saveData['availableEnemyVariants']
+                self.portalsMet = saveData['portalsMet']
+                self.charactersMet = saveData['charactersMet']
+                self.encountersCheck = saveData['encountersCheck']
             
 
         except FileNotFoundError:
