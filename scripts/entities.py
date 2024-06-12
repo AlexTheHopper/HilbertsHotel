@@ -274,7 +274,7 @@ class Bat(physicsEntity):
 
 
     def render(self, surface, offset = (0, 0)):
-        # pygame.draw.rect(self.game.HUDdisplay, (255,0,0), (2*(self.rect().x - self.game.render_scroll[0] - self.anim_offset[0]), 2*(self.rect().y - self.game.render_scroll[1] - self.anim_offset[1]), self.size[0], self.size[1] ))
+        # pygame.draw.rect(self.game.display_outline, (255,0,0), (1*(self.pos[0] - self.game.render_scroll[0]), 1*(self.pos[1] - self.game.render_scroll[1]), self.size[0], self.size[1] ))
         
         angle = 0
         if self.action in ['charging', 'attacking']:
@@ -777,7 +777,10 @@ class Player(physicsEntity):
                 self.game.deathCount += 1
 
                 for currency in self.game.wallet:
-                    self.game.wallet[currency] = int(self.game.wallet[currency] * 0.75)
+                    if currency not in self.game.notLostOnDeath:
+                        lostAmount = math.floor(self.game.wallet[currency] * 0.25)
+                        self.game.wallet[currency] -= lostAmount
+                        self.game.walletLostAmount[currency] = lostAmount
 
 
             else:
@@ -814,7 +817,10 @@ class Currency(physicsEntity):
 
         #Check for player collision
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 40:
-            self.game.walletTemp[str(self.currencyType) + 's'] += self.value
+            if self.game.currentLevel == 'lobby':
+                self.game.wallet[str(self.currencyType) + 's'] += self.value
+            else:
+                self.game.walletTemp[str(self.currencyType) + 's'] += self.value
             self.game.check_encounter(self.currencyType + 's')
             self.game.sfx['coin'].play()
             return True

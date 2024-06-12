@@ -15,7 +15,7 @@ class Character(physicsEntity):
         self.currentDialogueIndex = 0
 
 
-    def update(self, tilemap, movement = (0, 0)):   
+    def update(self, tilemap, movement = (0, 0)):
         #Walking logic, turning around etc
         
         
@@ -52,34 +52,30 @@ class Character(physicsEntity):
                 requirementNum = 0
 
             xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
-            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 15
+            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 30
             offsetLength = 60
 
             if requirementNum > 0:
                     offsetN = 0
                     for requirement in self.currencyRequirements[self.currentDialogueIndex + 1]:
 
-                        self.game.HUDdisplay.blit(self.game.displayIcons[requirement[0]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 12))
-                        colour = (0,150,0) if self.game.wallet[str(requirement[0])] >= requirement[1] else (150,0,0)
-                        self.game.draw_text(str(requirement[1]), (xpos + 45 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos), self.game.text_font, colour, (0, 0), mode = 'center', scale = 0.75)
+                        self.game.HUDdisplay.blit(self.game.displayIcons[requirement[1]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos))
+                        # colour = (0,150,0) if self.game.wallet[str(requirement[1])] >= requirement[2] else (150,0,0)
+                        colour = (0,150,0) if self.newDialogue else (150,0,0)
+                        self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 2), self.game.text_font, colour, (0, 0), mode = 'left', scale = 0.75)
                         offsetN += 1
-
+            
             elif distToPlayer >= 15 and self.newDialogue:
-                self.game.draw_text('(!)', (xpos, ypos - (30 if requirementNum else 0)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
+                self.game.draw_text('(!)', (xpos, ypos - (15 if requirementNum else -15)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
 
 
             if distToPlayer < 15:
-                self.game.draw_text('(z)', (xpos, ypos - (30 if requirementNum else 0)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
-                
+                self.game.draw_text('(z)', (xpos, ypos - (15 if requirementNum else -15)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
                 if self.game.interractionFrame:
                     self.game.run_text(self)
 
+
             
-
-                
-
-
-
     def getConversation(self):
         self.game.update_dialogues()
         dialogue = self.game.dialogueHistory[self.name]
@@ -93,11 +89,9 @@ class Character(physicsEntity):
                 return(self.dialogue[str(index - 1)], index - 1)
             
             elif available and not said:
-                #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
                 return(self.dialogue[str(index)], index)
         
         index = int(len(dialogue) / 2) - 1
-        #self.game.dialogueHistory[str(self.name)][str(index) + 'said'] = True
         return(self.dialogue[str(index)], int(index))
 
     def render(self, surface, offset = (0, 0)):
@@ -113,11 +107,11 @@ class Hilbert(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['cogs', 5]],
+            2: [['purchase', 'cogs', 5]],
             3: [],
-            4: [['cogs', 50]],
-            5: [['cogs', 100]],
-            6: [['cogs', 150]]
+            4: [['purchase', 'cogs', 50]],
+            5: [['purchase', 'cogs', 100]],
+            6: [['purchase', 'cogs', 150]]
         }
 
         self.dialogue = {
@@ -186,10 +180,10 @@ class Noether(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['heartFragments', 5]],
-            3: [['heartFragments', 20]],
-            4: [['heartFragments', 50]],
-            5: [['heartFragments', 100]]
+            2: [['purchase', 'heartFragments', 5]],
+            3: [['purchase', 'heartFragments', 20]],
+            4: [['purchase', 'heartFragments', 50]],
+            5: [['purchase', 'heartFragments', 100]]
         }
 
         self.dialogue = {
@@ -256,9 +250,9 @@ class Curie(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['wings', 5]],
-            3: [['wings', 50]],
-            4: [['wings', 100]]
+            2: [['purchase', 'wings', 5]],
+            3: [['purchase', 'wings', 50]],
+            4: [['purchase', 'wings', 100]]
         }
 
         self.dialogue = {
@@ -310,7 +304,7 @@ class Planck(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['heartFragments', 5]]
+            2: [['purchase', 'heartFragments', 5]]
         }
 
         self.dialogue = {
@@ -345,7 +339,7 @@ class Faraday(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['cogs', 100]],
+            2: [['purchase', 'cogs', 100]],
             3: []
         }
 
@@ -371,6 +365,59 @@ class Faraday(Character):
             self.game.wallet['cogs'] -= 100
             self.game.portalsMet['grass'] = True
 
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+
+
+class Lorenz(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Lorenz')
+
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [],
+            3: [['prime', 'cogs', 'P']],
+            4: [['primePurchase', 'cogs', 'P>50', 50]],
+            5: [['primePurchase', 'cogs', 'P>200', 200]]
+        }
+
+        self.dialogue = {
+            '0': ['AHHHHH! I\'m so lost oops! Do you know the way back to the lobby?',
+                    'Oh, yeah the big obvious door, that makes sense, cheers mate!'],
+
+            '1': ['Oh yeah by the way I\'m definitely the most useful \'round here.',
+                  'For you...',
+                  'I\'ve got...',
+                  '......',
+                  '......................',
+                  '...................................................................',
+                  'HAMMERS!!'],
+
+            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound.',
+                  'But I aint a fan of the normal \'pay this much for this hammer\' boring shenanigans, I only like prime numbers!',
+                  'Bring me EXACTLY a prime number of cogs and a hammer is yours!'],
+
+            '3': ['Hammer go smash!',
+                  'Oh and also, youll never lose hammers on death! WOO!',
+                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 50!'],
+                  
+            '4': ['Hammer go smash!',
+                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!'],
+
+            '5': ['Hammer go smash!',
+                  'But at the moment hammer dont go smash I dont have anymore :(']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Lorenz'] = True
+
+        if key in [3, 4, 5] and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.pos))
+            self.game.wallet['cogs'] = 0
+
+        
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
             

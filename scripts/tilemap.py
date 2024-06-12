@@ -183,6 +183,7 @@ class tileMap:
         portal_placed = False
         noether_placed = False
         curie_placed = False
+        lorenz_placed = False
         difficultyProgress = 0
         potplantNum = 0
         potplantNumMax = int(size / 2)
@@ -210,9 +211,12 @@ class tileMap:
                     elif not self.game.charactersMet['Curie'] and self.game.floors[levelType] > 10 and not curie_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
                         curie_placed = True
-                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 15 and not curie_placed:
+                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 13 and not curie_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
                         curie_placed = True
+                    elif not self.game.charactersMet['Lorenz'] and self.game.floors[levelType] > 17 and not lorenz_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 11, 'pos': [x, y]}
+                        lorenz_placed = True
 
                         
                     #Portal
@@ -220,15 +224,20 @@ class tileMap:
                         self.tilemap[loc] = {'type': 'spawnersPortal', 'variant': 0, 'pos': [x, y]}
                         portal_placed = True
 
+                    #Small decor
+                    elif random.random() < (0.1 if levelType == 'normal' else 0.4):
+                        randomXOffset = random.randint(-4,4)
+                        to_add = {'type': 'decor', 'variant': 3 if levelType == 'normal' else random.randint(0,2), 'pos': [x * self.tile_size + randomXOffset, y * self.tile_size]}
+                        self.offgrid_tiles.append(to_add)
                     #Potplants
-                    elif random.random() < 0.5 and potplantNum < potplantNumMax:
+                    elif random.random() < 0.3 and potplantNum < potplantNumMax:
                         randomXOffset = random.randint(-4,4)
                         to_add = {'type': 'potplants', 'variant': random.randint(0,len(self.game.assets['potplants']) - 1), 'pos': [x * self.tile_size + randomXOffset, y * self.tile_size]}
                         self.offgrid_tiles.append(to_add)
                         potplantNum += 1
                         
                     #Rocks
-                    elif random.random() < 0.5 and locUnderRight in self.tilemap and locRight not in self.tilemap:
+                    elif random.random() < 0.5 and locUnderRight in self.tilemap and locRight not in self.tilemap and levelType == 'normal':
                         if self.tilemap[locUnder]['type'] in PHYSICS_TILES and self.tilemap[locUnderRight]['type'] in PHYSICS_TILES:
                             to_add = {'type': 'large_decor', 'variant': 0, 'pos': [x * self.tile_size + random.randint(-4,4), y * self.tile_size + self.tile_size / 2 + random.randint(0,6)]}
                             self.offgrid_tiles.append(to_add)

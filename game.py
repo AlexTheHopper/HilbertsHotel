@@ -16,271 +16,16 @@ import cProfile
 
 class Game:
     def __init__(self):
-
         #Pygame specific parameters and initialisation
         pygame.init()
         pygame.display.set_caption('Hilbert\'s Hotel v0.2.1')
-
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()
 
-
-        #General game parameters
-        self.game_running = True
-        self.fps = 60
-        self.displayFPS = self.fps
-        self.initialisingGame = True
-
-        self.movement = [False, False, False, False]
-        self.paused = False
-        self.talking = False
-        self.dead = False
-        self.deathCount = 0
-        self.interractionFrame = False
-        self.caveDarknessRange = (50,250)
-        self.caveDarkness = True
-        self.minimapActive = False
-        self.minimapList = {}
-
-        self.currentTextList = []
-        self.maxCharactersLine = 55
-        self.talkingTo = ''
-
-        self.currentLevel = 'lobby'
-        self.nextLevel = 'lobby'
-        self.floors = {
-            'normal': 1,
-            'grass': 1}
-
-        self.availableEnemyVariants = {
-            'normal': [3],
-            'normalWeights': [2],
-            'grass': [3, 9],
-            'grassWeights': [1, 0.5]
-        }
-        #Screen and display
-        self.screen_width = 1080
-        self.screen_height = 720
-            #main screen
-        self.screen = pygame.display.set_mode((self.screen_width,self.screen_height))
-            #overlay displays
-        self.display_outline = pygame.Surface((self.screen_width / 2, self.screen_height / 2), pygame.SRCALPHA)
-        self.display = pygame.Surface((self.screen_width / 2, self.screen_height / 2))
-        self.HUDdisplay = pygame.Surface((self.screen_width, self.screen_height))
-        self.HUDdisplay.set_colorkey((0, 0, 0))
-        self.minimapdisplay = pygame.Surface((self.screen_width / 4, self.screen_height / 4), pygame.SRCALPHA)
-        self.darkness_surface = pygame.Surface(self.display_outline.get_size(), pygame.SRCALPHA)
-
-        #VALUES THAT SAVE
-        self.maxHealth = 1
-        self.health = self.maxHealth
-        self.temporaryHealth = 0
-        
-        self.currentDifficulty = 1
-        self.currentLevelSize = 15
-
-        self.spawnPoint = False
-
-        
-        self.wallet = {
-            'cogs': 0,
-            'heartFragments': 0,
-            'wings': 0,
-            'eyes': 0,
-            'hammers': 0
-        }
-
-        #Prep dialogue management.
-        self.dialogueHistory = {
-            'Hilbert': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False,
-                    '5available': False,
-                    '5said': False,
-                    '6available': False,
-                    '6said': False},
-
-            'Noether': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False,
-                    '5available': False,
-                    '5said': False},
-
-            'Curie': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False},
-
-            'Planck': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False},
-
-            'Faraday': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False}
-
-
-        }
-
-        self.charactersMet = {
-            'Hilbert': True,
-            'Noether': False,
-            'Curie': False,
-            'Planck': False,
-            'Faraday': True
-        }
-        self.portalsMet = {
-            'lobby': True,
-            'normal': True,
-            'grass': False
-        }
-
-        self.encountersCheck = {
-            'spawnPoints': False,
-            'cogs': False,
-            'heartFragments': False,
-            'wings': False,
-            'eyes': False,
-            'hammers': False
-        }
-
-        self.encountersCheckText = {
-            'spawnPoints': ['TEST TEXT SPAWN'],
-            'cogs': ['TEST TEXT COG'],
-            'heartFragments': ['TEST TEXT HEART'],
-            'wings': ['TEST TEXT WING'],
-            'eyes': ['TEST TEXT EYE'],
-            'hammers': ['TEST TEXT HAMMER']
-        }
-
-        self.tunnelStates = {
-            'tunnel1': {'broken': False, 'posList': [[x, y] for x in range(36, 54) for y in range(-1,1)]}
-        }
-        
-       
-
-        #Import assets, this could be cleaned up immensely
-            #BASE_PATH = 'data/images/'
-        self.assets = {
-            'decor': load_images('tiles/decor'),
-            'grass': load_images('tiles/grass'),
-            'large_decor': load_images('tiles/large_decor'),
-            'potplants': load_images('tiles/potplants'),
-            'stone': load_images('tiles/stone'),
-            'walls': load_images('tiles/walls'),
-            'cracked': load_images('tiles/cracked'),
-            'menuBackground': load_image('misc/menuBackground.png'),
-            'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
-            'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
-            'lobbyBackground': load_image('misc/lobbyBackground.png'),
-            'caveBackground': load_image('misc/caveBackground.png'),
-            'grassBackground': load_image('misc/backgroundGrass.png'),
-            'clouds': load_images('clouds'),
-            'spawners': load_images('tiles/spawners'),
-            'weapons/gun': load_images('weapons/gun'),
-            'weapons/staff': load_images('weapons/staff'),
-            'projectile': load_image('misc/projectile.png'),
-            'heart': load_image('misc/heart.png'),
-            'light': load_image('misc/light.png'),
-            'heartEmpty': load_image('misc/heartEmpty.png'),
-            'heartTemp': load_image('misc/heartTemp.png'),
-
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
-            'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
-            'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
-            'player/slide': Animation(load_images('entities/player/slide'), img_dur = 5),
-            'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
-
-            'gunguy/idle': Animation(load_images('entities/gunguy/idle'), img_dur = 10),
-            'gunguy/run': Animation(load_images('entities/gunguy/run'), img_dur = 4,),
-            'gunguy/grace': Animation(load_images('entities/gunguy/grace'), img_dur = 4),
-            'gunguy/jump': Animation(load_images('entities/gunguy/jump'), img_dur = 20),
-            'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
-            'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
-            'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
-            'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 20, loop = False),
-            'rolypoly/idle': Animation(load_images('entities/rolypoly/idle'), img_dur = 10),
-            'rolypoly/run': Animation(load_images('entities/rolypoly/run'), img_dur = 4),
-
-            'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
-            'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
-
-            'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
-            'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
-            'cog/idle': Animation(load_images('currencies/cog/idle'),img_dur=6),
-            'wing/idle': Animation(load_images('currencies/wing/idle'),img_dur=6),
-            'heartFragment/idle': Animation(load_images('currencies/heartFragment/idle'),img_dur=10),
-            'eye/idle': Animation(load_images('currencies/eye/idle'),img_dur=6),
-            'hammer/idle': Animation(load_images('currencies/hammer/idle'),img_dur=6),
-            'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)}
-
-       
-        for portal in ['lobby', 'normal', 'grass']:
-            self.assets[f'portal{portal}/idle'] = Animation(load_images(f'entities/portal{portal}/idle'), img_dur = 6)
-            self.assets[f'portal{portal}/opening'] = Animation(load_images(f'entities/portal{portal}/opening'), img_dur = 6, loop = False)
-            self.assets[f'portal{portal}/active'] = Animation(load_images(f'entities/portal{portal}/active'), img_dur = 6)
-
-        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday']:
-            self.assets[f'{character}/idle'] = Animation(load_images(f'entities/{character}/idle'), img_dur = 10)
-            self.assets[f'{character}/run'] = Animation(load_images(f'entities/{character}/run'), img_dur = 4)
-            self.assets[f'{character}/jump'] = Animation(load_images(f'entities/{character}/jump'), img_dur = 5)
-
-
-        self.walletTemp = {}
-        self.displayIcons = {}
-        for currency in self.wallet:
-            self.walletTemp[currency] = 0
-            self.displayIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
-        self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
-        
-   
-
-        
-       
-        self.sfx = {
-           'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
-           'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
-           'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
-           'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
-           'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
-           'coin': pygame.mixer.Sound('data/sfx/coin.wav')
-       }
-        
-        self.sfx['jump'].set_volume(0.7)
-        self.sfx['dash'].set_volume(0.2)
-        self.sfx['hit'].set_volume(0.8)
-        self.sfx['shoot'].set_volume(0.4)
-        self.sfx['coin'].set_volume(0.6)
-        self.sfx['ambience'].set_volume(0.2)
-
+        #Define all general game parameters and load in assets
+        initialiseGameParams(self)
+        self.loadGameAssets()
+      
         #Initialise map 
         self.player = Player(self, (0, 0), (8, 12))
         self.tilemap = tileMap(self, tile_size = 16)
@@ -289,8 +34,6 @@ class Game:
         self.sfx['ambience'].play(-1)
 
         inMenu = True
-        self.scroll = [0, 0]
-
         saveSlots = [0, 1, 2]
         hoverSlot = 0
         deleting = 0
@@ -302,17 +45,9 @@ class Game:
         self.clouds = Clouds(self.assets['clouds'], count = 20)
         
         while inMenu:
-           
-
-            self.scroll[0] += (self.screen_width / 2)
-            self.scroll[1] += (self.screen_height / 2)
-            self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
-
-
             background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
             self.display_outline.blit(background, (0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
-            
 
             self.clouds.update()
             self.clouds.render(self.display_outline, offset = self.render_scroll)
@@ -377,29 +112,21 @@ class Game:
             self.clock.tick(self.fps)
             self.interractionFrame = False
             
-
-
     def run(self, saveSlot):
-        
-
-        self.saveSlot = saveSlot
-        self.load_game(self.saveSlot)
         pygame.mixer.music.load('data/music.wav')
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1)
 
+        self.saveSlot = saveSlot
+        self.load_game(self.saveSlot)
         self.background = pygame.transform.scale(self.assets['caveBackground'], (self.screen_width / 2, self.screen_height / 2))
-
         self.tilemap.load_tilemap('lobby')
         self.load_level()
-
-
-
-
 
         #####################################################
         ######################GAME LOOP######################
         #####################################################
+
         while self.game_running:
             #Camera movement
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
@@ -429,7 +156,6 @@ class Game:
                 portal.render(self.display_outline, offset = self.render_scroll)
             
             for enemy in self.enemies.copy():
-                
                 enemy.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if enemy.update(self.tilemap, (0, 0)):
@@ -439,7 +165,6 @@ class Game:
             for spawnPoint in self.spawnPoints:
                 spawnPoint.render(self.display_outline, offset = self.render_scroll)
                 spawnPoint.update(self.tilemap)
-
             
             for character in self.characters.copy():
                 if not self.paused:
@@ -452,12 +177,9 @@ class Game:
                 self.player.render(self.display_outline, offset = self.render_scroll)
             
             for projectile in self.projectiles.copy():
-                
                 if projectile.update(self):
                     self.projectiles.remove(projectile)
                 
-
-            
             for rect in self.potplants:
                   if random.random() < 0.01 and not self.paused:
                       pos = (rect.x + rect.width / 2, rect.y + rect.height)
@@ -469,7 +191,6 @@ class Game:
                         self.currencyEntities.remove(currencyItem)
                 currencyItem.render(self.display_outline, offset = self.render_scroll)
           
-            
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
   
             for spark in self.sparks.copy():
@@ -499,52 +220,7 @@ class Game:
            
             
             #Displaying HUD and text:
-            if pygame.time.get_ticks() % 60 == 0:
-                self.displayFPS = round(self.clock.get_fps())
-            self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-35, self.screen_height - 10), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
-            
-            if self.currentLevel != 'lobby':
-                self.draw_text('Floor: ' + str(self.floors[self.currentLevel]), (self.screen_width - 10, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')  
-                self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width - 10, 60), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right')       
-            else:
-                self.draw_text('Floor: Lobby', (self.screen_width - 10, 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'right') 
-                
-            depth = 0
-            for currency in self.wallet:
-                if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
-                   
-                    currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if self.currentLevel != 'lobby' else '')
-                    self.HUDdisplay.blit(self.displayIcons[currency], (10, 10 + depth*30))
-                    self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5)
-                    depth += 1
-  
-
-            for n in range(self.maxHealth + self.temporaryHealth):
-                if n < self.health:
-                    heartImg = pygame.transform.scale(self.assets['heart'], (32, 32))
-                elif n < self.maxHealth:
-                    heartImg = pygame.transform.scale(self.assets['heartEmpty'], (32, 32))
-                else:
-                    heartImg = pygame.transform.scale(self.assets['heartTemp'], (32, 32))
-
-                self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - ((self.maxHealth + self.temporaryHealth) * 30) / 2 + n * 30, 10))
-            
-            if self.paused and not self.talking:
-                self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
-                self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
-                if self.interractionFrame:
-                    self.paused = False
-                    self.currentLevel = 'lobby'
-                    self.save_game(self.saveSlot)
-                    self.__init__()
-                    self.loadMenu()
-                self.darkness_surface.fill((0, 0, 0, 150))
-
-
-            
-            if self.talking:
-                self.display_text()
-                self.darkness_surface.fill((0, 0, 0, 150))
+            self.displayHUDandText()
                     
     
             #Level transition
@@ -621,17 +297,19 @@ class Game:
                         self.movement[3] = False
 
             if self.dead:
-                self.dead = min(self.dead + 1, 120)
+                
+                self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
                 self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
                 self.draw_text('Deaths: ' + str(self.deathCount), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
+                self.draw_text('Press z to Alive Yourself', (self.screen_width / 2, self.screen_height / 2 + 60), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 
-                if self.dead == 120:
+                if self.interractionFrame:
                     self.transitionToLevel('lobby')
 
             
 
             #Darkness effect blit:
-            if self.caveDarkness:
+            if self.caveDarkness or self.paused or self.dead:
                 self.display_outline.blit(self.darkness_surface, (0, 0))         
             
 
@@ -653,47 +331,86 @@ class Game:
             pygame.display.update()
             self.clock.tick(self.fps)
             # self.clock.tick()
+
         #####################################################
         ####################GAME LOOP END####################
         #####################################################
-            
-
-
 
 
     def update_dialogues(self):
-        #Checks to see if the player has the required currency to unlock new dialogues.
+        
         for character in self.characters:
+
+            #Update which dialogue the character is up to.
+            dialogue = self.dialogueHistory[str(character.name)]
+            character.newDialogue = False
+
+            for index in range(int(len(dialogue) / 2)):
+                if dialogue[str(index) + 'said']:
+                    character.currentDialogueIndex = index
+
+            #Checks to see if the player has the required currency to unlock new dialogues.
             for index in character.currencyRequirements:
+                if index > character.currentDialogueIndex + 1:
+                    break
                 success = True
 
                 for trade in character.currencyRequirements[index]:
-                    #To unlock dialogue you need required currency (sometimes 0)
-                    if self.wallet[trade[0]] < trade[1] or index > character.currentDialogueIndex + 1:
-                        success = False
-                #Also the previous dialogue needs to have been said:
-                if index != 0:
-                    if not self.dialogueHistory[character.name][str(index - 1) + 'said']:
-                        success = False
+                    #To unlock dialogue you need to fulfill requirement:
+                    success = self.checkCurrencyRequirement(trade, self.wallet, index, character.currentDialogueIndex, character)
 
                 #SPECIAL CASES:
                 #e.g. dont unlock dialogue if in wrong floor etc.
-                
-                if (character.name == 'Noether') & (index == 1) & (self.currentLevel != 'lobby'):
+                if (character.name == 'Noether') & (index >= 1) & (self.currentLevel != 'lobby'):
                     success = False
 
-                if (character.name == 'Curie') & (index == 1) & (self.currentLevel != 'lobby'):
+                elif (character.name == 'Curie') & (index >= 1) & (self.currentLevel != 'lobby'):
                     success = False
                 
-                if (character.name == 'Planck') & (index == 1) & (self.currentLevel != 'lobby'):
-                    success = False
+                elif (character.name == 'Planck') & (index >= 1) & (self.currentLevel != 'lobby'):
+                    success = False 
 
-                
+                elif (character.name == 'Lorenz') & (index >= 1) & (self.currentLevel != 'lobby'):
+                    success = False                
 
                 if success:
                     self.dialogueHistory[character.name][str(index) + 'available'] = True
-                elif not self.dialogueHistory[character.name][str(index) + 'said']:
+                elif index > character.currentDialogueIndex + 1 or not self.dialogueHistory[character.name][str(index) + 'said']:
                     self.dialogueHistory[character.name][str(index) + 'available'] = False
+
+            #Check to see if new dialogue is available:
+            for index in range(int(len(dialogue) / 2)):
+                if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
+                    character.newDialogue = True
+
+
+    def checkCurrencyRequirement(self, trade, wallet, index, characterIndex, character):
+        #If you havent reached the dialogue, it is not available
+        if index > characterIndex + 1:
+            return False
+            
+        #Purchasing things
+        if trade[0] == 'purchase':
+            if wallet[trade[1]] < trade[2]:
+                return False
+                
+        #Specifically prime num
+        elif trade[0] == 'prime':
+            if not isPrime(wallet[trade[1]]):
+                return False
+        
+        #Specifically prime num over a value
+        elif trade[0] == 'primePurchase':
+            if not isPrime(wallet[trade[1]]) or wallet[trade[1]] < trade[3]:
+                return False
+            
+            
+        #Also the previous dialogue needs to have been said:
+        if index != 0:
+            if not self.dialogueHistory[character.name][str(index - 1) + 'said']:
+                return False
+        #You can probably access the dialogue.
+        return True
 
     def display_text(self):
         #Each frame an extra character is added to the displayed text.
@@ -733,7 +450,7 @@ class Game:
             self.talking = False
             self.paused = False
             self.update_dialogues()
-            self.checkNewDialogue()
+            
 
         #Actually display the text (and icon):
         for n in range(len(self.displayTextList)):
@@ -747,7 +464,7 @@ class Game:
 
     def check_encounter(self, entity):
         if not self.encountersCheck[entity]:
-            self.run_text('Information', entity)
+            self.run_text('New!', entity)
             self.encountersCheck[entity] = True
     
     def load_level(self):
@@ -799,7 +516,8 @@ class Game:
             ('spawners', 8), #planck
             ('spawners', 2), #faraday
             ('spawners', 9), #rolypoly
-            ('spawners', 10) #spawnPoint
+            ('spawners', 10), #spawnPoint
+            ('spawners', 11) #Lorenz
         ]
         for spawner in self.tilemap.extract(self.spawner_list):
            
@@ -836,6 +554,10 @@ class Game:
             #Character - Faraday
             elif spawner['variant'] == 2 and (self.charactersMet['Faraday'] or self.currentLevel != 'lobby'):
                 self.characters.append(Faraday(self, spawner['pos'], (8,15)))
+
+            #Character - Lorenz
+            elif spawner['variant'] == 11 and (self.charactersMet['Lorenz'] or self.currentLevel != 'lobby'):
+                self.characters.append(Lorenz(self, spawner['pos'], (8,15)))
 
             #GlowWorm
             elif spawner['variant'] == 5:
@@ -909,7 +631,7 @@ class Game:
             self.caveDarkness = 0
 
         self.update_dialogues()
-        self.checkNewDialogue()
+        
         self.initialisingGame = False
 
 
@@ -927,6 +649,150 @@ class Game:
             yAdj = img.get_height()
         self.HUDdisplay.blit(img, (pos[0] - xAdj, pos[1] - yAdj))
 
+    def displayHUDandText(self):
+        textCol = (200, 200, 200) if not self.dead else (200, 0, 0)
+        if pygame.time.get_ticks() % 60 == 0:
+                self.displayFPS = round(self.clock.get_fps())
+        self.draw_text('FPS: ' + str(self.displayFPS), (self.screen_width-35, self.screen_height - 10), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'center')        
+        
+        if self.currentLevel != 'lobby':
+            self.draw_text('Floor: ' + str(self.floors[self.currentLevel]), (self.screen_width - 10, 30), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')  
+            self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width - 10, 60), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')       
+        else:
+            self.draw_text('Floor: Lobby', (self.screen_width - 10, 30), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right') 
+            
+        depth = 0
+        for currency in self.wallet:
+            if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
+                
+                currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if (self.currentLevel != 'lobby' and not self.dead and self.walletTemp[currency]) else '') + (' (' + str(self.walletLostAmount[currency]) + ' lost)' if (self.dead and currency not in self.notLostOnDeath) else '') 
+                self.HUDdisplay.blit(self.displayIcons[currency], (10, 10 + depth*30))
+                self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, textCol, (0, 0), scale = 0.5)
+                depth += 1
+
+
+        for n in range(self.maxHealth + self.temporaryHealth):
+            if n < self.health:
+                heartImg = pygame.transform.scale(self.assets['heart'], (32, 32))
+            elif n < self.maxHealth:
+                heartImg = pygame.transform.scale(self.assets['heartEmpty'], (32, 32))
+            else:
+                heartImg = pygame.transform.scale(self.assets['heartTemp'], (32, 32))
+
+            self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - ((self.maxHealth + self.temporaryHealth) * 30) / 2 + n * 30, 10))
+        
+        if self.paused and not self.talking:
+            self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
+            self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
+            if self.interractionFrame:
+                self.paused = False
+                self.currentLevel = 'lobby'
+                self.save_game(self.saveSlot)
+                self.__init__()
+                self.loadMenu()
+            self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
+
+
+        
+        if self.talking:
+            self.display_text()
+            self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
+            
+
+    def loadGameAssets(self):
+        #BASE_PATH = 'data/images/'
+        self.assets = {
+            'decor': load_images('tiles/decor'),
+            'grass': load_images('tiles/grass'),
+            'large_decor': load_images('tiles/large_decor'),
+            'potplants': load_images('tiles/potplants'),
+            'stone': load_images('tiles/stone'),
+            'walls': load_images('tiles/walls'),
+            'cracked': load_images('tiles/cracked'),
+            'menuBackground': load_image('misc/menuBackground.png'),
+            'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
+            'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
+            'lobbyBackground': load_image('misc/lobbyBackground.png'),
+            'caveBackground': load_image('misc/caveBackground.png'),
+            'grassBackground': load_image('misc/backgroundGrass.png'),
+            'clouds': load_images('clouds'),
+            'spawners': load_images('tiles/spawners'),
+            'weapons/gun': load_images('weapons/gun'),
+            'weapons/staff': load_images('weapons/staff'),
+            'projectile': load_image('misc/projectile.png'),
+            'heart': load_image('misc/heart.png'),
+            'light': load_image('misc/light.png'),
+            'heartEmpty': load_image('misc/heartEmpty.png'),
+            'heartTemp': load_image('misc/heartTemp.png'),
+
+            'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
+            'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
+            'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
+            'player/slide': Animation(load_images('entities/player/slide'), img_dur = 5),
+            'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
+
+            'gunguy/idle': Animation(load_images('entities/gunguy/idle'), img_dur = 10),
+            'gunguy/run': Animation(load_images('entities/gunguy/run'), img_dur = 4,),
+            'gunguy/grace': Animation(load_images('entities/gunguy/grace'), img_dur = 4),
+            'gunguy/jump': Animation(load_images('entities/gunguy/jump'), img_dur = 20),
+            'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
+            'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
+            'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
+            'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 20, loop = False),
+            'rolypoly/idle': Animation(load_images('entities/rolypoly/idle'), img_dur = 10),
+            'rolypoly/run': Animation(load_images('entities/rolypoly/run'), img_dur = 4),
+
+            'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
+            'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
+
+            'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
+            'particle/particle': Animation(load_images('particles/particle'),img_dur=6, loop = False),
+            'cog/idle': Animation(load_images('currencies/cog/idle'),img_dur=6),
+            'wing/idle': Animation(load_images('currencies/wing/idle'),img_dur=6),
+            'heartFragment/idle': Animation(load_images('currencies/heartFragment/idle'),img_dur=10),
+            'eye/idle': Animation(load_images('currencies/eye/idle'),img_dur=6),
+            'hammer/idle': Animation(load_images('currencies/hammer/idle'),img_dur=6),
+            'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15)}
+       
+        for portal in ['lobby', 'normal', 'grass']:
+            self.assets[f'portal{portal}/idle'] = Animation(load_images(f'entities/portal{portal}/idle'), img_dur = 6)
+            self.assets[f'portal{portal}/opening'] = Animation(load_images(f'entities/portal{portal}/opening'), img_dur = 6, loop = False)
+            self.assets[f'portal{portal}/active'] = Animation(load_images(f'entities/portal{portal}/active'), img_dur = 6)
+
+        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz']:
+            self.assets[f'{character}/idle'] = Animation(load_images(f'entities/{character}/idle'), img_dur = 10)
+            self.assets[f'{character}/run'] = Animation(load_images(f'entities/{character}/run'), img_dur = 4)
+            self.assets[f'{character}/jump'] = Animation(load_images(f'entities/{character}/jump'), img_dur = 5)
+
+        self.walletTemp = {}
+        self.walletLostAmount = {}
+        self.displayIcons = {}
+        for currency in self.wallet:
+            self.walletTemp[currency] = 0
+            self.walletLostAmount[currency] = ''
+            self.displayIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+        self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
+        
+        self.sfx = {
+           'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
+           'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
+           'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
+           'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
+           'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
+           'coin': pygame.mixer.Sound('data/sfx/coin.wav')
+       }
+        
+        self.sfx['jump'].set_volume(0.7)
+        self.sfx['dash'].set_volume(0.2)
+        self.sfx['hit'].set_volume(0.8)
+        self.sfx['shoot'].set_volume(0.4)
+        self.sfx['coin'].set_volume(0.6)
+        self.sfx['ambience'].set_volume(0.2)
+
+        self.windowIcon = load_image('misc/windowIcon.png')
+        pygame.display.set_icon(self.windowIcon)
+
+
     def run_text(self, character, talkType = 'npc'):
         self.paused = True
         self.talking = True
@@ -939,12 +805,10 @@ class Game:
             self.displayIcon = False
         else:
             self.currentTextList = self.encountersCheckText[talkType]
-            self.displayTextList = [character + ': ', '']
+            self.displayTextList = [character, '']
             self.displayIcon = talkType
 
         self.update_dialogues()
-        self.checkNewDialogue()
-        
         self.talkingObject = self.displayTextList[:]
         self.currentTextIndex = 0
         self.endTextIndex = len(self.currentTextList)
@@ -954,48 +818,13 @@ class Game:
 
             
     def transitionToLevel(self, newLevel):
-        
         self.nextLevel = newLevel
         self.transition += 1
 
-    def checkNewDialogue(self):
-
-        for character in self.characters:
-            dialogue = self.dialogueHistory[str(character.name)]
-            character.newDialogue = False
-           
-            
-            for index in range(int(len(dialogue) / 2)):
-                if dialogue[str(index) + 'available'] and not dialogue[str(index) + 'said']:
-                    character.newDialogue = True
-                elif dialogue[str(index) + 'said']:
-                    character.currentDialogueIndex = index
-       
 
     def darknessCircle(self, transparency, radius, pos):
         pygame.draw.circle(self.darkness_surface, (0, 0, 0, transparency), pos, radius)
         
-
-    def save_game(self, saveSlot):
-        if self.health <= 0:
-            self.health = self.maxHealth
-        with open('data/saves/' + str(saveSlot) + '.json', 'w') as f:
-            json.dump({'wallet': self.wallet,
-                   'maxHealth': self.maxHealth,
-                   'tempHealth': self.temporaryHealth,
-                   'totalJumps': self.player.total_jumps,
-                   'health': self.health,
-                   'tunnelStates': self.tunnelStates,
-                   'deathCount': self.deathCount,
-                   'floors': self.floors,
-                   'spawnPoint': self.spawnPoint,
-                   'dialogue': self.dialogueHistory,
-                   'difficulty': self.currentDifficulty,
-                   'mapSize': self.currentLevelSize,
-                   'availableEnemyVariants': self.availableEnemyVariants,
-                   'portalsMet': self.portalsMet,
-                   'charactersMet': self.charactersMet,
-                   'encountersCheck': self.encountersCheck}, f)
 
     def getSavedFloors(self):
         floorList = ['No Data', 'No Data', 'No Data']
@@ -1029,6 +858,27 @@ class Game:
             os.remove('data/saves/' + str(saveSlot) + '.json')
         except FileNotFoundError:
             pass
+
+    def save_game(self, saveSlot):
+        if self.health <= 0:
+            self.health = self.maxHealth
+        with open('data/saves/' + str(saveSlot) + '.json', 'w') as f:
+            json.dump({'wallet': self.wallet,
+                   'maxHealth': self.maxHealth,
+                   'tempHealth': self.temporaryHealth,
+                   'totalJumps': self.player.total_jumps,
+                   'health': self.health,
+                   'tunnelStates': self.tunnelStates,
+                   'deathCount': self.deathCount,
+                   'floors': self.floors,
+                   'spawnPoint': self.spawnPoint,
+                   'dialogue': self.dialogueHistory,
+                   'difficulty': self.currentDifficulty,
+                   'mapSize': self.currentLevelSize,
+                   'availableEnemyVariants': self.availableEnemyVariants,
+                   'portalsMet': self.portalsMet,
+                   'charactersMet': self.charactersMet,
+                   'encountersCheck': self.encountersCheck}, f)
 
     def load_game(self, saveSlot):
         try:
