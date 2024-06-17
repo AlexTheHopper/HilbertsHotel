@@ -111,7 +111,9 @@ class Hilbert(Character):
             3: [],
             4: [['purchase', 'cogs', 50]],
             5: [['purchase', 'cogs', 100]],
-            6: [['purchase', 'cogs', 150]]
+            6: [['purchase', 'cogs', 150]],
+            7: [['purchase', 'eyes', 30]],
+            8: [['purchase', 'redCogs', 5]]
         }
 
         self.dialogue = {
@@ -120,8 +122,8 @@ class Hilbert(Character):
                     'Oh! You can dash attack with your x key?',
                     'How original...'],
 
-            '1': ['Anyway, we\'ll need to fix the portal elevator over there. It works a bit but it\'ll only take you up one floor.',
-                  'Please bring my back the cogs that were stolen! I\'m gonna need about 5 to start these repairs.'],
+            '1': ['Anyway, we\'ll need a few things to build a super secret weapon to fight back. Some of them are slightly odd, but trust in the process!',
+                  'Please bring me back the cogs that were stolen! I\'m gonna need about 5 to start this.'],
 
             '2': ['Thanks for getting some cogs woow!',
                     'I just realised I actually need another 50 though.',
@@ -138,7 +140,16 @@ class Hilbert(Character):
             '5': ['You know the drill...',
                   'This time I\'ll need 150 cogs.'],
                     
-            '6': ['Phenomenal work, my little slave!! I dont know what else to do but please keep exploring!']  }
+            '6': ['A\'ight spiffo. I think we have enough cogs.',
+                  'Now, this is very gross, but you know those eyes I mentioned before? I need like 30 of them. I\'m not super sure where to get them but I believe in you my lil buddy!'],
+            
+            '7': ['Yay thanks I love eyes! Now, with this newfound sense of vision, I detect that some of these bad guys are getting much stronger this far up!',
+                  'From now on, you\'ll have to pack a harder punch somehow. I\'m at a loss how to do that but I\'m sure theres a way!',
+                  'Oh and yeah, DONT go into this portal until you\'re a bit stronger. Like seriously you just wont be able to kill them.',
+                  'Seriously.',
+                  'But I do think these stronger enemies should drop a special kind of cog! Please bring me some to investigate!'],
+                  
+            '8': ['Spiffo youngster!! Thanks a bunch!']}
 
 
     def conversationAction(self, key):
@@ -148,27 +159,38 @@ class Hilbert(Character):
             self.game.dialogueHistory[self.name]['1available'] = True
 
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 5
-            self.game.currentLevelSize = 25
+            self.game.enemyCountMax = 5
+            self.game.currentLevelSize = 20
             self.game.wallet['cogs'] -= 5
 
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 15
-            self.game.currentLevelSize = 30
+            self.game.enemyCountMax = 10
+            self.game.currentLevelSize = 28
             self.game.wallet['cogs'] -= 50
 
             self.game.availableEnemyVariants['normal'].append(4)
             self.game.availableEnemyVariants['normalWeights'].append(1)
             
         elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 25
-            self.game.currentLevelSize = 40
+            self.game.enemyCountMax = 20
+            self.game.currentLevelSize = 35
             self.game.wallet['cogs'] -= 100
 
         elif key == 6 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currentDifficulty = 30
-            self.game.currentLevelSize = 50
+            self.game.enemyCountMax = 25
+            self.game.currentLevelSize = 40
             self.game.wallet['cogs'] -= 150
+
+        elif key == 7 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.enemyCountMax = 30
+            self.game.currentLevelSize = 45
+            self.game.wallet['eyes'] -= 30
+            self.game.difficulty += 1
+
+        elif key == 8 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.enemyCountMax = 35
+            self.game.currentLevelSize = 50
+            self.game.wallet['purpleCogs'] -= 5
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
@@ -355,7 +377,7 @@ class Faraday(Character):
             '2': ['Amazing, I\'ll build another elevator for you! It will be ready next time you come back to the lobby.',
                   'I\'ll hide it here so Hilbert wont see it! Give me a jiffy and it\'ll be ready!'],
 
-            '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to any other than the normal representation and this one through my portal!',
+            '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to most of them! They\'ve all been sealed off but I managed to scrape this portal together.',
                   'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.']}
 
     def conversationAction(self, key):
@@ -420,6 +442,57 @@ class Lorenz(Character):
         
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
+
+class Franklin(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Franklin')
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [['purchase', 'chitins', 50]],
+            3: [['purchase', 'chitins', 100]],
+            4: [['purchase', 'chitins', 200]]
+        }
+
+        self.dialogue = {
+            '0': ['Oopsie doopsie I got myself all stuck in this creepy as hell house. Do you know the way out?',
+                    'Brilliant, cheers I\'ll follow you back!'],
+
+            '1': ['Oh yeah by the way I\'m likely the most useful in these here parts.',
+                  'I can tippity tap into your own DNA and make you stronger. There\'s this nifty stuff called chitin that I can use to reinforce you!',
+                  'Bring me 50 chitin and I\'ll make you stronger!'],
+
+            '2': ['Yay woo! Your power level is now 2!',
+                    'I\'ll give ya another for 100 chitin.'],
+
+            '3': ['Yay woo! Your power level is now 3!',
+                    'I\'ll give ya another for 200 chitin.'],
+            
+            '4': ['Yay woo! Your power level is OVER 3!',
+                  'But I\'m sorry chief! All out of upgrades for now.']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Franklin'] = True
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.powerLevel += 1
+
+            self.game.wallet['chitins'] -= 50
+
+        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.powerLevel += 1
+
+            self.game.wallet['chitins'] -= 100
+
+        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.powerLevel += 1
+
+            self.game.wallet['chitins'] -= 200
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
             
 
         

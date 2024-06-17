@@ -2,8 +2,7 @@ import pygame
 import os
 import numpy as np
 import math
-
-
+import random
 
 BASE_PATH = 'data/images/'
 
@@ -46,13 +45,33 @@ def initialiseGameParams(game):
     game.nextLevel = 'lobby'
     game.floors = {
         'normal': 1,
-        'grass': 1}
+        'grass': 1,
+        'spooky': 1
+        }
+    
+    #Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
+    game.floorSpecifics = {
+        'normal': {'decorationMod': 2,
+                   'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['large_decor', [0], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]]]},
+
+        'grass': {'decorationMod': 10,
+                  'decorations': [['decor', range(0,2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['potplants', range(0, 4), 2, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]]]},
+
+        'spooky': {'decorationMod': 1,
+                   'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['spawners', [12], 1, [[0, 0], [0, 1]], ['any', [1, 0], [-1, 0]], [[0], [0]]]]}
+        }
 
     game.availableEnemyVariants = {
         'normal': [3],
         'normalWeights': [2],
         'grass': [3, 9],
-        'grassWeights': [1, 0.5]
+        'grassWeights': [1, 0.5],
+        'spooky': [3, 13],
+        'spookyWeights': [1, 1]
     }
     #Screen and display
     game.screen_width = 1080
@@ -72,8 +91,10 @@ def initialiseGameParams(game):
     #VALUES THAT SAVE
     game.maxHealth = 1
     game.health = game.maxHealth
+    game.powerLevel = 1
+    game.difficulty = 1
     game.temporaryHealth = 0
-    game.currentDifficulty = 1
+    game.enemyCountMax = 1
     game.currentLevelSize = 15
     game.notLostOnDeath = ['hammers']
 
@@ -82,9 +103,13 @@ def initialiseGameParams(game):
     
     game.wallet = {
         'cogs': 0,
+        'redCogs': 0,
+        'blueCogs': 0,
+        'purpleCogs': 0,
         'heartFragments': 0,
         'wings': 0,
         'eyes': 0,
+        'chitins': 0,
         'hammers': 0
     }
 
@@ -103,7 +128,11 @@ def initialiseGameParams(game):
                 '5available': False,
                 '5said': False,
                 '6available': False,
-                '6said': False},
+                '6said': False,
+                '7available': False,
+                '7said': False,
+                '8available': False,
+                '8said': False},
 
         'Noether': {'0available': True,
                 '0said': False,
@@ -156,7 +185,18 @@ def initialiseGameParams(game):
                 '4available': False,
                 '4said': False,
                 '5available': False,
-                '5said': False,}
+                '5said': False},
+
+        'Franklin': {'0available': True,
+                '0said': False,
+                '1available': False,
+                '1said': False,
+                '2available': False,
+                '2said': False,
+                '3available': False,
+                '3said': False,
+                '4available': False,
+                '4said': False}
 
 
     }
@@ -167,34 +207,45 @@ def initialiseGameParams(game):
         'Curie': False,
         'Planck': False,
         'Faraday': True,
-        'Lorenz': False
+        'Lorenz': False,
+        'Franklin': False
     }
     game.portalsMet = {
         'lobby': True,
         'normal': True,
-        'grass': False
+        'grass': False,
+        'spooky': True
     }
 
     game.encountersCheck = {
         'spawnPoints': False,
         'cogs': False,
+        'redCogs': False,
+        'blueCogs': False,
+        'purpleCogs': False,
         'heartFragments': False,
         'wings': False,
         'eyes': False,
+        'chitins': False,
         'hammers': False
     }
 
     game.encountersCheckText = {
         'spawnPoints': ['Spawn Point: Activate to change your spawn point in the lobby!'],
         'cogs': ['Cogs: Handy little machinery parts. Can be used to fix things. Found commonly everywhere.'],
+        'redCogs': ['Red Cogs: Just like a normal cog, but fancier! And Red!'],
+        'blueCogs': ['Blue Cogs: Just like a normal cog, but fancier! And Blue!'],
+        'purpleCogs': ['Purple Cogs: Just like a normal cog, but fancier! And Purple!'],
         'heartFragments': ['Heart Fragments: Gross little part of a heart. Can be used to increase your health. Rare drop from enemies but more common from wizards.'],
-        'wings': ['Wings: The poor bat. Can be used to increase amounts of jumps in the air. Common drop from bats.'],
+        'wings': ['Wings: The poor bat. Can be used to increase amounts of jumps in the air. Common drop from flying enemies.'],
         'eyes': ['Eyes: Ew this is just getting disgusting. The more you have, the more you can see. Common drop from roly-poly eyeballs.'],
+        'chitins': ['Chitin: What the hell is this thing? Apparently some strong stuff in insects, this could probably increase the power of your smacks.'],
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.']
     }
 
     game.tunnelStates = {
-        'tunnel1': {'broken': False, 'posList': [[x, y] for x in range(36, 54) for y in range(-1,1)]}
+        'tunnel1': {'broken': False, 'posList': [[x, y] for x in range(36, 54) for y in range(-1,1)]},
+        'tunnel2': {'broken': False, 'posList': [[x, y] for x in range(-17, 1) for y in range(-1,1)]}
     }
 
 def isPrime(num):

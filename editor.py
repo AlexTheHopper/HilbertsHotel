@@ -27,11 +27,31 @@ class Editor:
             'large_decor': load_images('tiles/large_decor'),
             'stone': load_images('tiles/stone'),
             'potplants': load_images('tiles/potplants'),
-            'walls': load_images('tiles/walls'),
+            'normal': load_images('tiles/normal'),
             'cracked': load_images('tiles/cracked'),
             'spawners': load_images('tiles/spawners'),
             'spawnersPortal': load_images('tiles/spawnersPortal')
         }
+
+        self.charactersMet = {
+        'Hilbert': True,
+        'Noether': False,
+        'Curie': False,
+        'Planck': False,
+        'Faraday': True,
+        'Lorenz': False
+         }
+        
+        self.floors = {
+        'normal': 100,
+        'grass': 100}
+
+        self.availableEnemyVariants = {
+        'normal': [3],
+        'normalWeights': [2],
+        'grass': [3, 9],
+        'grassWeights': [1, 0.5]
+    }
         
         
         self.movement = [False, False, False, False]
@@ -66,8 +86,8 @@ class Editor:
         while self.running:
 
             self.display.fill((0, 0, 0))
-            self.scroll[0] += (self.movement[1] - self.movement[0]) * 2
-            self.scroll[1] += (self.movement[3] - self.movement[2]) * 2
+            self.scroll[0] += (self.movement[1] - self.movement[0]) * 4
+            self.scroll[1] += (self.movement[3] - self.movement[2]) * 4
             
 
             render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
@@ -190,11 +210,16 @@ class Editor:
                     if event.key == pygame.K_t:
                         self.tilemap.autotile(windows = False)
                     if event.key == pygame.K_r:
-                        self.tilemap.load_random_tilemap(15)
+                        self.tilemap.load_random_tilemap(20)
                     if event.key == pygame.K_o:
                         self.tilemap.save_tilemap(self.savename)
                     if event.key == pygame.K_f:
                         self.floodfill = True
+                    if event.key == pygame.K_n:
+                        for tile in self.tilemap.tilemap.keys():
+                            print(self.tilemap.tilemap[tile]['type'])
+                            if self.tilemap.tilemap[tile]['type'] == 'walls':
+                                self.tilemap.tilemap[tile]['type'] = 'normal'
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_a:

@@ -12,8 +12,8 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
-PHYSICS_TILES = {'grass', 'stone', 'walls', 'cracked'}
-AUTOTILE_TYPES = {'grass', 'stone', 'walls'}
+PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'cracked'}
+AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
@@ -106,41 +106,41 @@ class tileMap:
                 potentialTiles.append(self.tilemap[check_loc])
         return potentialTiles
     
-    def load_random_tilemap(self, game, size, difficulty = 5, levelType = ''):
-        ##generate random level
-        self.tilemap = {}
-        self.offgrid_tiles = []
+    def load_random_tilemap(self, size, enemyCountMax = 5, levelType = 'normal'):
+        self.tilemap = self.generateTiles(size, levelType)
+        self.offgrid_tiles = self.populateMap(size, enemyCountMax, levelType)
+
+        self.autotile()
+
+    def generateTiles(self, size, levelType):
+        tilemap = {}
       
         size = max(size, 10)
         vertexNum = int(size / 2)
         roomCount = int((size / 5) ** 1.3)
-        roomSize = size * 1.5
-        corridorLengthMin = int(size / 4)
+        roomSize = size * 1
+        corridorLengthMin = 5
         corridorLengthMax = int(size / 2)
 
-        horBuffer = game.screen_height // (self.tile_size * 4) + 4
-        vertBuffer = game.screen_width // (self.tile_size * 4) + 4
-        mapHeight = int(size + 2 * vertBuffer) 
-        mapWidth = int(size + 2 * horBuffer) 
+        buffer = 18
+        self.mapSize = int(size + 2 * buffer)
+        self.mapSize = self.mapSize
 
-        
 
-        map = np.zeros((mapHeight, mapWidth))
-        for i in range(mapHeight):
-            for j in range(mapWidth):
+        map = np.zeros((self.mapSize, self.mapSize))
+        for i in range(self.mapSize):
+            for j in range(self.mapSize):
                 map[i,j] = 1
 
-        
         roomLocations = []
         for _ in range(vertexNum):
            
-            
             corridorSuccess = False
             corridorLength = random.randint(corridorLengthMin, corridorLengthMax)
             while not corridorSuccess:
                 
                 if len(roomLocations) == 0:
-                    digPos = [random.randint(horBuffer, mapWidth - horBuffer), random.randint(vertBuffer, mapHeight - vertBuffer)]
+                    digPos = [random.randint(buffer, self.mapSize - buffer), random.randint(buffer, self.mapSize - buffer)]
                 else:
                     digPos = random.choice(roomLocations)
 
@@ -149,7 +149,7 @@ class tileMap:
                 currentDirection[random.randint(0,1)] = random.choice([-1,1])
                 newPos = [digPos[0] + currentDirection[0] * corridorLength, digPos[1] + currentDirection[1] * corridorLength]
                 
-                if newPos[0] in range(horBuffer, mapWidth - horBuffer) and newPos[1] in range(vertBuffer, mapHeight - vertBuffer):
+                if newPos[0] in range(buffer, self.mapSize - buffer) and newPos[1] in range(buffer, self.mapSize - buffer):
                     roomLocations.append(newPos)
                     map[newPos[1],newPos[0]] = 0
                     while digPos != newPos:
@@ -168,111 +168,155 @@ class tileMap:
                 newPos = [digPos[0] + currentDirection[0], digPos[1] + currentDirection[1]]
                 
 
-                if newPos[0] in range(horBuffer, mapWidth - horBuffer) and newPos[1] in range(vertBuffer, mapHeight - vertBuffer):
+                if newPos[0] in range(buffer, self.mapSize - buffer) and newPos[1] in range(buffer, self.mapSize - buffer):
                     map[newPos[1],newPos[0]] = 0
                     digPos = newPos
                     currentRoomCount += 1
 
-        for i in range(mapHeight):
-            for j in range(mapWidth):
+        for i in range(self.mapSize):
+            for j in range(self.mapSize):
                 if map[i,j] == 1:
-                    self.tilemap[str(i) + ';' + str(j)] = {'type': 'walls' if levelType == 'normal' else levelType, 'variant': 1, 'pos': [i, j]}
+                    tilemap[str(i) + ';' + str(j)] = {'type': levelType, 'variant': 1, 'pos': [i, j]}
+        
+        return tilemap
+    
+    def populateMap(self, size, enemyCountMax, levelType):
+        offgrid_tiles = []
+        buffer = 18
 
-        #placing entities:
         player_placed = False
         portal_placed = False
         noether_placed = False
         curie_placed = False
         lorenz_placed = False
-        difficultyProgress = 0
-        potplantNum = 0
-        potplantNumMax = int(size / 2)
-        glowwormCount = 0
-        glowwwormMax = 15
+        franklin_placed = False
+        enemyCount = 0
+        attemptCounter = 0
+        while (not player_placed or not portal_placed or enemyCount < enemyCountMax) and attemptCounter < 5000:
+            attemptCounter += 1
 
-        while not player_placed or not portal_placed or difficultyProgress < difficulty:
-            y = random.choice(range(horBuffer, mapWidth - horBuffer))
-            x = random.choice(range(vertBuffer, mapHeight - vertBuffer))
+            y = random.choice(range(buffer, self.mapSize - buffer))
+            x = random.choice(range(buffer, self.mapSize - buffer))
             loc = str(x) + ';' + str(y)
-            locUnder = str(x) + ';' + str(y + 1)
-            locRight = str(x + 1) + ';' + str(y)
-            locUnderRight = str(x + 1) + ';' + str(y + 1)
-            if locUnder in self.tilemap:
-                if loc not in self.tilemap and self.tilemap[locUnder]['type'] in PHYSICS_TILES:
+
+            #Important things:
+            if not self.isTile([[x, y]]):
+                if self.isPhysicsTile([[x, y+1]]):
                     #Player
                     if not player_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                         player_placed = True
 
-                    #Characters
-                    elif not self.game.charactersMet['Noether'] and self.game.floors[levelType] > 7 and not noether_placed:
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': 6, 'pos': [x, y]}
-                        noether_placed = True
-                    elif not self.game.charactersMet['Curie'] and self.game.floors[levelType] > 10 and not curie_placed:
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
-                        curie_placed = True
-                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 13 and not curie_placed:
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
-                        curie_placed = True
-                    elif not self.game.charactersMet['Lorenz'] and self.game.floors[levelType] > 17 and not lorenz_placed:
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': 11, 'pos': [x, y]}
-                        lorenz_placed = True
-
-                        
                     #Portal
                     elif not portal_placed:
                         self.tilemap[loc] = {'type': 'spawnersPortal', 'variant': 0, 'pos': [x, y]}
                         portal_placed = True
 
-                    #Small decor
-                    elif random.random() < (0.1 if levelType == 'normal' else 0.4):
-                        randomXOffset = random.randint(-4,4)
-                        to_add = {'type': 'decor', 'variant': 3 if levelType == 'normal' else random.randint(0,2), 'pos': [x * self.tile_size + randomXOffset, y * self.tile_size]}
-                        self.offgrid_tiles.append(to_add)
-                    #Potplants
-                    elif random.random() < 0.3 and potplantNum < potplantNumMax:
-                        randomXOffset = random.randint(-4,4)
-                        to_add = {'type': 'potplants', 'variant': random.randint(0,len(self.game.assets['potplants']) - 1), 'pos': [x * self.tile_size + randomXOffset, y * self.tile_size]}
-                        self.offgrid_tiles.append(to_add)
-                        potplantNum += 1
+                    #Characters
+                    elif not self.game.charactersMet['Noether'] and self.game.floors[levelType] > 7 and levelType == 'normal' and not noether_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 6, 'pos': [x, y]}
+                        noether_placed = True
+                    elif not self.game.charactersMet['Curie'] and self.game.floors[levelType] > 10 and levelType == 'normal' and not curie_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
+                        curie_placed = True
+                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 13 and levelType == 'normal' and not curie_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
+                        curie_placed = True
+                    elif not self.game.charactersMet['Lorenz'] and self.game.floors[levelType] > 17 and levelType == 'normal' and not lorenz_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 11, 'pos': [x, y]}
+                        lorenz_placed = True
                         
-                    #Rocks
-                    elif random.random() < 0.5 and locUnderRight in self.tilemap and locRight not in self.tilemap and levelType == 'normal':
-                        if self.tilemap[locUnder]['type'] in PHYSICS_TILES and self.tilemap[locUnderRight]['type'] in PHYSICS_TILES:
-                            to_add = {'type': 'large_decor', 'variant': 0, 'pos': [x * self.tile_size + random.randint(-4,4), y * self.tile_size + self.tile_size / 2 + random.randint(0,6)]}
-                            self.offgrid_tiles.append(to_add)
-
+                    elif not self.game.charactersMet['Franklin'] and self.game.floors[levelType] > 10 and levelType == 'spooky' and not franklin_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 14, 'pos': [x, y]}
+                        franklin_placed = True
+                           
                     #Add enemies:
                     else:
-                        choices = self.game.availableEnemyVariants[levelType]
-                        weights = self.game.availableEnemyVariants[levelType + 'Weights'].copy()
-                        weightSum = sum(weights)
-                        for n in range(len(weights)):
-                            weights[n] /= weightSum
-                        variant = np.random.choice(choices, 1, p = weights)
+                        variant = random.choices(self.game.availableEnemyVariants[levelType], self.game.availableEnemyVariants[levelType + 'Weights'], k = 1)[0]
                         self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
-                        difficultyProgress += 1
+                        enemyCount += 1
+
+        #Decorations
+        decoNum = 0
+        glowwormCount = 0
+        glowwwormMax = 15
+        decoNumMax = int(size / 5 * self.game.floorSpecifics[levelType]['decorationMod'])
+        decorationList = self.game.floorSpecifics[levelType]['decorations']
+        weights = [deco[2] for deco in decorationList]
+        attemptCounter = 0
+
+        while (decoNum < decoNumMax) and attemptCounter < 5000:
+            attemptCounter += 1      
+            x = random.choice(range(buffer, self.mapSize - buffer))
+            y = random.choice(range(buffer, self.mapSize - buffer))
+            loc = str(x) + ';' + str(y)
+
+            #Add random decorations
+            potentialDecoration = random.choices(decorationList, weights, k = 1)[0]
+            if not self.isPhysicsTile([[x, y]], offsets = potentialDecoration[3]):
+                if self.isPhysicsTile([[x, y]], offsets = potentialDecoration[4][1:], mode = potentialDecoration[4][0]):
+
+                    decoOffsetx = random.choice(potentialDecoration[5][0])
+                    decoOffsety = random.choice(potentialDecoration[5][1])
+                    add_deco = {'type': potentialDecoration[0], 'variant': random.choice(potentialDecoration[1]), 'pos': [x * self.tile_size + decoOffsetx, y * self.tile_size + decoOffsety]}
+                    offgrid_tiles.append(add_deco)
+                    decoNum += 1                        
             
             #Glowworms
-            elif glowwormCount < glowwwormMax:
+            if glowwormCount < glowwwormMax:
                 to_add = {'type': 'spawners', 'variant': 5, 'pos': [self.tile_size * (x + random.random()), self.tile_size * (y + random.random())]}
-                self.offgrid_tiles.append(to_add)
+                offgrid_tiles.append(to_add)
                 glowwormCount += 1
 
-       
-        # plt.imshow(map)
-        # plt.show()
-        self.autotile()
+        return offgrid_tiles
     
+    def isPhysicsTile(self, poss, offsets = [[0, 0]], mode = 'any'):
+        for pos in poss:
+            for offset in offsets:
+                loc = str(pos[0] + offset[0]) + ';' + str(pos[1] + offset[1])
+
+                if mode == 'all':
+                    if loc in self.tilemap:
+                        if self.tilemap[loc]['type'] not in PHYSICS_TILES:
+                            return False   
+   
+                    else:
+                        return False
+                    
+                elif mode == 'any':
+                    if loc in self.tilemap:
+                        if self.tilemap[loc]['type'] in PHYSICS_TILES:
+                            return True
+
+
+        return True if mode == 'all' else False
+
+    def isTile(self, poss):
+        for pos in poss:
+
+            loc = str(pos[0]) + ';' + str(pos[1])
+
+            if loc in self.tilemap:
+                return True
+        
+        return False
+
     def save_tilemap(self, path):
         f = open(path, 'w')
         json.dump({'tilemap': self.tilemap, 'tile_size': self.tile_size, 'offgrid': self.offgrid_tiles}, f)
         f.close()
     
-    def load_tilemap(self, name = '', size = 50, difficulty = 5):
+    def load_tilemap(self, name = '', size = 50, enemyCountMax = 5):
 
-        if name in ['normal', 'grass']:
-            self.load_random_tilemap(self.game, size, difficulty, levelType = name)
+        if name in ['normal', 'grass', 'spooky']:
+            #Normal levels are manually controlled through dialogue, other levels scale with floor.
+            if name != 'normal':
+
+                enemyCountMax = int(self.game.floors[name])
+                size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
+                
+
+            self.load_random_tilemap(size, enemyCountMax, levelType = name)
             return()
         
     
