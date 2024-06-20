@@ -529,7 +529,8 @@ class Portal(physicsEntity):
             'lobby': [(58, 6, 82), (111, 28, 117)],
             'normal': [(58, 6, 82), (111, 28, 117)],
             'grass': [(36, 120, 29), (12, 62, 8)],
-            'spooky': [(55, 20, 15), (108, 50, 40)]}
+            'spooky': [(55, 20, 15), (108, 50, 40)],
+            'rubiks': [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)]}
         
         if self.game.currentLevel == 'lobby':
             self.set_action('active')
@@ -590,6 +591,7 @@ class Player(physicsEntity):
         super().update(tilemap, movement = movement)
 
         self.lightSize = 90 + self.game.wallet['eyes'] if 90 + self.game.wallet['eyes'] < 250 else 500
+        self.air_time += 1
         
         if self.damageCooldown:
             self.damageCooldown = max(self.damageCooldown - 1, 0) 
@@ -658,27 +660,27 @@ class Player(physicsEntity):
             if abs(self.dashing) == 51:
                 self.velocity[0] *= 0.1
                 self.velocity[1] *= 0.1
-
-                #Breaking cracked tiles:
-                if any(self.collisions.values()) and self.game.wallet['hammers'] > 0:
-                    if self.lastCollidedWall['type'] == 'cracked':
-                        
-                        #Find correct tunnel:
-                        for tunnelName in self.game.tunnelsBroken.keys():
-                            if any(loc == self.lastCollidedWall['pos'] for loc in self.game.tunnelPositions[tunnelName]):
-                                
-                                #Actually break all the tiles and save tunnel as broken:
-                                for loc in self.game.tunnelPositions[tunnelName]:
-                                    del self.game.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
-                                    self.game.sparks.append(Spark((loc[0] * self.game.tilemap.tilesize, loc[1] * self.game.tilemap.tilesize), random.random() * math.pi * 2, random.random() * 5))
-
-                                self.game.tunnelsBroken[tunnelName] = True
-
-                        self.game.wallet['hammers'] -= 1
                     
             if self.game.transition < 1:
                 p_velocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
                 self.game.particles.append(Particle(self.game, 'particle' + str(self.game.powerLevel), self.rect().center, vel=[movement[0] + random.random(), movement[1] + random.random()], frame = random.randint(0,7)))
+
+            #Breaking cracked tiles:
+            if any(self.collisions.values()) and self.game.wallet['hammers'] > 0:
+                if self.lastCollidedWall['type'] == 'cracked':
+                    
+                    #Find correct tunnel:
+                    for tunnelName in self.game.tunnelsBroken.keys():
+                        if any(loc == self.lastCollidedWall['pos'] for loc in self.game.tunnelPositions[tunnelName]):
+                            
+                            #Actually break all the tiles and save tunnel as broken:
+                            for loc in self.game.tunnelPositions[tunnelName]:
+                                del self.game.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
+                                self.game.sparks.append(Spark((loc[0] * self.game.tilemap.tilesize, loc[1] * self.game.tilemap.tilesize), random.random() * math.pi * 2, random.random() * 5))
+
+                            self.game.tunnelsBroken[tunnelName] = True
+
+                    self.game.wallet['hammers'] -= 1
 
         if abs(self.dashing) in {60, 50}:
             if self.game.transition < 1:
@@ -1157,3 +1159,97 @@ class Spider(physicsEntity):
         angle = math.atan2(-self.facing[1], self.facing[0]) - math.pi / 2
            
         super().render(surface, offset = offset, rotation = angle)
+
+
+class RubiksCube(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'rubiksCube', pos, size)
+
+        self.cogCount = random.randint(0,3)
+        self.redCogCount = 0
+        self.blueCogCount = 0
+        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.attackPower = 1
+        self.deathIntensity = 5
+        
+        self.grace = random.randint(90,210)
+        self.graceDone = False
+        self.gravityAffected = False
+        self.anim_offset = [0, 0]  
+        self.canMoveVectors = []
+        self.speed = 1
+        self.maxSpeed = 3
+        self.states = ['white', 'yellow', 'blue', 'green', 'red', 'orange']
+    
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
+        
+        if not self.graceDone:
+            self.grace = max(0, self.grace - 1)
+            if self.grace == 0:
+                self.set_action(random.choice(self.states))
+                self.timer = random.randint(120,300)             
+                self.graceDone = True
+            self.animation.update()
+
+        if self.graceDone:
+            if self.timer:
+                self.timer = max(self.timer - 1, 0)
+
+                #When timer runs out, move in a random direction until hit a wall
+                #Then change colour and reset timer.
+                if not self.timer:
+                    #Find random directions that entity can move in
+                    self.canMoveVectors = []
+                    posCentre = [self.rect().centerx, self.rect().centery]
+
+                    #left:
+                    if not tilemap.solid_check([posCentre[0] - tilemap.tilesize, posCentre[1]],returnValue = 'bool'):
+                        self.canMoveVectors.append([-self.speed, 0])
+                    #right:
+                    if not tilemap.solid_check([posCentre[0] + tilemap.tilesize, posCentre[1]],returnValue = 'bool'):
+                        self.canMoveVectors.append([self.speed, 0])
+                    #up:
+                    if not tilemap.solid_check([posCentre[0], posCentre[1] - tilemap.tilesize],returnValue = 'bool'):
+                        self.canMoveVectors.append([0, -self.speed])
+                    #down:
+                    if not tilemap.solid_check([posCentre[0], posCentre[1] + tilemap.tilesize],returnValue = 'bool'):
+                        self.canMoveVectors.append([0, self.speed])
+       
+                    #Set velocity to that direction
+                    self.velocity = random.choice(self.canMoveVectors)
+            else:
+                self.velocity[0] = max(min(self.velocity[0] * 1.02, self.maxSpeed), -self.maxSpeed)
+                self.velocity[1] = max(min(self.velocity[1] * 1.02, self.maxSpeed), -self.maxSpeed)
+                
+            #When hit a tile, stop and change colour, repeat
+            if any(self.collisions.values()):
+                self.timer = random.randint(120,300)
+                self.velocity = [0, 0]
+                self.set_action(random.choice(self.states))
+
+                self.redCogCount, self.blueCogCount = 0, 0
+                if self.action == 'red':
+                    self.redCogCount = random.randint(1, 5)
+                elif self.action == 'blue':
+                    self.blueCogCount = random.randint(1, 5)
+                
+                
+                
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, redCogCount = self.redCogCount, blueCogCount = self.blueCogCount, heartFragmentCount = self.heartFragmentCount)
+                return True
+            
+        #Also dies if hit by bullet:
+        for projectile in self.game.projectiles:
+            if self.rect().collidepoint(projectile.pos):
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, redCogCount = self.redCogCount, blueCogCount = self.blueCogCount, heartFragmentCount = self.heartFragmentCount)
+                self.game.projectiles.remove(projectile)
+                return True
+
+        #Check for player collision:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'idle':
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower)

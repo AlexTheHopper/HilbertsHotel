@@ -355,7 +355,7 @@ class Game:
 
                 #SPECIAL CASES:
                 #e.g. dont unlock dialogue if in wrong floor etc.
-                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin']
+                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin', 'Rubik']
                 if (character.name in characterMoveToLobby) & (index >= 1) & (self.currentLevel != 'lobby'):
                     success = False         
 
@@ -491,7 +491,7 @@ class Game:
         self.characters = []
         self.extraEntities = []
         self.spawnPoints = []
-        spawner_list = [('spawners', n) for n in range(0, 15)]
+        spawner_list = [('spawners', n) for n in range(0, 17)]
 
         for spawner in self.tilemap.extract(spawner_list):
             #Player
@@ -534,6 +534,10 @@ class Game:
             elif spawner['variant'] == 14 and (self.charactersMet['Franklin'] or self.currentLevel != 'lobby'):
                 self.characters.append(Franklin(self, spawner['pos'], (8,15)))
 
+            #Character - Rubik
+            elif spawner['variant'] == 16 and (self.charactersMet['Rubik'] or self.currentLevel != 'lobby'):
+                self.characters.append(Rubik(self, spawner['pos'], (8,15)))
+
             #GlowWorm
             elif spawner['variant'] == 5:
                 self.extraEntities.append(Glowworm(self, spawner['pos'], (5, 5)))
@@ -562,8 +566,12 @@ class Game:
             #Spider
             elif spawner['variant'] == 13:
                 self.enemies.append(Spider(self, spawner['pos'], (10, 10)))
+
+            #Cube
+            elif spawner['variant'] == 15:
+                self.enemies.append(RubiksCube(self, spawner['pos'], (16, 16)))
             
-        portal_list = [('spawnersPortal', n) for n in range(0, 4)]
+        portal_list = [('spawnersPortal', n) for n in range(0, 5)]
         for portal in self.tilemap.extract(portal_list):
 
             #To Lobby
@@ -581,6 +589,10 @@ class Game:
             #To spooky
             elif portal['variant'] == 3 and self.portalsMet['spooky']:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'spooky'))
+
+            #To rubiks
+            elif portal['variant'] == 4 and self.portalsMet['rubiks']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'rubiks'))
                 
         self.dead = False
         self.player.velocity = [0, 0]
@@ -604,6 +616,8 @@ class Game:
             self.caveDarkness = 0
         elif self.currentLevel == 'spooky':
             self.caveDarkness = random.randint(self.caveDarknessRange[1]-50, self.caveDarknessRange[1])
+        elif self.currentLevel == 'rubiks':
+            self.caveDarkness = 100#random.randint(50, 100)
 
         self.update_dialogues()
         self.initialisingGame = False
@@ -678,20 +692,22 @@ class Game:
         #BASE_PATH = 'data/images/'
         self.assets = {
             'decor': load_images('tiles/decor'),
-            'grass': load_images('tiles/grass'),
             'large_decor': load_images('tiles/large_decor'),
             'potplants': load_images('tiles/potplants'),
             'stone': load_images('tiles/stone'),
+            'grass': load_images('tiles/grass'),
             'normal': load_images('tiles/normal'),
             'spooky': load_images('tiles/spooky'),
+            'rubiks': load_images('tiles/rubiks'),
             'cracked': load_images('tiles/cracked'),
             'menuBackground': load_image('misc/menuBackground.png'),
             'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
             'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
             'lobbyBackground': load_image('misc/lobbyBackground.png'),
             'normalBackground': load_image('misc/caveBackground.png'),
-            'grassBackground': load_image('misc/backgroundGrass.png'),
+            'grassBackground': load_image('misc/grassBackground.png'),
             'spookyBackground': load_image('misc/spookyBackground.png'),
+            'rubiksBackground': load_image('misc/rubiksBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'weapons/gun': load_images('weapons/gun'),
@@ -709,15 +725,15 @@ class Game:
             'player/slide': Animation(load_images('entities/player/slide'), img_dur = 5),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
 
-            'bat/idle': Animation(load_images('entities/bat/idle'), img_dur = 10),
-            'bat/grace': Animation(load_images('entities/bat/grace'), img_dur = 10),
-            'bat/attacking': Animation(load_images('entities/bat/attacking'), img_dur = 10),
-            'bat/charging': Animation(load_images('entities/bat/charging'), img_dur = 20, loop = False),
-            'rolypoly/idle': Animation(load_images('entities/rolypoly/idle'), img_dur = 10),
-            'rolypoly/run': Animation(load_images('entities/rolypoly/run'), img_dur = 4),
-            'spider/idle': Animation(load_images('entities/spider/idle'), img_dur = 10),
-            'spider/run': Animation(load_images('entities/spider/run'), img_dur = 4),
-            'spider/grace': Animation(load_images('entities/spider/grace'), img_dur = 4),
+            'bat/idle': Animation(load_images('entities/.enemies/bat/idle'), img_dur = 10),
+            'bat/grace': Animation(load_images('entities/.enemies/bat/grace'), img_dur = 10),
+            'bat/attacking': Animation(load_images('entities/.enemies/bat/attacking'), img_dur = 10),
+            'bat/charging': Animation(load_images('entities/.enemies/bat/charging'), img_dur = 20, loop = False),
+            'rolypoly/idle': Animation(load_images('entities/.enemies/rolypoly/idle'), img_dur = 10),
+            'rolypoly/run': Animation(load_images('entities/.enemies/rolypoly/run'), img_dur = 4),
+            'spider/idle': Animation(load_images('entities/.enemies/spider/idle'), img_dur = 10),
+            'spider/run': Animation(load_images('entities/.enemies/spider/run'), img_dur = 4),
+            'spider/grace': Animation(load_images('entities/.enemies/spider/grace'), img_dur = 4),
 
             'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
             'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
@@ -726,24 +742,27 @@ class Game:
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15),
             'torch/idle': Animation(load_images('entities/torch/idle'),img_dur=4)}
         
-        for colour in ['', 'Orange', 'Blue', 'Purple']:
-            self.assets[f'gunguy{colour}/idle'] = Animation(load_images(f'entities/gunguy{colour}/idle'), img_dur = 10)
-            self.assets[f'gunguy{colour}/run'] = Animation(load_images(f'entities/gunguy{colour}/run'), img_dur = 4)
-            self.assets[f'gunguy{colour}/grace'] = Animation(load_images(f'entities/gunguy{colour}/grace'), img_dur = 4)
-            self.assets[f'gunguy{colour}/jump'] = Animation(load_images(f'entities/gunguy{colour}/jump'), img_dur = 20)
+        for cubeState in ['idle', 'white', 'yellow', 'blue', 'green', 'red', 'orange']:
+            self.assets[f'rubiksCube/{cubeState}'] = Animation(load_images(f'entities/.enemies/rubiksCube/{cubeState}'), img_dur = 60)
+
+        for gunguyColour in ['', 'Orange', 'Blue', 'Purple']:
+            self.assets[f'gunguy{gunguyColour}/idle'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/idle'), img_dur = 10)
+            self.assets[f'gunguy{gunguyColour}/run'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/run'), img_dur = 4)
+            self.assets[f'gunguy{gunguyColour}/grace'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/grace'), img_dur = 4)
+            self.assets[f'gunguy{gunguyColour}/jump'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/jump'), img_dur = 20)
 
         for currency in ['cog', 'redCog', 'blueCog', 'purpleCog', 'wing', 'heartFragment', 'eye', 'chitin', 'hammer']:
             self.assets[f'{currency}/idle'] = Animation(load_images(f'currencies/{currency}/idle'), img_dur = 6)
        
-        for portal in ['lobby', 'normal', 'grass', 'spooky']:
-            self.assets[f'portal{portal}/idle'] = Animation(load_images(f'entities/portal{portal}/idle'), img_dur = 6)
-            self.assets[f'portal{portal}/opening'] = Animation(load_images(f'entities/portal{portal}/opening'), img_dur = 6, loop = False)
-            self.assets[f'portal{portal}/active'] = Animation(load_images(f'entities/portal{portal}/active'), img_dur = 6)
+        for levelType in ['lobby', 'normal', 'grass', 'spooky', 'rubiks']:
+            self.assets[f'portal{levelType}/idle'] = Animation(load_images(f'entities/.portals/portal{levelType}/idle'), img_dur = 6)
+            self.assets[f'portal{levelType}/opening'] = Animation(load_images(f'entities/.portals/portal{levelType}/opening'), img_dur = 6, loop = False)
+            self.assets[f'portal{levelType}/active'] = Animation(load_images(f'entities/.portals/portal{levelType}/active'), img_dur = 6)
 
-        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin']:
-            self.assets[f'{character}/idle'] = Animation(load_images(f'entities/{character}/idle'), img_dur = 10)
-            self.assets[f'{character}/run'] = Animation(load_images(f'entities/{character}/run'), img_dur = 4)
-            self.assets[f'{character}/jump'] = Animation(load_images(f'entities/{character}/jump'), img_dur = 5)
+        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin', 'rubik']:
+            self.assets[f'{character}/idle'] = Animation(load_images(f'entities/.characters/{character}/idle'), img_dur = 10)
+            self.assets[f'{character}/run'] = Animation(load_images(f'entities/.characters/{character}/run'), img_dur = 4)
+            self.assets[f'{character}/jump'] = Animation(load_images(f'entities/.characters/{character}/jump'), img_dur = 5)
 
         for n in range(1,5):
             self.assets[f'particle/particle{n}'] = Animation(load_images(f'particles/particle{n}'), img_dur = 6, loop = False)

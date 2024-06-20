@@ -1,9 +1,11 @@
 import os
 from PIL import Image
+import random
 
 # Define the directory containing the .png files
 directory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
 count = 0
+colours = [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)]
 # Loop through all files in the directory
 for filename in os.listdir(directory):
     if filename.endswith('.png'):
@@ -26,11 +28,9 @@ for filename in os.listdir(directory):
         # Loop through each pixel in the image data
         for item in data:
             # Change all black (also checking for transparency) pixels to white
-            if item[:3] == (127, 29, 116):
-                new_data.append((0, 132, 188, item[3]))  # Preserve the alpha channel
-            elif item[:3] == (99, 22, 90):
-                new_data.append((0, 88, 188, item[3]))  # Preserve the alpha channel
-
+            if item[:3] == (255, 221, 0):
+                new_data.append(random.choice(colours))  # Preserve the alpha channel
+            
             else:
                 new_data.append(item)
         

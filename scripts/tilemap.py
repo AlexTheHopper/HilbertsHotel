@@ -11,8 +11,8 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
-PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'cracked'}
-AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky'}
+PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'cracked'}
+AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
@@ -182,6 +182,7 @@ class tileMap:
         curie_placed = False
         lorenz_placed = False
         franklin_placed = False
+        rubik_placed = False
         enemyCount = 0
         attemptCounter = 0
 
@@ -218,10 +219,12 @@ class tileMap:
                     elif not self.game.charactersMet['Lorenz'] and self.game.floors[levelType] > 17 and levelType == 'normal' and not lorenz_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 11, 'pos': [x, y]}
                         lorenz_placed = True
-                        
                     elif not self.game.charactersMet['Franklin'] and self.game.floors[levelType] > 10 and levelType == 'spooky' and not franklin_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 14, 'pos': [x, y]}
                         franklin_placed = True
+                    elif not self.game.charactersMet['Rubik'] and self.game.floors[levelType] > 1 and levelType == 'rubiks' and not rubik_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 16, 'pos': [x, y]}
+                        rubik_placed = True
                            
                     #Add enemies:
                     else:
@@ -356,6 +359,10 @@ class tileMap:
         for loc in self.tilemap:
             tile = self.tilemap[loc]
 
+            if tile['type'] == 'rubiks':
+                tile['variant'] = random.choice(range(0,6))
+                continue
+
             neighbours = set()
             for shift in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
                 check_loc  = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
@@ -371,6 +378,8 @@ class tileMap:
                     tile['variant'] = random.choice([10,11,12]) if random.random() < 0.01 else 5
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]
+
+            
 
 
     def physics_rects_around(self, pos):

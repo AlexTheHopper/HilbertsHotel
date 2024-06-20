@@ -59,7 +59,8 @@ def initialiseGameParams(game):
     game.floors = {
         'normal': 1,
         'grass': 1,
-        'spooky': 1
+        'spooky': 1,
+        'rubiks': 1
         }
     
     #Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
@@ -76,7 +77,10 @@ def initialiseGameParams(game):
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                ['spawners', [12], 1, [[0, 0], [0, 1]], ['any', [1, 0], [-1, 0]], [[0], [0]]]]}
+                                ['spawners', [12], 1, [[0, 0], [0, 1]], ['any', [1, 0], [-1, 0]], [[0], [0]]]]},
+
+        'rubiks': {'decorationMod': 1,
+                   'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]]]}
         }
 
     game.availableEnemyVariants = {
@@ -85,7 +89,9 @@ def initialiseGameParams(game):
         'grass': [3, 9],
         'grassWeights': [1, 0.5],
         'spooky': [3, 13],
-        'spookyWeights': [1, 1]
+        'spookyWeights': [1, 1],
+        'rubiks': [3, 15],
+        'rubiksWeights': [1, 1]
     }
 
     #Screen and display
@@ -204,7 +210,14 @@ def initialiseGameParams(game):
                 '3available': False,
                 '3said': False,
                 '4available': False,
-                '4said': False}
+                '4said': False},
+
+        'Rubik': {'0available': True,
+                '0said': False,
+                '1available': False,
+                '1said': False,
+                '2available': False,
+                '2said': False}
     }
 
     game.charactersMet = {
@@ -214,14 +227,16 @@ def initialiseGameParams(game):
         'Planck': False,
         'Faraday': True,
         'Lorenz': False,
-        'Franklin': False
+        'Franklin': False,
+        'Rubik': False
     }
 
     game.portalsMet = {
         'lobby': True,
         'normal': True,
         'grass': False,
-        'spooky': True
+        'spooky': True,
+        'rubiks': True
     }
 
     game.encountersCheck = {

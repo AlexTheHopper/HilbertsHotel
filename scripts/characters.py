@@ -53,14 +53,13 @@ class Character(physicsEntity):
 
             xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
             ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 30
-            offsetLength = 60
+            offsetLength = 80
 
             if requirementNum > 0:
                     offsetN = 0
                     for requirement in self.currencyRequirements[self.currentDialogueIndex + 1]:
 
                         self.game.HUDdisplay.blit(self.game.displayIcons[requirement[1]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos))
-                        # colour = (0,150,0) if self.game.wallet[str(requirement[1])] >= requirement[2] else (150,0,0)
                         colour = (0,150,0) if self.newDialogue else (150,0,0)
                         self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 2), self.game.text_font, colour, (0, 0), mode = 'left', scale = 0.75)
                         offsetN += 1
@@ -495,7 +494,38 @@ class Franklin(Character):
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
             
 
-        
+class Rubik(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Rubik')
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'blueCogs', 25]]
+        }
+
+        self.dialogue = {
+            '0': ['Oh my lordy! What have I created?! I just wanted to make a puzzle toy and now this whole world has been brought into existence!',
+                    'By golly, I\'ll be following you back to the lobby methinks.'],
+
+            '1': ['Wow! Thanks for helping me get out of there! This hotel really has some strange things going on.',
+                  'I was just building toys out of little colourful cogs and BAM!',
+                  'I\'ve got a little something for you if you bring me a few colourful cogs though!'],
+
+            '2': ['TEMPORARY ENDGAME',
+                  'WELL DONE YOU DID IT!']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Rubik'] = True
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['cogs'] -= 100
+            self.game.wallet['redCogs'] -= 50
+            self.game.wallet['blueCogs'] -= 25
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
     
     

@@ -24,7 +24,8 @@
     "floors": {
         "normal": 35,
         "grass": 1,
-        "spooky": 1
+        "spooky": 1,
+        "rubiks": 1
     },
     "spawnPoint": false,
     "enemyCountMax": 30,
@@ -53,13 +54,22 @@
         "spookyWeights": [
             1,
             1
+        ],
+        "rubiks": [
+            3,
+            15
+        ],
+        "rubiksWeights": [
+            1,
+            1
         ]
     },
     "portalsMet": {
         "lobby": true,
         "normal": true,
         "grass": true,
-        "spooky": true
+        "spooky": true,
+        "rubiks": true
     },
     "charactersMet": {
         "Hilbert": true,
@@ -68,7 +78,8 @@
         "Planck": true,
         "Faraday": true,
         "Lorenz": false,
-        "Franklin": false
+        "Franklin": false,
+        "Rubik": false
     },
     "encountersCheck": {
         "spawnPoints": false,
@@ -171,6 +182,14 @@
             "3said": false,
             "4available": false,
             "4said": false
+        },
+        "Rubik": {
+            "0available": true,
+            "0said": true,
+            "1available": true,
+            "1said": true,
+            "2available": true,
+            "2said": true
         }
     }
 }
