@@ -2,7 +2,6 @@ import math
 import random
 
 class Particle:
-
     def __init__(self, game, p_type, pos, vel = [0, 0], frame = 0):
         self.game = game
         self.type = p_type
@@ -22,7 +21,6 @@ class Particle:
         self.pos[1] += self.velocity[1]
 
         self.animation.update()
-
         return kill
     
     def render(self, surface, offset = (0, 0)):

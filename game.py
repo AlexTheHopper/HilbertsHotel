@@ -11,18 +11,19 @@ from scripts.tilemap import *
 from scripts.clouds import *
 from scripts.particle import *
 from scripts.spark import *
-
 import cProfile
 
 class Game:
     def __init__(self):
+
         #Pygame specific parameters and initialisation
         pygame.init()
         pygame.display.set_caption('Hilbert\'s Hotel v0.2.2')
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
-        self.clock = pygame.time.Clock()
+        self.clock = pygame.time.Clock()       
 
         #Define all general game parameters and load in assets
+        initialiseMainScreen(self)
         initialiseGameParams(self)
         self.loadGameAssets()
       
@@ -35,13 +36,13 @@ class Game:
 
         inMenu = True
         saveSlots = [0, 1, 2]
+        savedFloors = self.getSavedFloors()
         hoverSlot = 0
         deleting = 0
-
+        
         selected = (86, 31, 126)
         notSelected = (1, 1, 1)
-        savedFloors = self.getSavedFloors()
-
+        
         self.clouds = Clouds(self.assets['clouds'], count = 20)
         
         while inMenu:
@@ -62,7 +63,6 @@ class Game:
                     self.delete_save(hoverSlot % len(saveSlots))
                     savedFloors = self.getSavedFloors()
             
-
             #Displaying menu HUD:
             displaySlot = (hoverSlot % len(saveSlots))
             self.draw_text('Hilbert\'s Hotel', (self.screen_width * (3/4), 60), self.text_font, selected, (0, 0), scale = 1.5, mode = 'center') 
@@ -79,7 +79,6 @@ class Game:
             
             self.draw_text('Save 2', (self.screen_width * (3/4) + 120, 170), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
             self.draw_text(str(savedFloors[2]), (self.screen_width * (3/4) + 120, 200), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center', scale = 0.75) 
-
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -119,6 +118,7 @@ class Game:
 
         self.saveSlot = saveSlot
         self.load_game(self.saveSlot)
+
         self.tilemap.load_tilemap('lobby')
         self.load_level()
 
@@ -181,8 +181,8 @@ class Game:
                 
             for rect in self.potplants:
                   if random.random() < 0.01 and not self.paused:
-                      pos = (rect.x + rect.width / 2, rect.y + rect.height)
-                      self.particles.append(Particle(self, 'leaf', pos, vel = [0, 0.3], frame = random.randint(0, 20)))
+                      pos = (rect.x + rect.width * random.random(), rect.y + rect.height * random.random())
+                      self.particles.append(Particle(self, 'leaf', pos, vel = [0, random.uniform(0.2, 0.4)], frame = random.randint(0, 10)))
 
             for currencyItem in self.currencyEntities:
                 if not self.paused:
@@ -205,6 +205,7 @@ class Game:
             
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
+
             for offset in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
                 self.display.blit(display_outline_sillhouette, offset)
 
@@ -217,11 +218,9 @@ class Game:
                     if kill:
                         self.particles.remove(particle)  
            
-            
             #Displaying HUD and text:
             self.displayHUDandText()
                     
-    
             #Level transition
             if self.transition > 30:
                 self.tilemap.load_tilemap(self.nextLevel, self.currentLevelSize, self.enemyCountMax)
@@ -234,8 +233,7 @@ class Game:
                 self.transition += 1
             
             #Remove interaction frame
-            if self.interractionFrame:
-                self.interractionFrame = False
+            self.interractionFrame = False
                     
             #Event handler
             for event in pygame.event.get():
@@ -282,15 +280,13 @@ class Game:
                             self.enemies.remove(e)
                     if event.key == pygame.K_p:
                         for e in self.enemies.copy():
-                            if (e.pos[0] < 0 or e.pos[0] > self.mapHeight*16) or (e.pos[1] < 0 or e.pos[1] > self.mapWidth*16):
+                            if (e.pos[0] < 0 or e.pos[0] > self.tilemap.mapSize*16) or (e.pos[1] < 0 or e.pos[1] > self.tilemap.mapSize*16):
                                 print(e.type, e.pos)
                                 print('OUT OF BOUNDS^')
                         print('player: ', self.player.pos)
-                        print('bounds: ', 0,0, ",",self.mapWidth*16, self.mapHeight*16)
+                        print('bounds: ', 0,0, ",",self.tilemap.mapSize*16, self.tilemap.mapSize*16)
                     if event.key == pygame.K_l:
                         print('player pos: ', self.player.pos[0] // 16, self.player.pos[1] // 16)
-
-                                            
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
@@ -303,7 +299,6 @@ class Game:
                         self.movement[3] = False
 
             if self.dead:
-                
                 self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
                 self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
                 self.draw_text('Deaths: ' + str(self.deathCount), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
@@ -312,13 +307,10 @@ class Game:
                 if self.interractionFrame:
                     self.transitionToLevel('lobby')
 
-            
-
             #Darkness effect blit:
             if self.caveDarkness or self.paused or self.dead:
                 self.display_outline.blit(self.darkness_surface, (0, 0))         
             
-
             self.display.blit(self.display_outline, (0, 0))
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) 
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
@@ -332,8 +324,6 @@ class Game:
                 transition_surface.set_colorkey((255, 255, 255))
                 self.screen.blit(transition_surface, (0, 0))
 
-
-
             pygame.display.update()
             self.clock.tick(self.fps)
             # self.clock.tick()
@@ -344,9 +334,7 @@ class Game:
 
 
     def update_dialogues(self):
-        
         for character in self.characters:
-
             #Update which dialogue the character is up to.
             dialogue = self.dialogueHistory[str(character.name)]
             character.newDialogue = False
@@ -367,20 +355,9 @@ class Game:
 
                 #SPECIAL CASES:
                 #e.g. dont unlock dialogue if in wrong floor etc.
-                if (character.name == 'Noether') & (index >= 1) & (self.currentLevel != 'lobby'):
-                    success = False
-
-                elif (character.name == 'Curie') & (index >= 1) & (self.currentLevel != 'lobby'):
-                    success = False
-                
-                elif (character.name == 'Planck') & (index >= 1) & (self.currentLevel != 'lobby'):
-                    success = False 
-
-                elif (character.name == 'Lorenz') & (index >= 1) & (self.currentLevel != 'lobby'):
-                    success = False     
-
-                elif (character.name == 'Franklin') & (index >= 1) & (self.currentLevel != 'lobby'):
-                    success = False             
+                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin']
+                if (character.name in characterMoveToLobby) & (index >= 1) & (self.currentLevel != 'lobby'):
+                    success = False         
 
                 if success:
                     self.dialogueHistory[character.name][str(index) + 'available'] = True
@@ -413,13 +390,13 @@ class Game:
             if not isPrime(wallet[trade[1]]) or wallet[trade[1]] < trade[3]:
                 return False
             
-            
         #Also the previous dialogue needs to have been said:
         if index != 0:
             if not self.dialogueHistory[character.name][str(index - 1) + 'said']:
                 return False
         #You can probably access the dialogue.
         return True
+
 
     def display_text(self):
         #Each frame an extra character is added to the displayed text.
@@ -430,10 +407,13 @@ class Game:
             else:
                 self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
             self.textLength += 1
-
+        if self.textLength == self.textLengthEnd - 1:
+            self.sfx['textBlip'].fadeout(50)
+        
         #If all text in current chunk is displayed, move to next chunk.
         if self.interractionFrame and self.textLength > 1:
             if self.textLength == self.textLengthEnd:
+                self.sfx['textBlip'].play(fade_ms = 50)
                 self.currentTextIndex += 1
                 self.textLength = 0
                 #Only shallow copy needed
@@ -446,6 +426,7 @@ class Game:
             #Fills in current text if the player is impatient
             else:
                 #Im sure this while loop will always end, right?
+                self.sfx['textBlip'].fadeout(50)
                 while self.textLength < self.textLengthEnd:
 
                     if self.currentTextList[self.currentTextIndex][self.textLength] == ' ' and len(self.displayTextList[-1]) > self.maxCharactersLine:
@@ -454,14 +435,13 @@ class Game:
                         self.displayTextList[-1] = self.displayTextList[-1] + self.currentTextList[self.currentTextIndex][self.textLength]
                     self.textLength += 1
                     
-
         #When to end the dialogue:
         if self.currentTextIndex >= self.endTextIndex:
+            self.sfx['textBlip'].fadeout(50)
             self.talking = False
             self.paused = False
             self.update_dialogues()
             
-
         #Actually display the text (and icon):
         for n in range(len(self.displayTextList)):
             self.draw_text(str(self.displayTextList[n]), (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30 + 30*n), self.text_font, (255,255,255), (0, 0), mode = 'center')
@@ -471,14 +451,13 @@ class Game:
             self.HUDdisplay.blit(icon, (2*(self.player.pos[0]-self.render_scroll[0]) - icon.get_width() / 2, 2*(self.player.pos[1]-self.render_scroll[1]) - 90 - icon.get_height() / 2))
 
 
-
     def check_encounter(self, entity):
         if not self.encountersCheck[entity]:
             self.run_text('New!', entity)
             self.encountersCheck[entity] = True
     
+
     def load_level(self):
-        
         #Save game:
         self.save_game(self.saveSlot)
 
@@ -501,13 +480,10 @@ class Game:
             if not self.initialisingGame and self.currentLevel == 'lobby':
                 self.floors[self.previousLevel] += 1
                 
-              
-        
-
         #Spawn in leaf particle spawners
         self.potplants = []
-        for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3)], keep = True):
-            self.potplants.append(pygame.Rect(plant['pos'][0],plant['pos'][1], 16, 16))
+        for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3), ('large_decor', 1), ('large_decor', 2)], keep = True):
+            self.potplants.append(pygame.Rect(plant['pos'][0], plant['pos'][1], 16 if plant['type'] == 'potplants' else 32, 16))
 
         #Spawn in entities
         self.enemies = []
@@ -515,28 +491,11 @@ class Game:
         self.characters = []
         self.extraEntities = []
         self.spawnPoints = []
-        self.spawner_list = [
-            ('spawners', 0), #player
-            ('spawners', 1), #hilbert
-            ('spawners', 3), #gunguy
-            ('spawners', 4), #bat
-            ('spawners', 5), #glowworm
-            ('spawners', 6), #noether
-            ('spawners', 7), #curie
-            ('spawners', 8), #planck
-            ('spawners', 2), #faraday
-            ('spawners', 9), #rolypoly
-            ('spawners', 10), #spawnPoint
-            ('spawners', 11), #Lorenz
-            ('spawners', 12), #Torch
-            ('spawners', 13), #Spider
-            ('spawners', 14) #Franklin
-        ]
-        for spawner in self.tilemap.extract(self.spawner_list):
-           
+        spawner_list = [('spawners', n) for n in range(0, 15)]
+
+        for spawner in self.tilemap.extract(spawner_list):
             #Player
             if spawner['variant'] == 0:
-                
                 #Spawn at spawnpoint if one is active, else default spawn pos.
                 if self.spawnPoint and self.currentLevel == 'lobby':
                     self.player.pos[0], self.player.pos[1] = self.spawnPoint[0], self.spawnPoint[1]
@@ -547,7 +506,6 @@ class Game:
                 self.player.pos[0] += 4
                 self.player.pos[1] += 4
                     
-            
             #Character - Hilbert
             elif spawner['variant'] == 1 and self.charactersMet['Hilbert']:
                 self.characters.append(Hilbert(self, spawner['pos'], (8,15)))
@@ -605,15 +563,8 @@ class Game:
             elif spawner['variant'] == 13:
                 self.enemies.append(Spider(self, spawner['pos'], (10, 10)))
             
-
-        self.portal_list = [
-            ('spawnersPortal', 0), #To Lobby
-            ('spawnersPortal', 1), #To Normal
-            ('spawnersPortal', 2), #To grass
-            ('spawnersPortal', 3) #To spooky
-        ]
-
-        for portal in self.tilemap.extract(self.portal_list):
+        portal_list = [('spawnersPortal', n) for n in range(0, 4)]
+        for portal in self.tilemap.extract(portal_list):
 
             #To Lobby
             if portal['variant'] == 0 and self.portalsMet['lobby']:
@@ -631,23 +582,16 @@ class Game:
             elif portal['variant'] == 3 and self.portalsMet['spooky']:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'spooky'))
                 
-
         self.dead = False
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
         self.player.updateNearestEnemy()
             
-
         self.screenshake = 0
         self.transition = -30
         
         self.scroll = [self.player.rect().centerx - self.screen_width / 4,
                        self.player.rect().centery - self.screen_height / 4]
-        
-        self.horBuffer = self.screen_height // (self.tilemap.tilesize * 4) + 4
-        self.vertBuffer = self.screen_width // (self.tilemap.tilesize * 4) + 4
-        self.mapHeight = int(self.currentLevelSize + 2 * self.vertBuffer) 
-        self.mapWidth = int(self.currentLevelSize + 2 * self.horBuffer) 
 
         self.background = pygame.transform.scale(self.assets[f'{self.currentLevel}Background'], (self.screen_width / 2, self.screen_height / 2))
             
@@ -662,7 +606,6 @@ class Game:
             self.caveDarkness = random.randint(self.caveDarknessRange[1]-50, self.caveDarknessRange[1])
 
         self.update_dialogues()
-        
         self.initialisingGame = False
 
 
@@ -679,6 +622,7 @@ class Game:
             xAdj = img.get_width()
             yAdj = img.get_height()
         self.HUDdisplay.blit(img, (pos[0] - xAdj, pos[1] - yAdj))
+
 
     def displayHUDandText(self):
         textCol = (200, 200, 200) if not self.dead else (200, 0, 0)
@@ -698,12 +642,10 @@ class Game:
         depth = 0
         for currency in self.wallet:
             if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
-                
                 currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if (self.currentLevel != 'lobby' and not self.dead and self.walletTemp[currency]) else '') + (' (' + str(self.walletLostAmount[currency]) + ' lost)' if (self.dead and currency not in self.notLostOnDeath) else '') 
                 self.HUDdisplay.blit(self.displayIcons[currency], (10, 10 + depth*30))
                 self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, textCol, (0, 0), scale = 0.5)
                 depth += 1
-
 
         for n in range(self.maxHealth + self.temporaryHealth):
             if n < self.health:
@@ -726,14 +668,13 @@ class Game:
                 self.loadMenu()
             self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
 
-
-        
         if self.talking:
             self.display_text()
             self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
-            
+
 
     def loadGameAssets(self):
+        #one day ill clean this up
         #BASE_PATH = 'data/images/'
         self.assets = {
             'decor': load_images('tiles/decor'),
@@ -822,6 +763,8 @@ class Game:
            'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
            'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
            'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
+           'ding': pygame.mixer.Sound('data/sfx/ding.wav'),
+           'textBlip': pygame.mixer.Sound('data/sfx/textBlip.wav'),
            'coin': pygame.mixer.Sound('data/sfx/coin.wav')
        }
         
@@ -831,6 +774,8 @@ class Game:
         self.sfx['shoot'].set_volume(0.4)
         self.sfx['coin'].set_volume(0.6)
         self.sfx['ambience'].set_volume(0.2)
+        self.sfx['textBlip'].set_volume(0.25)
+        self.sfx['ding'].set_volume(0.1)
 
         self.windowIcon = load_image('misc/windowIcon.png')
         pygame.display.set_icon(self.windowIcon)
@@ -840,6 +785,7 @@ class Game:
         self.paused = True
         self.talking = True
         self.talkingTo = character
+        self.sfx['textBlip'].play(fade_ms = 50)
         if talkType == 'npc':
             convoInfo = character.getConversation()
             self.currentTextList = convoInfo[0]
@@ -858,9 +804,8 @@ class Game:
         self.endTextIndex = len(self.currentTextList)
         self.textLength = 0
         self.textLengthEnd = len(self.currentTextList[0])
-        
 
-            
+
     def transitionToLevel(self, newLevel):
         self.nextLevel = newLevel
         self.transition += 1
@@ -880,7 +825,6 @@ class Game:
 
                 floorList[i] = 'Floor: ' + str(saveData['floors']['normal'])
                 
-        
             except FileNotFoundError:
                 pass
         try:
@@ -890,18 +834,21 @@ class Game:
             
         return floorList
     
-    def removeBrokenTunnels(self):
-        for tunnel in self.tunnelStates:
-            if self.tunnelStates[tunnel]['broken'] == True:
 
-                for loc in self.tunnelStates[tunnel]['posList']:
+    def removeBrokenTunnels(self):
+        for tunnel in self.tunnelsBroken:
+            if self.tunnelsBroken[tunnel] == True:
+
+                for loc in self.tunnelPositions[tunnel]:
                     del self.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
+
 
     def delete_save(self, saveSlot):
         try:
             os.remove('data/saves/' + str(saveSlot) + '.json')
         except FileNotFoundError:
             pass
+
 
     def save_game(self, saveSlot):
         if self.health <= 0:
@@ -914,23 +861,23 @@ class Game:
                    'tempHealth': self.temporaryHealth,
                    'totalJumps': self.player.total_jumps,
                    'health': self.health,
-                   'tunnelStates': self.tunnelStates,
+                   'tunnelsBroken': self.tunnelsBroken,
                    'deathCount': self.deathCount,
                    'floors': self.floors,
                    'spawnPoint': self.spawnPoint,
-                   'dialogue': self.dialogueHistory,
                    'enemyCountMax': self.enemyCountMax,
                    'mapSize': self.currentLevelSize,
                    'availableEnemyVariants': self.availableEnemyVariants,
                    'portalsMet': self.portalsMet,
                    'charactersMet': self.charactersMet,
-                   'encountersCheck': self.encountersCheck}, f)
+                   'encountersCheck': self.encountersCheck,
+                   'dialogue': self.dialogueHistory}, f, indent=4)
+
 
     def load_game(self, saveSlot):
         try:
             with open('data/saves/' + str(saveSlot) + '.json', 'r') as f:
                 saveData = json.load(f)
-                
 
                 self.wallet = saveData['wallet']
                 self.maxHealth = saveData['maxHealth']
@@ -939,19 +886,18 @@ class Game:
                 self.temporaryHealth = saveData['tempHealth']
                 self.player.total_jumps = saveData['totalJumps']
                 self.health = saveData['health']
-                self.tunnelStates = saveData['tunnelStates']
+                self.tunnelsBroken = saveData['tunnelsBroken']
                 self.deathCount = saveData['deathCount']
                 self.floors = saveData['floors']
                 self.spawnPoint = saveData['spawnPoint']
-                self.dialogueHistory = saveData['dialogue']
                 self.enemyCountMax = saveData['enemyCountMax']
                 self.currentLevelSize = saveData['mapSize']
                 self.availableEnemyVariants = saveData['availableEnemyVariants']
                 self.portalsMet = saveData['portalsMet']
                 self.charactersMet = saveData['charactersMet']
                 self.encountersCheck = saveData['encountersCheck']
+                self.dialogueHistory = saveData['dialogue']
             
-
         except FileNotFoundError:
             f = open('data/saves/' + str(saveSlot) + '.json', 'w')
             json.dump({'floor': self.floors}, f)

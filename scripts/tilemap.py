@@ -9,7 +9,6 @@ from perlin_noise import PerlinNoise
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
 PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'cracked'}
@@ -17,27 +16,24 @@ AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
-    tuple(sorted([(1, 0)])): 0, #Added
+    tuple(sorted([(1, 0)])): 0,
     tuple(sorted([(1, 0), (0, 1), (-1, 0)])): 1,
-    tuple(sorted([(1, 0), (-1, 0)])): 1, #added
-    tuple(sorted([(0, 1)])): 1, #added
+    tuple(sorted([(1, 0), (-1, 0)])): 1,
+    tuple(sorted([(0, 1)])): 1,
     tuple(sorted([(-1, 0), (0, 1)])): 2,
-    tuple(sorted([(-1, 0)])): 2, #Added
+    tuple(sorted([(-1, 0)])): 2,
     tuple(sorted([(-1, 0), (0, -1), (0, 1)])): 3,
     tuple(sorted([(-1, 0), (0, -1)])): 4,
-    tuple(sorted([(-1, 0), (0, -1), (1, 0)])): 5,
     tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 5,
-    tuple(sorted([(0, 1)])): 1, #Added
-    tuple(sorted([(0, -1)])): 5, #Added
-    tuple(sorted([(0, 1), (0, -1)])): 5, #added
+    tuple(sorted([(-1, 0), (0, -1), (1, 0)])): 5,
+    tuple(sorted([(0, 1), (0, -1)])): 5,
+    tuple(sorted([(0, -1)])): 5,
     tuple(sorted([(1, 0), (0, -1)])): 6,
     tuple(sorted([(1, 0), (0, -1), (0, 1)])): 7,
     tuple(sorted([(0, 1), (0, -1)])): 8,
     tuple(sorted([(0, -1)])): 8,
     tuple(sorted([(0, 1)])): 9,
     tuple(sorted([])): 9
-    
-    
 }
 
 class tileMap:
@@ -48,7 +44,6 @@ class tileMap:
         self.game = game
 
     def render(self, surface, offset = (0, 0)):
-
         #Render non-grid assets
         for tile in self.offgrid_tiles:
             asset = self.game.assets[tile['type']][tile['variant']]
@@ -66,11 +61,9 @@ class tileMap:
                     position = (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1])
                     surface.blit(asset, position)
                     
-
                     #Add tiles to minimap:
                     if self.game.minimapActive and tile['type'] in PHYSICS_TILES:
                         self.game.minimapList[loc] = [(tile['pos'][0] * self.tile_size - offset[0]) / 16, (tile['pos'][1] * self.tile_size - offset[1]) / 16]
-
 
 
     def extract(self, id_pairs, keep=False):
@@ -95,7 +88,8 @@ class tileMap:
                     del self.tilemap[loc]
         
         return matches
-            
+
+
     def nearby_tiles(self, pixPos):
         potentialTiles = []
         tile_pos = (int(pixPos[0] // self.tile_size), int(pixPos[1] // self.tile_size))
@@ -106,11 +100,12 @@ class tileMap:
                 potentialTiles.append(self.tilemap[check_loc])
         return potentialTiles
     
+
     def load_random_tilemap(self, size, enemyCountMax = 5, levelType = 'normal'):
         self.tilemap = self.generateTiles(size, levelType)
         self.offgrid_tiles = self.populateMap(size, enemyCountMax, levelType)
-
         self.autotile()
+
 
     def generateTiles(self, size, levelType):
         tilemap = {}
@@ -125,7 +120,6 @@ class tileMap:
         buffer = 18
         self.mapSize = int(size + 2 * buffer)
         self.mapSize = self.mapSize
-
 
         map = np.zeros((self.mapSize, self.mapSize))
         for i in range(self.mapSize):
@@ -144,7 +138,6 @@ class tileMap:
                 else:
                     digPos = random.choice(roomLocations)
 
-            
                 currentDirection = [0, 0]
                 currentDirection[random.randint(0,1)] = random.choice([-1,1])
                 newPos = [digPos[0] + currentDirection[0] * corridorLength, digPos[1] + currentDirection[1] * corridorLength]
@@ -167,7 +160,6 @@ class tileMap:
                 currentDirection[random.randint(0,1)] = random.choice([-1,1])
                 newPos = [digPos[0] + currentDirection[0], digPos[1] + currentDirection[1]]
                 
-
                 if newPos[0] in range(buffer, self.mapSize - buffer) and newPos[1] in range(buffer, self.mapSize - buffer):
                     map[newPos[1],newPos[0]] = 0
                     digPos = newPos
@@ -177,9 +169,9 @@ class tileMap:
             for j in range(self.mapSize):
                 if map[i,j] == 1:
                     tilemap[str(i) + ';' + str(j)] = {'type': levelType, 'variant': 1, 'pos': [i, j]}
-        
         return tilemap
     
+
     def populateMap(self, size, enemyCountMax, levelType):
         offgrid_tiles = []
         buffer = 18
@@ -192,6 +184,7 @@ class tileMap:
         franklin_placed = False
         enemyCount = 0
         attemptCounter = 0
+
         while (not player_placed or not portal_placed or enemyCount < enemyCountMax) and attemptCounter < 5000:
             attemptCounter += 1
 
@@ -219,9 +212,9 @@ class tileMap:
                     elif not self.game.charactersMet['Curie'] and self.game.floors[levelType] > 10 and levelType == 'normal' and not curie_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
                         curie_placed = True
-                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 13 and levelType == 'normal' and not curie_placed:
+                    elif not self.game.charactersMet['Planck'] and self.game.floors[levelType] > 13 and levelType == 'normal' and not planck_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
-                        curie_placed = True
+                        planck_placed = True
                     elif not self.game.charactersMet['Lorenz'] and self.game.floors[levelType] > 17 and levelType == 'normal' and not lorenz_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 11, 'pos': [x, y]}
                         lorenz_placed = True
@@ -270,6 +263,7 @@ class tileMap:
 
         return offgrid_tiles
     
+
     def isPhysicsTile(self, poss, offsets = [[0, 0]], mode = 'any'):
         for pos in poss:
             for offset in offsets:
@@ -287,39 +281,38 @@ class tileMap:
                     if loc in self.tilemap:
                         if self.tilemap[loc]['type'] in PHYSICS_TILES:
                             return True
-
-
         return True if mode == 'all' else False
+
 
     def isTile(self, poss):
         for pos in poss:
-
             loc = str(pos[0]) + ';' + str(pos[1])
 
             if loc in self.tilemap:
                 return True
-        
         return False
+
 
     def save_tilemap(self, path):
         f = open(path, 'w')
         json.dump({'tilemap': self.tilemap, 'tile_size': self.tile_size, 'offgrid': self.offgrid_tiles}, f)
         f.close()
     
+
     def load_tilemap(self, name = '', size = 50, enemyCountMax = 5):
-
-        if name in ['normal', 'grass', 'spooky']:
+        if name in self.game.floors.keys():
             #Normal levels are manually controlled through dialogue, other levels scale with floor.
-            if name != 'normal':
+            # if name != 'normal':
 
+            #All levels scale with floor:
+            if True:
                 enemyCountMax = int(self.game.floors[name])
                 size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
                 
-
             self.load_random_tilemap(size, enemyCountMax, levelType = name)
             return()
         
-    
+        #Only for level editor
         elif name == 'editor':
             root = tkinter.Tk()
             root.withdraw()
@@ -329,6 +322,8 @@ class tileMap:
                                             title="Open map",
                                             filetypes= (("JSON Files","*.json*"),
                                                         ("All Files","*.*")))
+            
+        #Otherwise try to open file eg for lobby.
         else:
             filepath = 'data/maps/' + str(name) + '.json'
 
@@ -340,14 +335,22 @@ class tileMap:
         self.tilesize = map_data['tile_size']
         self.offgrid_tiles = map_data['offgrid']
 
+
     def solid_check(self, pos, returnValue = ''):
         tile_loc = str(int(pos[0]) // self.tile_size) + ';' + str(int(pos[1]) // self.tile_size)
         if tile_loc in self.tilemap:
             if self.tilemap[tile_loc]['type'] in PHYSICS_TILES:
                 if returnValue == 'pos':
                     return tuple(self.tilemap[tile_loc]['pos'])
+                elif returnValue == 'bool':
+                    return True
                 else:   
                     return self.tilemap[tile_loc]
+            elif returnValue == 'bool':
+                return False
+        elif returnValue == 'bool':
+                return False
+
 
     def autotile(self, windows = True):
         for loc in self.tilemap:
@@ -368,6 +371,7 @@ class tileMap:
                     tile['variant'] = random.choice([10,11,12]) if random.random() < 0.01 else 5
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]
+
 
     def physics_rects_around(self, pos):
         rects = []

@@ -7,21 +7,21 @@ class Cloud:
         self.speed = speed
         self.depth = depth
 
+
     def update(self):
         self.pos[0] += self.speed
 
+
     def render(self, surface, offset = (0, 0)):
-        
-        # render_pos = (self.pos[0] - offset[0] * self.depth, self.pos[1] - offset[1] * self.depth)
         looped_posx = self.pos[0] % (surface.get_width() + self.img.get_width()) - self.img.get_width()
         looped_posy = self.pos[1] % (surface.get_height() + self.img.get_height()) - self.img.get_height()
         surface.blit(self.img, (looped_posx, looped_posy))
+
 
 class Clouds:
     def __init__(self, cloud_images, count = 16):
         self.clouds = []
         for _ in range(count):
-
             newCloudX = random.random() * 1080
             newCloudY = random.random() * 360
             newCloudImg = random.choice(cloud_images)
@@ -32,6 +32,7 @@ class Clouds:
             self.clouds.append(newCloud)
 
         self.clouds.sort(key=lambda x: x.depth)
+
 
     def update(self):
         for cloud in self.clouds:

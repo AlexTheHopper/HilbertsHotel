@@ -15,9 +15,22 @@ def load_image(path, dim = False):
         img.set_colorkey((0, 0, 0))
     return img
 
+
 def load_images(path, dim = False):
     images = [load_image(path + '/' + img_name, dim) for img_name in sorted(os.listdir(BASE_PATH + path))]
     return images
+
+
+def initialiseMainScreen(game):
+    game.screen_width = 1080
+    game.screen_height = 720
+    game.screen = pygame.display.set_mode((game.screen_width,game.screen_height))
+    game.HUDdisplay = pygame.Surface((game.screen_width, game.screen_height))
+    game.HUDdisplay.set_colorkey((0, 0, 0))
+    game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2), game.text_font, (86, 31, 126), (0, 0), scale = 1.5, mode = 'center') 
+    game.screen.blit(game.HUDdisplay, (0, 0))
+    pygame.display.update()
+
 
 def initialiseGameParams(game):
     game.game_running = True
@@ -53,16 +66,17 @@ def initialiseGameParams(game):
     game.floorSpecifics = {
         'normal': {'decorationMod': 2,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['large_decor', [0], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]]]},
+                                ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                ['large_decor', [0], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]]]},
 
-        'grass': {'decorationMod': 10,
+        'grass': {'decorationMod': 15,
                   'decorations': [['decor', range(0,2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['potplants', range(0, 4), 2, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]]]},
+                                ['large_decor', [1], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]],
+                                ['large_decor', [2], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]]]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['spawners', [12], 1, [[0, 0], [0, 1]], ['any', [1, 0], [-1, 0]], [[0], [0]]]]}
+                                ['spawners', [12], 1, [[0, 0], [0, 1]], ['any', [1, 0], [-1, 0]], [[0], [0]]]]}
         }
 
     game.availableEnemyVariants = {
@@ -73,18 +87,14 @@ def initialiseGameParams(game):
         'spooky': [3, 13],
         'spookyWeights': [1, 1]
     }
+
     #Screen and display
-    game.screen_width = 1080
-    game.screen_height = 720
     game.scroll = [game.screen_width / 2, game.screen_height / 2]
     game.render_scroll = (int(game.scroll[0]), int(game.scroll[1]))
-        #main screen
-    game.screen = pygame.display.set_mode((game.screen_width,game.screen_height))
-        #overlay displays
+    
+    #overlay displays
     game.display_outline = pygame.Surface((game.screen_width / 2, game.screen_height / 2), pygame.SRCALPHA)
     game.display = pygame.Surface((game.screen_width / 2, game.screen_height / 2))
-    game.HUDdisplay = pygame.Surface((game.screen_width, game.screen_height))
-    game.HUDdisplay.set_colorkey((0, 0, 0))
     game.minimapdisplay = pygame.Surface((game.screen_width / 4, game.screen_height / 4), pygame.SRCALPHA)
     game.darkness_surface = pygame.Surface(game.display_outline.get_size(), pygame.SRCALPHA)
 
@@ -97,10 +107,8 @@ def initialiseGameParams(game):
     game.enemyCountMax = 1
     game.currentLevelSize = 15
     game.notLostOnDeath = ['hammers']
-
     game.spawnPoint = False
 
-    
     game.wallet = {
         'cogs': 0,
         'redCogs': 0,
@@ -197,8 +205,6 @@ def initialiseGameParams(game):
                 '3said': False,
                 '4available': False,
                 '4said': False}
-
-
     }
 
     game.charactersMet = {
@@ -210,6 +216,7 @@ def initialiseGameParams(game):
         'Lorenz': False,
         'Franklin': False
     }
+
     game.portalsMet = {
         'lobby': True,
         'normal': True,
@@ -243,10 +250,18 @@ def initialiseGameParams(game):
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.']
     }
 
-    game.tunnelStates = {
-        'tunnel1': {'broken': False, 'posList': [[x, y] for x in range(36, 54) for y in range(-1,1)]},
-        'tunnel2': {'broken': False, 'posList': [[x, y] for x in range(-17, 1) for y in range(-1,1)]}
+    game.tunnelsBroken = {
+        'tunnel1': False,
+        'tunnel2': False,
+        'tunnel3': False
     }
+
+    game.tunnelPositions = {
+        'tunnel1': [[x, y] for x in range(36, 54) for y in range(-1,1)],
+        'tunnel2': [[x, y] for x in range(-17, 1) for y in range(-1,1)],
+        'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)]
+    }
+
 
 def isPrime(num):
     if num < 2:

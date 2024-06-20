@@ -272,7 +272,7 @@ class Curie(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['purchase', 'wings', 5]],
+            2: [['purchase', 'wings', 25]],
             3: [['purchase', 'wings', 50]],
             4: [['purchase', 'wings', 100]]
         }
@@ -283,7 +283,7 @@ class Curie(Character):
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you winged boots! They let you jump more in the air!',
-                  'I just need a few bat wings! Bring me 5 and the extra jump is yours!'],
+                  'I just need a few bat wings! Bring me 25 and the extra jump is yours!'],
 
             '2': ['You\'ve got two jumps! Woo! Isn\'t this such a novel mechanic?',
                     'I\'ll give ya another for 50 wings.'],
@@ -302,7 +302,7 @@ class Curie(Character):
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 5
+            self.game.wallet['wings'] -= 25
 
         elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1

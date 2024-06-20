@@ -132,7 +132,6 @@ class Editor:
 
                         for i in range(x1,x2+1):
                             for j in range(y1,y2+1):
-                                print(i,j)
                                 self.tilemap.tilemap[str(i) + ';' + str(j)] = {'type': self.tile_list[self.tile_group], 'variant': self.tile_variant, 'pos': (i,j)}
 
                         self.floodfillLocs = [[0, 0], [0, 0]]
