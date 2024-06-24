@@ -277,6 +277,45 @@ def initialiseGameParams(game):
         'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)]
     }
 
+    #Death message stuff
+    game.damagedBy = 'default'
+    game.deathMessage = ''
+    game.enemyNames = {
+        'default': 'Nothing',
+        'gunguy': 'Gun Guy',
+        'gunguyOrange': 'Orange Gun Guy',
+        'gunguyBlue': 'Blue Gun Guy',
+        'gunguyPurple': 'Purple Gun Guy',
+        'gunguyStaff': 'Wizard',
+        'gunguyOrangeStaff': 'Orange Wizard',
+        'gunguyBlueStaff': 'Blue Wizard',
+        'gunguyPurpleStaff': 'Purple Wizard',
+        'gunguyWitch': 'Witch',
+        'gunguyOrangeWitch': 'Orange Witch',
+        'gunguyBlueWitch': 'Blue Witch',
+        'gunguyPurpleWitch': 'Purple Witch',
+        'bat': 'Bat',
+        'rolypoly': 'Roly Poly',
+        'spider': 'Spider',
+        'rubiksCube': 'Rubik\'s Cube'
+    }
+    game.deathVerbs = ['killed', 
+                       'vanquished', 
+                       'taken down', 
+                       'eliminated', 
+                       'slain', 
+                       'obliterated', 
+                       'bested', 
+                       'removed from this world',
+                       'nibbled to death',
+                       'chewed up',
+                       'bonked',
+                       'bamboozled',
+                       'yoinked',
+                       'pwned',
+                       'tickled a little too hard', 
+                       'just slightly harmed']
+
 
 def isPrime(num):
     if num < 2:

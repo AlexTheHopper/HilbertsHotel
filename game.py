@@ -300,9 +300,11 @@ class Game:
 
             if self.dead:
                 self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
-                self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
+                self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
+
+                self.draw_text(self.deathMessage, (self.screen_width / 2, self.screen_height / 2 - 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 self.draw_text('Deaths: ' + str(self.deathCount), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
-                self.draw_text('Press z to Alive Yourself', (self.screen_width / 2, self.screen_height / 2 + 60), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
+                self.draw_text('Press z to Alive Yourself', (self.screen_width / 2, self.screen_height / 2 + 50), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 
                 if self.interractionFrame:
                     self.transitionToLevel('lobby')
@@ -347,11 +349,18 @@ class Game:
             for index in character.currencyRequirements:
                 if index > character.currentDialogueIndex + 1:
                     break
+                individualSuccess = True
                 success = True
 
-                for trade in character.currencyRequirements[index]:
-                    #To unlock dialogue you need to fulfill requirement:
-                    success = self.checkCurrencyRequirement(trade, self.wallet, index, character.currentDialogueIndex, character)
+                for i, trade in enumerate(character.currencyRequirements[index]):
+                    #To unlock dialogue you need to fulfill requirement/s:
+                    individualSuccess = self.checkCurrencyRequirement(trade, self.wallet, index, character.currentDialogueIndex, character)
+                    
+                    if individualSuccess:
+                        character.currentTradeAbility[i] = True
+                    else:
+                        character.currentTradeAbility[i] = False
+                        success = False
 
                 #SPECIAL CASES:
                 #e.g. dont unlock dialogue if in wrong floor etc.
@@ -477,7 +486,7 @@ class Game:
             for currency in self.wallet:
                 self.wallet[currency] += self.walletTemp[currency]
                 self.walletTemp[currency] = 0
-            if not self.initialisingGame and self.currentLevel == 'lobby':
+            if not self.initialisingGame and self.currentLevel == 'lobby' and self.previousLevel != 'lobby':
                 self.floors[self.previousLevel] += 1
                 
         #Spawn in leaf particle spawners

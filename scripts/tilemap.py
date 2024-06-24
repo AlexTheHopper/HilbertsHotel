@@ -180,6 +180,7 @@ class tileMap:
         portal_placed = False
         noether_placed = False
         curie_placed = False
+        planck_placed = False
         lorenz_placed = False
         franklin_placed = False
         rubik_placed = False

@@ -8,11 +8,16 @@ class Character(physicsEntity):
         self.name = name
 
         self.walking = 0
+        self.flip_x = True if random.random() < 0.5 else False
         self.canTalk = True
         self.newDialogue = False
         self.gravityAffected = True
 
         self.currentDialogueIndex = 0
+
+        #To allow different trades at the same time to be green or red depending on wallet/succes. 
+        #Needs to be as long as the longest character trade.
+        self.currentTradeAbility = [False, False, False]
 
 
     def update(self, tilemap, movement = (0, 0)):
@@ -57,10 +62,10 @@ class Character(physicsEntity):
 
             if requirementNum > 0:
                     offsetN = 0
-                    for requirement in self.currencyRequirements[self.currentDialogueIndex + 1]:
+                    for i, requirement in enumerate(self.currencyRequirements[self.currentDialogueIndex + 1]):
 
                         self.game.HUDdisplay.blit(self.game.displayIcons[requirement[1]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos))
-                        colour = (0,150,0) if self.newDialogue else (150,0,0)
+                        colour = (0,150,0) if self.currentTradeAbility[i] else (150,0,0)
                         self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 2), self.game.text_font, colour, (0, 0), mode = 'left', scale = 0.75)
                         offsetN += 1
             

@@ -250,7 +250,7 @@ class Bat(physicsEntity):
         #Check for player collision, not dashing and in attack mode:
         if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50 and self.action == 'attacking':
             if not self.game.dead:
-                self.game.player.damage(self.attackPower)
+                self.game.player.damage(self.attackPower, self.type)
 
 
     def render(self, surface, offset = (0, 0)):
@@ -306,6 +306,8 @@ class GunGuy(physicsEntity):
         self.wingCount = random.randint(0,3) if self.witch else 0
         self.eyeCount = 0
 
+        self.label = self.type + ('Witch' if self.witch else ('Staff' if self.weapon == 'staff' else ''))
+
         if random.random() < 0.5:
             self.flip_x = True
 
@@ -356,13 +358,13 @@ class GunGuy(physicsEntity):
                     #Create bullet
                     if self.flip_x:
                         self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity))
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity, self.label))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
                     
                     else:
                         self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity))
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity, self.label))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
                     
@@ -758,9 +760,11 @@ class Player(physicsEntity):
                 print('bounds: ', 0,0, ",",self.game.tilemap.mapSize*16, self.game.tilemap.mapSize*16)      
         self.nearestEnemy = returnEnemy
 
-    def damage(self, damageAmount):
+    def damage(self, damageAmount, type):
         if not self.damageCooldown:
             self.damageCooldown = 60
+            self.game.damagedBy = type
+
             if self.game.temporaryHealth:
                 self.game.temporaryHealth -= 1
             else:
@@ -776,6 +780,10 @@ class Player(physicsEntity):
                         self.game.particles.append(Particle(self.game, 'particle' + str(self.game.powerLevel), self.game.player.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
                 self.game.dead += 1
                 self.game.deathCount += 1
+
+                nameVowel = True if self.game.enemyNames[type][0].lower() in ['a', 'e', 'i', 'o', 'u'] else False
+                randomVerb = random.choice(self.game.deathVerbs)
+                self.game.deathMessage = 'You were ' + randomVerb + ' by a' + ('n ' if nameVowel else ' ') + self.game.enemyNames[type]
 
                 for currency in self.game.wallet:
                     if currency not in self.game.notLostOnDeath:
@@ -903,13 +911,14 @@ class Glowworm(physicsEntity):
 
 
 class Bullet():
-    def __init__(self, game, pos, speed):
+    def __init__(self, game, pos, speed, origin):
         self.attackPower = 1
 
         self.pos = list(pos)
         self.game = game
         self.speed = list(speed)
         self.type = 'projectile'
+        self.origin = origin
         self.img = self.game.assets[self.type]
         self.anim_offset = (-2, 0)
 
@@ -930,7 +939,7 @@ class Bullet():
         #Check for player collision:
         if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50:
             if not self.game.dead:
-                self.game.player.damage(self.attackPower)
+                self.game.player.damage(self.attackPower, self.origin)
                 return True
 
         if self.game.caveDarkness:
@@ -1005,7 +1014,7 @@ class RolyPoly(physicsEntity):
         #Check for player collision:
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'idle':
             if not self.game.dead:
-                self.game.player.damage(self.attackPower)
+                self.game.player.damage(self.attackPower, self.type)
                 
 
     def render(self, surface, offset = (0, 0)):
@@ -1150,7 +1159,7 @@ class Spider(physicsEntity):
         #Check for player collision:
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'grace':
             if not self.game.dead:
-                self.game.player.damage(self.attackPower)
+                self.game.player.damage(self.attackPower, self.type)
 
 
     def render(self, surface, offset = (0, 0)):
@@ -1252,4 +1261,4 @@ class RubiksCube(physicsEntity):
         #Check for player collision:
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'idle':
             if not self.game.dead:
-                self.game.player.damage(self.attackPower)
+                self.game.player.damage(self.attackPower, self.type)
