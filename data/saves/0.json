@@ -18,14 +18,16 @@
     "tunnelsBroken": {
         "tunnel1": false,
         "tunnel2": false,
-        "tunnel3": false
+        "tunnel3": false,
+        "tunnel4": false
     },
     "deathCount": 1,
     "floors": {
         "normal": 35,
         "grass": 1,
         "spooky": 1,
-        "rubiks": 1
+        "rubiks": 1,
+        "infinite": 1
     },
     "spawnPoint": false,
     "enemyCountMax": 30,
@@ -69,7 +71,8 @@
         "normal": true,
         "grass": true,
         "spooky": true,
-        "rubiks": true
+        "rubiks": true,
+        "infinite": true
     },
     "charactersMet": {
         "Hilbert": true,
@@ -79,7 +82,8 @@
         "Faraday": true,
         "Lorenz": false,
         "Franklin": false,
-        "Rubik": false
+        "Rubik": false,
+        "Cantor": false
     },
     "encountersCheck": {
         "spawnPoints": false,
@@ -190,6 +194,14 @@
             "1said": true,
             "2available": true,
             "2said": true
+        },
+        "Cantor": {
+            "0available": true,
+            "0said": false,
+            "1available": false,
+            "1said": false,
+            "2available": false,
+            "2said": false
         }
     }
 }

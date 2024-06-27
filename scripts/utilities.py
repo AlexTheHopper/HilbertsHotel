@@ -54,13 +54,16 @@ def initialiseGameParams(game):
     game.maxCharactersLine = 55
     game.talkingTo = ''
 
+    game.previousLevel = 'lobby'
     game.currentLevel = 'lobby'
     game.nextLevel = 'lobby'
+    game.infiniteModeActive = False
     game.floors = {
         'normal': 1,
         'grass': 1,
         'spooky': 1,
-        'rubiks': 1
+        'rubiks': 1,
+        'infinite': 1
         }
     
     #Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
@@ -217,7 +220,15 @@ def initialiseGameParams(game):
                 '1available': False,
                 '1said': False,
                 '2available': False,
+                '2said': False},
+
+        'Cantor': {'0available': True,
+                '0said': False,
+                '1available': False,
+                '1said': False,
+                '2available': False,
                 '2said': False}
+
     }
 
     game.charactersMet = {
@@ -228,7 +239,8 @@ def initialiseGameParams(game):
         'Faraday': True,
         'Lorenz': False,
         'Franklin': False,
-        'Rubik': False
+        'Rubik': False,
+        'Cantor': False
     }
 
     game.portalsMet = {
@@ -236,8 +248,10 @@ def initialiseGameParams(game):
         'normal': True,
         'grass': False,
         'spooky': True,
-        'rubiks': True
+        'rubiks': True,
+        'infinite': True
     }
+
 
     game.encountersCheck = {
         'spawnPoints': False,
@@ -268,13 +282,15 @@ def initialiseGameParams(game):
     game.tunnelsBroken = {
         'tunnel1': False,
         'tunnel2': False,
-        'tunnel3': False
+        'tunnel3': False,
+        'tunnel4': False
     }
 
     game.tunnelPositions = {
         'tunnel1': [[x, y] for x in range(36, 54) for y in range(-1,1)],
         'tunnel2': [[x, y] for x in range(-17, 1) for y in range(-1,1)],
-        'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)]
+        'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)],
+        'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33,-30)]
     }
 
     #Death message stuff

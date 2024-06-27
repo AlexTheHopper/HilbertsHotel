@@ -13,7 +13,7 @@ class Editor:
         self.screen_height = 720
 
         pygame.init()
-        pygame.display.set_caption('Test Game_Editor')
+        pygame.display.set_caption('Hilbert\'s Hotel_Editor')
 
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((self.screen_width,self.screen_height))

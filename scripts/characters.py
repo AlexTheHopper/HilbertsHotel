@@ -532,5 +532,38 @@ class Rubik(Character):
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
+
+class Cantor(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Cantor')
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: []
+        }
+
+        self.dialogue = {
+            '0': ['Well by golly, I\'m lost in the infinite.',
+                    'I keep going through my \'infinite\' portal but it never takes me back to the lobby like it should!',
+                    'What\'s that you say? Just go through the other portal?! Nonsense!'],
+
+            '1': ['Yeah okay you were right...',
+                  'That really is the best way back to the lobby.'],
+
+            '2': ['This is my creation: The Infinite.',
+                  'Any slice of the Hotel that you have even partially explored exists in here.',
+                  'And every time you enter it, you go back to floor one. So you must climb up it all every time.',
+                  'However it is quite nifty! When you enter here with a bunch of stuff, you are not at risk of losing it, only items you found in here will disappear.',
+                  'And if you die, you only lose half of what you have collected!',
+                  'You could always come back to the lobby from any of the floors and save it all, but if you were a true madlad you would keep going until you die.']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Cantor'] = True
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+
     
     

@@ -102,6 +102,9 @@ class tileMap:
     
 
     def load_random_tilemap(self, size, enemyCountMax = 5, levelType = 'normal'):
+        if levelType == 'infinite':
+            levelType = self.game.getRandomLevel()
+
         self.tilemap = self.generateTiles(size, levelType)
         self.offgrid_tiles = self.populateMap(size, enemyCountMax, levelType)
         self.autotile()
@@ -178,16 +181,18 @@ class tileMap:
 
         player_placed = False
         portal_placed = False
+        infinite_portal_placed = False if self.game.infiniteModeActive else True
         noether_placed = False
         curie_placed = False
         planck_placed = False
         lorenz_placed = False
         franklin_placed = False
         rubik_placed = False
+        cantor_placed = False
         enemyCount = 0
         attemptCounter = 0
 
-        while (not player_placed or not portal_placed or enemyCount < enemyCountMax) and attemptCounter < 5000:
+        while (not player_placed or not portal_placed or enemyCount < enemyCountMax or not infinite_portal_placed) and attemptCounter < 5000:
             attemptCounter += 1
 
             y = random.choice(range(buffer, self.mapSize - buffer))
@@ -198,6 +203,7 @@ class tileMap:
             if not self.isTile([[x, y]]):
                 if self.isPhysicsTile([[x, y+1]]):
                     #Player
+                    print(levelType)
                     if not player_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                         player_placed = True
@@ -206,6 +212,13 @@ class tileMap:
                     elif not portal_placed:
                         self.tilemap[loc] = {'type': 'spawnersPortal', 'variant': 0, 'pos': [x, y]}
                         portal_placed = True
+                    
+                    #Infinite Portal
+                    elif not infinite_portal_placed and self.game.infiniteModeActive:
+                        infinite_portal_placed = True
+
+                        self.tilemap[loc] = {'type': 'spawnersPortal', 'variant': 5, 'pos': [x, y]}
+                        
 
                     #Characters
                     elif not self.game.charactersMet['Noether'] and self.game.floors[levelType] > 7 and levelType == 'normal' and not noether_placed:
@@ -226,6 +239,9 @@ class tileMap:
                     elif not self.game.charactersMet['Rubik'] and self.game.floors[levelType] > 1 and levelType == 'rubiks' and not rubik_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 16, 'pos': [x, y]}
                         rubik_placed = True
+                    elif not self.game.charactersMet['Cantor'] and self.game.floors['infinite'] > 5 and not cantor_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 17, 'pos': [x, y]}
+                        cantor_placed = True
                            
                     #Add enemies:
                     else:
@@ -288,13 +304,22 @@ class tileMap:
         return True if mode == 'all' else False
 
 
-    def isTile(self, poss):
+    def isTile(self, poss, offsets = [[0, 0]], mode = 'any'):
         for pos in poss:
-            loc = str(pos[0]) + ';' + str(pos[1])
+            for offset in offsets:
+                loc = str(pos[0] + offset[0]) + ';' + str(pos[1] + offset[1])
 
-            if loc in self.tilemap:
-                return True
-        return False
+                if mode == 'all':
+                    if loc in self.tilemap:
+                        return False   
+   
+                    else:
+                        return False
+                    
+                elif mode == 'any':
+                    if loc in self.tilemap:
+                        return True
+        return True if mode == 'all' else False
 
 
     def save_tilemap(self, path):
@@ -305,9 +330,6 @@ class tileMap:
 
     def load_tilemap(self, name = '', size = 50, enemyCountMax = 5):
         if name in self.game.floors.keys():
-            #Normal levels are manually controlled through dialogue, other levels scale with floor.
-            # if name != 'normal':
-
             #All levels scale with floor:
             if True:
                 enemyCountMax = int(self.game.floors[name])

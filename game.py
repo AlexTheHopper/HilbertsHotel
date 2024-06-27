@@ -147,7 +147,7 @@ class Game:
                     tile = self.minimapList[loc]
                     pygame.draw.rect(self.minimapdisplay, (255,255,255, 200), (tile[0] * 8, tile[1] * 8, 8, 8))
                 self.minimapList = {}
-
+  
             #RENDER AND UPDATE ALL THE THINGS
             for portal in self.portals:
                 if not self.paused:
@@ -238,6 +238,7 @@ class Game:
             #Event handler
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    self.floors['infinite'] = 1
                     self.save_game(self.saveSlot)
                     pygame.quit()
                     sys.exit()
@@ -300,7 +301,7 @@ class Game:
 
             if self.dead:
                 self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
-                self.draw_text('You Died!', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
+                self.draw_text('YOU DIED', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center')
 
                 self.draw_text(self.deathMessage, (self.screen_width / 2, self.screen_height / 2 - 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 self.draw_text('Deaths: ' + str(self.deathCount), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
@@ -364,7 +365,7 @@ class Game:
 
                 #SPECIAL CASES:
                 #e.g. dont unlock dialogue if in wrong floor etc.
-                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin', 'Rubik']
+                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin', 'Rubik', 'Cantor']
                 if (character.name in characterMoveToLobby) & (index >= 1) & (self.currentLevel != 'lobby'):
                     success = False         
 
@@ -480,14 +481,27 @@ class Game:
         if self.dead:
             self.health = self.maxHealth
             for currency in self.wallet:
+                self.walletTemp[currency] = 0 if not self.infiniteModeActive else int(self.walletTemp[currency] / 2)
+                self.wallet[currency] += self.walletTemp[currency]
                 self.walletTemp[currency] = 0
 
-        elif not self.dead:
+            if self.previousLevel == 'infinite':
+                self.floors['infinite'] = 1
+            self.infiniteModeActive = False
+
+        elif not self.dead and not self.infiniteModeActive:
             for currency in self.wallet:
                 self.wallet[currency] += self.walletTemp[currency]
                 self.walletTemp[currency] = 0
-            if not self.initialisingGame and self.currentLevel == 'lobby' and self.previousLevel != 'lobby':
+
+            if not self.initialisingGame and (self.currentLevel == 'lobby') and self.previousLevel != 'lobby':
                 self.floors[self.previousLevel] += 1
+        
+        elif not self.dead and self.infiniteModeActive and self.previousLevel == 'infinite':
+            self.floors[self.previousLevel] += 1
+
+        if self.nextLevel != 'infinite':
+            self.floors['infinite'] = 1
                 
         #Spawn in leaf particle spawners
         self.potplants = []
@@ -500,7 +514,7 @@ class Game:
         self.characters = []
         self.extraEntities = []
         self.spawnPoints = []
-        spawner_list = [('spawners', n) for n in range(0, 17)]
+        spawner_list = [('spawners', n) for n in range(0, 18)]
 
         for spawner in self.tilemap.extract(spawner_list):
             #Player
@@ -547,6 +561,10 @@ class Game:
             elif spawner['variant'] == 16 and (self.charactersMet['Rubik'] or self.currentLevel != 'lobby'):
                 self.characters.append(Rubik(self, spawner['pos'], (8,15)))
 
+            #Character - Rubik
+            elif spawner['variant'] == 17 and (self.charactersMet['Cantor'] or self.currentLevel != 'lobby'):
+                self.characters.append(Cantor(self, spawner['pos'], (8,15)))
+
             #GlowWorm
             elif spawner['variant'] == 5:
                 self.extraEntities.append(Glowworm(self, spawner['pos'], (5, 5)))
@@ -580,7 +598,7 @@ class Game:
             elif spawner['variant'] == 15:
                 self.enemies.append(RubiksCube(self, spawner['pos'], (16, 16)))
             
-        portal_list = [('spawnersPortal', n) for n in range(0, 5)]
+        portal_list = [('spawnersPortal', n) for n in range(0, 6)]
         for portal in self.tilemap.extract(portal_list):
 
             #To Lobby
@@ -602,6 +620,10 @@ class Game:
             #To rubiks
             elif portal['variant'] == 4 and self.portalsMet['rubiks']:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'rubiks'))
+
+            #To infinite
+            elif portal['variant'] == 5 and self.portalsMet['infinite']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'infinite'))
                 
         self.dead = False
         self.player.velocity = [0, 0]
@@ -665,7 +687,14 @@ class Game:
         depth = 0
         for currency in self.wallet:
             if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
-                currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if (self.currentLevel != 'lobby' and not self.dead and self.walletTemp[currency]) else '') + (' (' + str(self.walletLostAmount[currency]) + ' lost)' if (self.dead and currency not in self.notLostOnDeath) else '') 
+
+                if self.infiniteModeActive:
+                    extra = (' (' + str(self.walletGainedAmount[currency]) + ' gained)' if (self.dead) else '') 
+                else:
+                    extra = (' (' + str(self.walletLostAmount[currency]) + ' lost)' if (self.dead and currency not in self.notLostOnDeath) else '') 
+
+                currencyDisplay = str(self.wallet[currency]) + (' + ('+str(self.walletTemp[currency])+')' if (self.currentLevel != 'lobby' and not self.dead and self.walletTemp[currency]) else '') + extra
+                
                 self.HUDdisplay.blit(self.displayIcons[currency], (10, 10 + depth*30))
                 self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, textCol, (0, 0), scale = 0.5)
                 depth += 1
@@ -686,6 +715,7 @@ class Game:
             if self.interractionFrame:
                 self.paused = False
                 self.currentLevel = 'lobby'
+                self.floors['infinite'] = 1
                 self.save_game(self.saveSlot)
                 self.__init__()
                 self.loadMenu()
@@ -717,6 +747,7 @@ class Game:
             'grassBackground': load_image('misc/grassBackground.png'),
             'spookyBackground': load_image('misc/spookyBackground.png'),
             'rubiksBackground': load_image('misc/rubiksBackground.png'),
+            'infiniteBackground': load_image('misc/rubiksBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'weapons/gun': load_images('weapons/gun'),
@@ -763,12 +794,12 @@ class Game:
         for currency in ['cog', 'redCog', 'blueCog', 'purpleCog', 'wing', 'heartFragment', 'eye', 'chitin', 'hammer']:
             self.assets[f'{currency}/idle'] = Animation(load_images(f'currencies/{currency}/idle'), img_dur = 6)
        
-        for levelType in ['lobby', 'normal', 'grass', 'spooky', 'rubiks']:
+        for levelType in ['lobby', 'normal', 'grass', 'spooky', 'rubiks', 'infinite']:
             self.assets[f'portal{levelType}/idle'] = Animation(load_images(f'entities/.portals/portal{levelType}/idle'), img_dur = 6)
             self.assets[f'portal{levelType}/opening'] = Animation(load_images(f'entities/.portals/portal{levelType}/opening'), img_dur = 6, loop = False)
             self.assets[f'portal{levelType}/active'] = Animation(load_images(f'entities/.portals/portal{levelType}/active'), img_dur = 6)
 
-        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin', 'rubik']:
+        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin', 'rubik', 'cantor']:
             self.assets[f'{character}/idle'] = Animation(load_images(f'entities/.characters/{character}/idle'), img_dur = 10)
             self.assets[f'{character}/run'] = Animation(load_images(f'entities/.characters/{character}/run'), img_dur = 4)
             self.assets[f'{character}/jump'] = Animation(load_images(f'entities/.characters/{character}/jump'), img_dur = 5)
@@ -778,10 +809,12 @@ class Game:
 
         self.walletTemp = {}
         self.walletLostAmount = {}
+        self.walletGainedAmount = {}
         self.displayIcons = {}
         for currency in self.wallet:
             self.walletTemp[currency] = 0
             self.walletLostAmount[currency] = ''
+            self.walletGainedAmount[currency] = ''
             self.displayIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
         self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
         
@@ -793,7 +826,8 @@ class Game:
            'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
            'ding': pygame.mixer.Sound('data/sfx/ding.wav'),
            'textBlip': pygame.mixer.Sound('data/sfx/textBlip.wav'),
-           'coin': pygame.mixer.Sound('data/sfx/coin.wav')
+           'coin': pygame.mixer.Sound('data/sfx/coin.wav'),
+           'dashClick': pygame.mixer.Sound('data/sfx/dashClick.wav')
        }
         
         self.sfx['jump'].set_volume(0.7)
@@ -804,6 +838,7 @@ class Game:
         self.sfx['ambience'].set_volume(0.2)
         self.sfx['textBlip'].set_volume(0.25)
         self.sfx['ding'].set_volume(0.1)
+        self.sfx['dashClick'].set_volume(0.1)
 
         self.windowIcon = load_image('misc/windowIcon.png')
         pygame.display.set_icon(self.windowIcon)
@@ -861,6 +896,16 @@ class Game:
             pass
             
         return floorList
+    
+    def getRandomLevel(self):
+        availableFloors = []
+        for level in self.floors.keys():
+            if self.floors[level] > 1 and level != 'infinite':
+                availableFloors.append(level)
+        try:
+            return random.choice(availableFloors)
+        except IndexError:
+            return 'normal'
     
 
     def removeBrokenTunnels(self):

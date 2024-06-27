@@ -16,17 +16,13 @@ def process_image(image_path, save_path):
     # Iterate through each pixel and change H and S to the V value
     for i in range(hsv_array.shape[0]):
         for j in range(hsv_array.shape[1]):
-            if i > 0 and j in range(4,12):
+            if i > 0 and j in range(7,9):
 
-                v = hsv_array[i, j, 2]
-                if v not in [40,41]:
+                diff = hsv_array[i, j, 2] - 79
+                new = 79 - diff
+                hsv_array[i, j, 2] = new
 
-                    hsv_array[i, j, 1] = 255  # Set S to V
-                    hsv_array[i, j, 2] = 255  # Set S to V
-                    hsv_array[i, j, 0] = random.choice([0, 36, 60, 120, 240])  # Set H to V
-                    hsv_array[i, j, 0] = int(hsv_array[i, j, 0] / 1.41)
-                    if hsv_array[i, j, 0] == 0 and random.random() < 0.5:
-                        hsv_array[i, j, 1] = 0
+                
                 
 
     # Convert numpy array back to image

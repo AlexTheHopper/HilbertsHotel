@@ -533,6 +533,7 @@ class Portal(physicsEntity):
             'grass': [(36, 120, 29), (12, 62, 8)],
             'spooky': [(55, 20, 15), (108, 50, 40)],
             'rubiks': [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)]}
+        self.colours['infinite'] = [colour for colours in self.colours.values() for colour in colours]
         
         if self.game.currentLevel == 'lobby':
             self.set_action('active')
@@ -560,7 +561,18 @@ class Portal(physicsEntity):
         #Collision and level change
         playerRect = self.game.player.rect()
         if self.rect().colliderect(playerRect) and self.action == 'active' and self.game.transition == 0:
-            self.game.transitionToLevel(self.destination)
+            if not self.game.infiniteModeActive or self.game.interractionFrame:
+                if self.destination == 'infinite':
+                    self.game.infiniteModeActive = True    
+                else: 
+                    self.game.infiniteModeActive = False       
+                self.game.transitionToLevel(self.destination)
+
+            else:
+                xpos = 2 * (self.rect().centerx - self.game.render_scroll[0])
+                ypos = 2 * (self.rect().centery - self.game.render_scroll[1]) - 30
+                self.game.draw_text('(z)', (xpos, ypos), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
+            
 
     def render(self, surface, offset = (0, 0)):
         super().render(surface, offset = offset)
@@ -684,7 +696,7 @@ class Player(physicsEntity):
 
                     self.game.wallet['hammers'] -= 1
 
-        if abs(self.dashing) in {60, 50}:
+        elif abs(self.dashing) in {60, 50}:
             if self.game.transition < 1:
                 for _ in range(20):
                     angle = random.random() * math.pi * 2
@@ -692,10 +704,20 @@ class Player(physicsEntity):
                     p_velocity = [math.cos(angle) * speed, math.sin(angle) * speed]
                     self.game.particles.append(Particle(self.game, 'particle' + str(self.game.powerLevel), self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
 
+        elif abs(self.dashing) == 1:
+            self.game.sfx['dashClick'].play()
+            for _ in range(20):
+                angle = random.random() * 2 * math.pi
+                speed = random.random() * 1.5
+                p_velocity = [math.cos(angle) * speed, math.sin(angle) * speed]
+                self.game.particles.append(Particle(self.game, 'particle' + str(self.game.powerLevel), self.rect().center, vel=p_velocity, frame = random.randint(0,7)))
+
+
         if self.dashing > 0:
             self.dashing = max(0, self.dashing - 1)
         elif self.dashing < 0:
             self.dashing = min(0, self.dashing + 1)
+
 
         if self.velocity[0] > 0:
             self.velocity[0] = max(self.velocity[0] - 0.1, 0)
@@ -784,12 +806,14 @@ class Player(physicsEntity):
                 nameVowel = True if self.game.enemyNames[type][0].lower() in ['a', 'e', 'i', 'o', 'u'] else False
                 randomVerb = random.choice(self.game.deathVerbs)
                 self.game.deathMessage = 'You were ' + randomVerb + ' by a' + ('n ' if nameVowel else ' ') + self.game.enemyNames[type]
-
                 for currency in self.game.wallet:
                     if currency not in self.game.notLostOnDeath:
-                        lostAmount = math.floor(self.game.wallet[currency] * 0.25)
+                        lostAmount = math.floor(self.game.wallet[currency] * 0.25) if self.game.currentLevel != 'infinite' else 0
                         self.game.wallet[currency] -= lostAmount
                         self.game.walletLostAmount[currency] = lostAmount
+
+                    if self.game.currentLevel == 'infinite':
+                        self.game.walletGainedAmount[currency] = int(self.game.walletTemp[currency] / 2)
 
             else:
                 self.game.screenshake = max(5, self.game.screenshake)
@@ -887,6 +911,9 @@ class Glowworm(physicsEntity):
             #Third priority go to active portal
             if len(self.game.portals) > 0 and checkPortal:
                 portal = random.choice(self.game.portals)
+                for p in self.game.portals:
+                    if p.destination == 'infinite':
+                        portal = p
                 if np.linalg.norm((self.pos[0] - portal.pos[0], self.pos[1] - portal.pos[1])) > self.hoverDistance:
                     directionExtra = [self.pos[0] - portal.pos[0], self.pos[1] - portal.pos[1]]
                 else:
@@ -952,7 +979,7 @@ class RolyPoly(physicsEntity):
 
         self.attackPower = 1
         self.cogCount = random.randint(0,3)
-        self.eyeCount = random.randint(1,3)  
+        self.eyeCount = random.randint(1,5)  
 
         self.size = list(size)
         self.speed = round(random.random() * 0.5 + 0.5, 2)
