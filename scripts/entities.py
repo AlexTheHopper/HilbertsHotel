@@ -127,7 +127,7 @@ class physicsEntity:
             surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
 
 
-    def kill(self, intensity = 10, cogCount = 0, redCogCount = 0, blueCogCount = 0, purpleCogCount = 0, heartFragmentCount = 0, wingCount = 0, eyeCount = 0, chitinCount = 0):
+    def kill(self, intensity = 10, cogCount = 0, redCogCount = 0, blueCogCount = 0, purpleCogCount = 0, heartFragmentCount = 0, wingCount = 0, eyeCount = 0, chitinCount = 0, fairyBreadCount = 0):
         self.game.screenshake = max(intensity, self.game.screenshake)
         self.game.sfx['hit'].play()
         for _ in range(intensity):
@@ -136,8 +136,8 @@ class physicsEntity:
             self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random() * (intensity / 10)))
             self.game.particles.append(Particle(self.game, 'particle1', self.rect().center, vel = [math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame = random.randint(0,7)))
         
-        self.game.sparks.append(Spark(self.rect().center, 0, intensity / 2))
-        self.game.sparks.append(Spark(self.rect().center, math.pi, intensity / 2))
+        self.game.sparks.append(Spark(self.rect().center, 0, intensity / 4))
+        self.game.sparks.append(Spark(self.rect().center, math.pi, intensity / 4))
 
         #Create currencies
         spawnLoc = (int(self.pos[0] // self.game.tilemap.tile_size), int(self.pos[1] // self.game.tilemap.tile_size))
@@ -159,10 +159,12 @@ class physicsEntity:
             self.game.currencyEntities.append(Currency(self.game, 'eye', spawnLoc))
         for _ in range(chitinCount):
             self.game.currencyEntities.append(Currency(self.game, 'chitin', spawnLoc))
+        for _ in range(fairyBreadCount):
+            self.game.currencyEntities.append(Currency(self.game, 'fairyBread', spawnLoc))
 
 
 class Bat(physicsEntity):
-    def __init__(self, game, pos, size):
+    def __init__(self, game, pos, size, graceDone = False, velocity = [0, 0]):
         super().__init__(game, 'bat', pos, size)
 
         self.cogCount = random.randint(0,3)
@@ -170,12 +172,17 @@ class Bat(physicsEntity):
         self.wingCount = (1 if random.random() < 0.8 else 0)
 
         self.attackPower = 1
-        self.deathIntensity = 5
+        self.deathIntensity = 10
 
         self.gravityAffected = False
         self.grace = random.randint(90,210)
-        self.graceDone = False
+        self.graceDone = graceDone
         self.set_action('grace')
+        if self.graceDone:
+            self.set_action('attacking')
+            self.timer = 120
+            self.velocity = velocity
+        
         self.isAttacking = False
         self.anim_offset = [-2, -1]
         self.timer = 0
@@ -242,7 +249,7 @@ class Bat(physicsEntity):
             
         #Also dies if hit by bullet:
         for projectile in self.game.projectiles:
-            if self.rect().collidepoint(projectile.pos):
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
                 self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, wingCount = self.wingCount)
                 self.game.projectiles.remove(projectile)
                 return True
@@ -265,7 +272,7 @@ class Bat(physicsEntity):
 class GunGuy(physicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'gunguy', pos, size)
-        self.deathIntensity = 5
+        self.deathIntensity = 15
         self.difficultyLevel = 1
         self.walking = 0
         self.flying = 0
@@ -279,7 +286,7 @@ class GunGuy(physicsEntity):
         self.weapon = 'gun' if self.intelligence < 2 else ('staff' if random.random() < (0.85 if self.game.currentLevel == 'spooky' else 0.25) else 'gun')
 
         self.witch = False
-        if self.weapon == 'staff' and self.game.currentLevel == 'spooky' and random.random() < 0.5:
+        if self.weapon == 'staff' and self.game.floors['spooky'] > 1 and random.random() < 0.5:
             self.witch = True
 
         self.staffCooldown = 120
@@ -353,20 +360,17 @@ class GunGuy(physicsEntity):
                     if self.weapon == 'staff':
                         toPlayer = (self.game.player.pos[0] - self.pos[0] + (bulletOffset[0] if self.flip_x else -bulletOffset[0]), self.game.player.pos[1] - self.pos[1])
                         bulletVelocity = toPlayer / np.linalg.norm(toPlayer) * 1.5 
-                        self.staffCooldown = 0     
+                        self.staffCooldown = 0
                     
-                    #Create bullet
-                    if self.flip_x:
+                    #Create bullet/bat
+                    if self.witch and random.random() < 0.25:
+                        batpos = (self.pos[0] - self.pos[0] % self.game.tilemap.tilesize, self.pos[1] - self.pos[1] % self.game.tilemap.tilesize - 5)
+                        self.game.enemies.append(Bat(self.game, batpos, (10, 10), graceDone = True, velocity = bulletVelocity))
+                    else:
                         self.game.sfx['shoot'].play()
                         self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity, self.label))
                         for _ in range(4):
-                            self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + math.pi, 2 + random.random()))
-                    
-                    else:
-                        self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx + bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity, self.label))
-                        for _ in range(4):
-                            self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5, 2 + random.random()))
+                            self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + (math.pi if self.flip_x else 0), 2 + random.random()))
                     
             elif self.walking:
                 #Check jump condition, tilemap infront and above:
@@ -440,7 +444,7 @@ class GunGuy(physicsEntity):
 
             #Attack condition
             if (random.random() < 0.02 and not self.shootCountdown):
-                #Gun:
+       
                 if self.weapon == 'gun':
                     disty = self.game.player.pos[1] - self.pos[1]
                     distx = self.game.player.pos[0] - self.pos[0]
@@ -450,6 +454,7 @@ class GunGuy(physicsEntity):
                         if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
                             self.shootCountdown = 60
                             self.walking = 0
+
                 elif self.weapon == 'staff' and not self.staffCooldown:
                    
                     x1, y1 = self.pos[0], self.pos[1]
@@ -532,7 +537,8 @@ class Portal(physicsEntity):
             'normal': [(58, 6, 82), (111, 28, 117)],
             'grass': [(36, 120, 29), (12, 62, 8)],
             'spooky': [(55, 20, 15), (108, 50, 40)],
-            'rubiks': [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)]}
+            'rubiks': [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)],
+            'aussie': [(55, 20, 15)]}
         self.colours['infinite'] = [colour for colours in self.colours.values() for colour in colours]
         
         if self.game.currentLevel == 'lobby':
@@ -561,7 +567,7 @@ class Portal(physicsEntity):
         #Collision and level change
         playerRect = self.game.player.rect()
         if self.rect().colliderect(playerRect) and self.action == 'active' and self.game.transition == 0:
-            if not self.game.infiniteModeActive or self.game.interractionFrame:
+            if not self.game.infiniteModeActive or self.game.interractionFrameZ:
                 if self.destination == 'infinite':
                     self.game.infiniteModeActive = True    
                 else: 
@@ -664,13 +670,15 @@ class Player(physicsEntity):
         if abs(self.dashing) > 50:
             
             self.downwards = self.game.movement[3] - self.game.movement[2]
-            self.velocity[1] = self.downwards * 8
-
+            
             self.sideways = self.game.movement[1] - self.game.movement[0]
             if self.sideways == 0 and not self.downwards:
-                self.sideways = 1 - 2*self.flip_x    
-            self.velocity[0] = self.sideways * 8
+                self.sideways = 1 - 2 * self.flip_x   
 
+            #Set dashing vel. and normalise for diagonal movement
+            self.velocity[1] = self.downwards * 8 / (math.sqrt(2) if self.sideways else 1)
+            self.velocity[0] = self.sideways * 8 / (math.sqrt(2) if self.downwards else 1)
+            
             if abs(self.dashing) == 51:
                 self.velocity[0] *= 0.1
                 self.velocity[1] *= 0.1
@@ -695,6 +703,8 @@ class Player(physicsEntity):
                             self.game.tunnelsBroken[tunnelName] = True
 
                     self.game.wallet['hammers'] -= 1
+
+        
 
         elif abs(self.dashing) in {60, 50}:
             if self.game.transition < 1:
@@ -938,13 +948,13 @@ class Glowworm(physicsEntity):
 
 
 class Bullet():
-    def __init__(self, game, pos, speed, origin):
+    def __init__(self, game, pos, speed, origin, type = 'projectile'):
         self.attackPower = 1
 
         self.pos = list(pos)
         self.game = game
         self.speed = list(speed)
-        self.type = 'projectile'
+        self.type = type
         self.origin = origin
         self.img = self.game.assets[self.type]
         self.anim_offset = (-2, 0)
@@ -959,8 +969,9 @@ class Bullet():
        
         #Check to destroy
         if self.game.tilemap.solid_check(self.pos):
-            for _ in range(4):
-                self.game.sparks.append(Spark(self.pos, random.random() - 0.5 + (math.pi if self.speed[0] > 0 else 0), 2 + random.random()))
+            if self.type == 'projectile':
+                for _ in range(4):
+                    self.game.sparks.append(Spark(self.pos, random.random() - 0.5 + (math.pi if self.speed[0] > 0 else 0), 2 + random.random()))
             return True
         
         #Check for player collision:
@@ -969,7 +980,7 @@ class Bullet():
                 self.game.player.damage(self.attackPower, self.origin)
                 return True
 
-        if self.game.caveDarkness:
+        if self.game.caveDarkness and self.type == 'projectile':
             self.game.darknessCircle(0, 15, (int(self.pos[0]) - self.game.render_scroll[0] + (1 if self.speed[0] < 0 else -1), int(self.pos[1]) - self.game.render_scroll[1]))
 
 
@@ -980,6 +991,8 @@ class RolyPoly(physicsEntity):
         self.attackPower = 1
         self.cogCount = random.randint(0,3)
         self.eyeCount = random.randint(1,5)  
+
+        self.deathIntensity = 10
 
         self.size = list(size)
         self.speed = round(random.random() * 0.5 + 0.5, 2)
@@ -1028,13 +1041,13 @@ class RolyPoly(physicsEntity):
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
-                self.kill(cogCount = self.cogCount, eyeCount = self.eyeCount)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, eyeCount = self.eyeCount)
                 return True
             
         #Also dies if hit by bullet:
         for projectile in self.game.projectiles:
-            if self.rect().collidepoint(projectile.pos):
-                self.kill(cogCount = self.cogCount, eyeCount = self.eyeCount)
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, eyeCount = self.eyeCount)
                 self.game.projectiles.remove(projectile)
                 return True
             
@@ -1051,13 +1064,13 @@ class RolyPoly(physicsEntity):
        
 
 class SpawnPoint(physicsEntity):
-    def __init__(self, game, pos, size, action = 'idle'):
+    def __init__(self, game, pos, size):
         super().__init__(game, 'spawnPoint', pos, size)
 
         self.gravityAffected = False
         self.collideWallCheck = False
         self.collideWall = False
-        self.set_action(action)
+        self.set_action('active' if self.pos == self.game.spawnPoint else 'idle')
 
         self.anim_offset = [0,-1]
 
@@ -1081,6 +1094,30 @@ class SpawnPoint(physicsEntity):
                 speed = random.random() * 3
                 self.game.sparks.append(Spark(self.rect().center, angle, speed, color = random.choice([(58, 6, 82), (111, 28, 117)])))
 
+class HeartAltar(physicsEntity):
+    def __init__(self, game, pos, size, action = 'active'):
+        super().__init__(game, 'heartAltar', pos, size)
+
+        self.gravityAffected = False
+        self.collideWallCheck = False
+        self.collideWall = False
+        self.set_action(action)
+
+        self.anim_offset = [0, 0]
+        self.animation.img_duration += (self.animation.img_duration*random.random()) 
+
+
+    def update(self, tilemap, movement = (0, 0)):         
+        super().update(tilemap, movement = movement)  
+
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) > 50 and self.action == 'active':
+            self.game.check_encounter('heartAltars')
+
+            if self.game.health < self.game.maxHealth:
+                self.game.health += 1
+                self.set_action('idle')
+                self.game.sfx['ding'].play()
+                
 
 class Torch(physicsEntity):
     def __init__(self, game, pos, size, action = 'idle'):
@@ -1119,7 +1156,7 @@ class Spider(physicsEntity):
         self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
         self.chitinCount = random.randint(0, 3)
         self.attackPower = 1
-        self.deathIntensity = 5
+        self.deathIntensity = 10
         
         self.grace = random.randint(90,210)
         self.graceDone = False
@@ -1130,7 +1167,7 @@ class Spider(physicsEntity):
         self.pos[1] += 5
         self.timer = 0
         self.toPlayer = [0, 0]
-        self.facing = [random.random() - 0.5, random.random() - 0.5]#[0, -1]
+        self.facing = [random.random() - 0.5, random.random() - 0.5]
         
     
     def update(self, tilemap, movement = (0, 0)):
@@ -1178,7 +1215,7 @@ class Spider(physicsEntity):
             
         #Also dies if hit by bullet:
         for projectile in self.game.projectiles:
-            if self.rect().collidepoint(projectile.pos):
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
                 self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, chitinCount = self.chitinCount)
                 self.game.projectiles.remove(projectile)
                 return True
@@ -1206,7 +1243,7 @@ class RubiksCube(physicsEntity):
         self.blueCogCount = 0
         self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
         self.attackPower = 1
-        self.deathIntensity = 5
+        self.deathIntensity = 10
         
         self.grace = random.randint(90,210)
         self.graceDone = False
@@ -1226,6 +1263,11 @@ class RubiksCube(physicsEntity):
                 self.set_action(random.choice(self.states))
                 self.timer = random.randint(120,300)             
                 self.graceDone = True
+                if self.action == 'red':
+                    self.redCogCount = random.randint(1, 5)
+                elif self.action == 'blue':
+                    self.blueCogCount = random.randint(1, 5)
+                    
             self.animation.update()
 
         if self.graceDone:
@@ -1280,7 +1322,7 @@ class RubiksCube(physicsEntity):
             
         #Also dies if hit by bullet:
         for projectile in self.game.projectiles:
-            if self.rect().collidepoint(projectile.pos):
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
                 self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, redCogCount = self.redCogCount, blueCogCount = self.blueCogCount, heartFragmentCount = self.heartFragmentCount)
                 self.game.projectiles.remove(projectile)
                 return True
@@ -1289,3 +1331,179 @@ class RubiksCube(physicsEntity):
         if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'idle':
             if not self.game.dead:
                 self.game.player.damage(self.attackPower, self.type)
+
+
+class Kangaroo(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'kangaroo', pos, size)
+
+        self.cogCount = random.randint(0,3)
+        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.fairyBreadCount = random.randint(0, 4)
+        self.attackPower = 1
+        self.deathIntensity = 10
+        
+        self.grace = random.randint(90,210)
+        self.graceDone = False
+        self.gravityAffected = True
+        self.set_action('grace')
+        self.anim_offset = [0, 0]
+        self.timer = 0
+        self.timeSinceBounce = 0
+        self.flip_x = True if random.random() < 0.5 else False
+        
+    
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
+        
+        if not self.graceDone:
+            self.grace = max(0, self.grace - 1)
+            if self.grace == 0:
+                self.set_action('idle')
+                self.timer = random.randint(30,90)             
+                self.graceDone = True
+            self.animation.update()
+
+        if self.graceDone:
+            if self.action == 'idle':
+                self.timer = max(self.timer - 1, 0)
+
+                if not self.timer:
+                    ###JUMP ROUGHLY IN DIRECTION OF PLAYER
+                    self.set_action('jumping')
+                    if self.pos[0] < self.game.player.pos[0]:
+                        self.flip_x = False
+                    else:
+                        self.flip_x = True
+                    
+                    self.velocity[0] = -(random.random() + 1.5) if self.flip_x else (random.random() + 1.5)
+                    self.velocity[1] = -(random.random() * 2.5 + 1)
+                    self.timeSinceBounce = 0
+                    self.timer = random.randint(120,300)
+                    
+            elif self.action == 'jumping':
+                self.timer = max(self.timer - 1, 0)
+                self.timeSinceBounce = min(self.timeSinceBounce + 1, 10)
+                self.velocity[0] *= 0.99
+                self.velocity[1] *= 0.99
+
+                if self.collisions['left'] or self.collisions['right'] and self.timeSinceBounce >= 10:
+                    self.timeSinceBounce = 0
+                    self.velocity[0] = -self.velocity[0]
+                    self.flip_x = not self.flip_x
+
+                if self.collisions['down']:
+                    posCentre = [self.rect().centerx, self.rect().centery]
+                    if tilemap.solid_check([posCentre[0], posCentre[1] + tilemap.tilesize], returnValue = 'bool'):
+                        self.velocity = [0, 0]
+
+                        self.timer = random.randint(90, 120)
+                        self.set_action('idle')                    
+                
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount)
+                return True
+            
+        #Also dies if hit by bullet:
+        for projectile in self.game.projectiles:
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount)
+                self.game.projectiles.remove(projectile)
+                return True
+
+        #Check for player collision:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'grace':
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower, self.type)
+
+
+class Echidna(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'echidna', pos, size)
+
+        self.cogCount = random.randint(0,3)
+        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.fairyBreadCount = random.randint(0, 4)
+        self.attackPower = 1
+        self.deathIntensity = 10
+        
+        self.grace = random.randint(90,210)
+        self.graceDone = False
+        self.gravityAffected = True
+        self.set_action('grace')
+        self.anim_offset = [0, 0]
+        self.timer = 0
+        
+    
+    def update(self, tilemap, movement = (0, 0)):
+        if not self.graceDone:
+            self.grace = max(0, self.grace - 1)
+            if self.grace == 0:
+                self.set_action('idle')
+                self.timer = random.randint(30,90)             
+                self.graceDone = True
+            self.animation.update()
+
+        if self.graceDone:
+            if self.action == 'idle':
+                self.timer = max(self.timer - 1, 0)
+
+                if not self.timer:
+                    self.set_action('walking')
+                    self.timer = random.randint(120,180)
+                    self.velocity = [-random.random() if self.flip_x else random.random(), 0]
+
+                elif random.random() < 0.005:
+                    self.set_action('charging')
+                    self.velocity = [0, 0]
+
+            if self.action == 'walking':
+                self.timer = max(self.timer - 1, 0)
+
+                floorCheck = tilemap.solid_check((self.rect().centerx + (-8 if self.flip_x else 8), self.rect().centery + 16))
+
+                if self.collisions['left'] or self.collisions['right'] or not floorCheck:
+
+                    self.flip_x = not self.flip_x
+                    self.set_action('idle')
+                    self.timer = random.randint(120,180) 
+                    self.velocity = [0, 0]
+
+                elif random.random() < 0.005:
+                    self.set_action('charging')
+                    self.velocity = [0, 0]
+                    
+            elif self.action == 'charging':
+                #When animation finishes, shoot spines in random directions and go to idle.
+                if self.animation.done:
+
+                    for _ in range(10):
+                        angle = random.random() * math.pi + math.pi
+                        spineVelocity = [2*math.cos(angle), 2*math.sin(angle)]
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx, self.rect().centery], spineVelocity, 'echidna', type = 'spine'))
+                    self.game.projectiles.append(Bullet(self.game, [self.rect().centerx, self.rect().centery], [2, 0], 'echidna', type = 'spine'))
+                    self.game.projectiles.append(Bullet(self.game, [self.rect().centerx, self.rect().centery], [-2, 0], 'echidna', type = 'spine'))
+                    self.set_action('idle')  
+                    self.timer = random.randint(120,180)                
+                
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount)
+                return True
+            
+        #Also dies if hit by bullet:
+        for projectile in self.game.projectiles:
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount)
+                self.game.projectiles.remove(projectile)
+                return True
+
+        #Check for player collision:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'grace':
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower, self.type)
+        
+        super().update(tilemap, movement = movement)

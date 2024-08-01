@@ -43,12 +43,15 @@ def initialiseGameParams(game):
     game.talking = False
     game.dead = False
     game.deathCount = 0
-    game.interractionFrame = False
+    game.interractionFrameZ = False
+    game.interractionFrameS = False
+    game.interractionFrameV = False
     game.caveDarknessRange = (50,250)
     game.caveDarkness = True
     game.minPauseDarkness = 150
     game.minimapActive = False
     game.minimapList = {}
+    game.currencyEntities = []
 
     game.currentTextList = []
     game.maxCharactersLine = 55
@@ -58,11 +61,13 @@ def initialiseGameParams(game):
     game.currentLevel = 'lobby'
     game.nextLevel = 'lobby'
     game.infiniteModeActive = False
+    game.infiniteFloorMax = 1
     game.floors = {
         'normal': 1,
         'grass': 1,
         'spooky': 1,
         'rubiks': 1,
+        'aussie': 1,
         'infinite': 1
         }
     
@@ -71,19 +76,29 @@ def initialiseGameParams(game):
         'normal': {'decorationMod': 2,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                 ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                 ['large_decor', [0], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]]]},
 
         'grass': {'decorationMod': 15,
                   'decorations': [['decor', range(0,2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                ['spawners', [18], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                 ['large_decor', [1], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]],
                                 ['large_decor', [2], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]]]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                 ['spawners', [12], 1, [[0, 0], [0, 1]], ['any', [1, 0], [-1, 0]], [[0], [0]]]]},
 
         'rubiks': {'decorationMod': 1,
-                   'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]]]}
+                   'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
+
+        'aussie': {'decorationMod': 1,
+                   'decorations': [['cacti', range(0, 2), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['cacti', [2], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
+                                   ['cacti', [3], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]],
+                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]}
         }
 
     game.availableEnemyVariants = {
@@ -94,7 +109,9 @@ def initialiseGameParams(game):
         'spooky': [3, 13],
         'spookyWeights': [1, 1],
         'rubiks': [3, 15],
-        'rubiksWeights': [1, 1]
+        'rubiksWeights': [1, 1],
+        'aussie': [3],
+        'aussieWeights': [1]
     }
 
     #Screen and display
@@ -117,6 +134,8 @@ def initialiseGameParams(game):
     game.currentLevelSize = 15
     game.notLostOnDeath = ['hammers']
     game.spawnPoint = False
+    game.screenshakeOn = True
+    game.volumeOn = True
 
     game.wallet = {
         'cogs': 0,
@@ -127,6 +146,7 @@ def initialiseGameParams(game):
         'wings': 0,
         'eyes': 0,
         'chitins': 0,
+        'fairyBreads': 0,
         'hammers': 0
     }
 
@@ -202,7 +222,11 @@ def initialiseGameParams(game):
                 '4available': False,
                 '4said': False,
                 '5available': False,
-                '5said': False},
+                '5said': False,
+                '6available': False,
+                '6said': False,
+                '7available': False,
+                '7said': False},
 
         'Franklin': {'0available': True,
                 '0said': False,
@@ -227,7 +251,18 @@ def initialiseGameParams(game):
                 '1available': False,
                 '1said': False,
                 '2available': False,
-                '2said': False}
+                '2said': False},
+
+        'Melatos': {'0available': True,
+                '0said': False,
+                '1available': False,
+                '1said': False,
+                '2available': False,
+                '2said': False,
+                '3available': False,
+                '3said': False,
+                '4available': False,
+                '4said': False}
 
     }
 
@@ -240,7 +275,8 @@ def initialiseGameParams(game):
         'Lorenz': False,
         'Franklin': False,
         'Rubik': False,
-        'Cantor': False
+        'Cantor': False,
+        'Melatos': False
     }
 
     game.portalsMet = {
@@ -249,12 +285,14 @@ def initialiseGameParams(game):
         'grass': False,
         'spooky': True,
         'rubiks': True,
+        'aussie': True,
         'infinite': True
     }
 
 
     game.encountersCheck = {
         'spawnPoints': False,
+        'heartAltars': False,
         'cogs': False,
         'redCogs': False,
         'blueCogs': False,
@@ -263,11 +301,13 @@ def initialiseGameParams(game):
         'wings': False,
         'eyes': False,
         'chitins': False,
+        'fairyBreads': False,
         'hammers': False
     }
 
     game.encountersCheckText = {
         'spawnPoints': ['Spawn Point: Activate to change your spawn point in the lobby!'],
+        'heartAltars': ['Heart Altar: Gives you a handy lil heart back! Only if you have an empty one though.'],
         'cogs': ['Cogs: Handy little machinery parts. Can be used to fix things. Found commonly everywhere.'],
         'redCogs': ['Red Cogs: Just like a normal cog, but fancier! And Red!'],
         'blueCogs': ['Blue Cogs: Just like a normal cog, but fancier! And Blue!'],
@@ -276,6 +316,7 @@ def initialiseGameParams(game):
         'wings': ['Wings: The poor bat. Can be used to increase amounts of jumps in the air. Common drop from flying enemies.'],
         'eyes': ['Eyes: Ew this is just getting disgusting. The more you have, the more you can see. Common drop from roly-poly eyeballs.'],
         'chitins': ['Chitin: What the hell is this thing? Apparently some strong stuff in insects, this could probably increase the power of your smacks.'],
+        'fairyBreads': ['Fairy Bread: Only the most delicious snack that has ever existed.'],
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.']
     }
 
@@ -283,14 +324,16 @@ def initialiseGameParams(game):
         'tunnel1': False,
         'tunnel2': False,
         'tunnel3': False,
-        'tunnel4': False
+        'tunnel4': False,
+        'tunnel5': False
     }
 
     game.tunnelPositions = {
         'tunnel1': [[x, y] for x in range(36, 54) for y in range(-1,1)],
         'tunnel2': [[x, y] for x in range(-17, 1) for y in range(-1,1)],
         'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)],
-        'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33,-30)]
+        'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33,-30)],
+        'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33,-30)]
     }
 
     #Death message stuff
@@ -313,7 +356,9 @@ def initialiseGameParams(game):
         'bat': 'Bat',
         'rolypoly': 'Roly Poly',
         'spider': 'Spider',
-        'rubiksCube': 'Rubik\'s Cube'
+        'rubiksCube': 'Rubik\'s Cube',
+        'kangaroo': 'Kangaroo',
+        'echidna': 'Echidna'
     }
     game.deathVerbs = ['killed', 
                        'vanquished', 

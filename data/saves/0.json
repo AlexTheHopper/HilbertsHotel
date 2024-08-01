@@ -1,37 +1,44 @@
 {
     "wallet": {
-        "cogs": 314,
+        "cogs": 186,
         "redCogs": 0,
         "blueCogs": 0,
         "purpleCogs": 0,
-        "heartFragments": 12,
-        "wings": 21,
-        "eyes": 0,
-        "hammers": 0
+        "heartFragments": 40,
+        "wings": 12,
+        "eyes": 12,
+        "hammers": 0,
+        "fairyBreads": 0,
+        "chitins": 10
     },
     "maxHealth": 4,
-    "powerLevel": 1,
-    "difficulty": 1,
+    "powerLevel": 2,
+    "difficulty": 2,
     "tempHealth": 0,
     "totalJumps": 4,
-    "health": 4,
+    "health": 3,
     "tunnelsBroken": {
-        "tunnel1": false,
-        "tunnel2": false,
+        "tunnel1": true,
+        "tunnel2": true,
         "tunnel3": false,
         "tunnel4": false
     },
-    "deathCount": 1,
+    "deathCount": 5,
     "floors": {
-        "normal": 35,
-        "grass": 1,
-        "spooky": 1,
+        "normal": 37,
+        "grass": 13,
+        "spooky": 13,
         "rubiks": 1,
+        "aussie": 1,
         "infinite": 1
     },
-    "spawnPoint": false,
+    "infiniteFloorMax": 1,
+    "spawnPoint": [
+        -384,
+        0
+    ],
     "enemyCountMax": 30,
-    "mapSize": 50,
+    "mapSize": 45,
     "availableEnemyVariants": {
         "normal": [
             3,
@@ -64,14 +71,25 @@
         "rubiksWeights": [
             1,
             1
+        ],
+        "aussie": [
+            3,
+            19
+        ],
+        "aussieWeights": [
+            1,
+            3
         ]
     },
+    "screenshakeOn": true,
+    "volumeOn": true,
     "portalsMet": {
         "lobby": true,
         "normal": true,
         "grass": true,
         "spooky": true,
         "rubiks": true,
+        "aussie": true,
         "infinite": true
     },
     "charactersMet": {
@@ -80,21 +98,25 @@
         "Curie": true,
         "Planck": true,
         "Faraday": true,
-        "Lorenz": false,
-        "Franklin": false,
+        "Lorenz": true,
+        "Franklin": true,
         "Rubik": false,
-        "Cantor": false
+        "Cantor": false,
+        "Melatos": false
     },
     "encountersCheck": {
-        "spawnPoints": false,
-        "cogs": false,
-        "redCogs": false,
+        "spawnPoints": true,
+        "heartAltars": true,
+        "cogs": true,
+        "redCogs": true,
         "blueCogs": false,
         "purpleCogs": false,
-        "heartFragments": false,
-        "wings": false,
-        "eyes": false,
-        "hammers": false
+        "heartFragments": true,
+        "wings": true,
+        "eyes": true,
+        "hammers": true,
+        "fairyBreads": false,
+        "chitins": true
     },
     "dialogue": {
         "Hilbert": {
@@ -111,9 +133,9 @@
             "5available": true,
             "5said": true,
             "6available": true,
-            "6said": false,
-            "7available": false,
-            "7said": false,
+            "6said": true,
+            "7available": true,
+            "7said": true,
             "8available": false,
             "8said": false
         },
@@ -163,25 +185,29 @@
         },
         "Lorenz": {
             "0available": true,
-            "0said": false,
-            "1available": false,
-            "1said": false,
-            "2available": false,
-            "2said": false,
-            "3available": false,
-            "3said": false,
-            "4available": false,
-            "4said": false,
+            "0said": true,
+            "1available": true,
+            "1said": true,
+            "2available": true,
+            "2said": true,
+            "3available": true,
+            "3said": true,
+            "4available": true,
+            "4said": true,
             "5available": false,
-            "5said": false
+            "5said": false,
+            "6available": false,
+            "6said": false,
+            "7available": false,
+            "7said": false
         },
         "Franklin": {
             "0available": true,
-            "0said": false,
-            "1available": false,
-            "1said": false,
-            "2available": false,
-            "2said": false,
+            "0said": true,
+            "1available": true,
+            "1said": true,
+            "2available": true,
+            "2said": true,
             "3available": false,
             "3said": false,
             "4available": false,
@@ -202,6 +228,18 @@
             "1said": false,
             "2available": false,
             "2said": false
+        },
+        "Melatos": {
+            "0available": true,
+            "0said": false,
+            "1available": false,
+            "1said": false,
+            "2available": false,
+            "2said": false,
+            "3available": false,
+            "3said": false,
+            "4available": false,
+            "4said": false
         }
     }
 }

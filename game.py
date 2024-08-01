@@ -18,7 +18,8 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        pygame.display.set_caption('Hilbert\'s Hotel v0.2.2')
+        gameVersion = '0.3.0'
+        pygame.display.set_caption(f'Hilbert\'s Hotel v{gameVersion}')
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()       
 
@@ -27,7 +28,7 @@ class Game:
         initialiseGameParams(self)
         self.loadGameAssets()
       
-        #Initialise map 
+        #Initialise player and map 
         self.player = Player(self, (0, 0), (8, 12))
         self.tilemap = tileMap(self, tile_size = 16)
         
@@ -36,7 +37,7 @@ class Game:
 
         inMenu = True
         saveSlots = [0, 1, 2]
-        savedFloors = self.getSavedFloors()
+        savedDeaths = self.getSavedDeaths()
         hoverSlot = 0
         deleting = 0
         
@@ -44,16 +45,18 @@ class Game:
         notSelected = (1, 1, 1)
         
         self.clouds = Clouds(self.assets['clouds'], count = 20)
+
+        background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
+        foreground = pygame.transform.scale(self.assets['menuBackgroundHHForeground'], (self.screen_width / 2, self.screen_height / 2))
         
         while inMenu:
-            background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
+            
             self.display_outline.blit(background, (0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
 
             self.clouds.update()
             self.clouds.render(self.display_outline, offset = self.render_scroll)
 
-            foreground = pygame.transform.scale(self.assets['menuBackgroundHHForeground'], (self.screen_width / 2, self.screen_height / 2))
             self.display_outline.blit(foreground, (0, 0))
 
             #Delete save if held for 5 secs
@@ -61,7 +64,7 @@ class Game:
                 deleting = max(deleting - 1, 0)
                 if deleting == 0:
                     self.delete_save(hoverSlot % len(saveSlots))
-                    savedFloors = self.getSavedFloors()
+                    savedDeaths = self.getSavedDeaths()
             
             #Displaying menu HUD:
             displaySlot = (hoverSlot % len(saveSlots))
@@ -71,14 +74,14 @@ class Game:
             if deleting:
                 self.draw_text('Deleting save ' + str(hoverSlot % len(saveSlots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's', (self.screen_width * (3/4), 140), self.text_font, (200, 0, 0), (0, 0), scale = 0.5, mode = 'center')
             
-            self.draw_text('Save 0', (self.screen_width * (3/4) - 120, 170), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
-            self.draw_text(str(savedFloors[0]), (self.screen_width * (3/4) - 120, 200), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
+            self.draw_text('Save 0', (self.screen_width * (3/4) - 160, 170), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
+            self.draw_text(str(savedDeaths[0]), (self.screen_width * (3/4) - 160, 200), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
             
             self.draw_text('Save 1', (self.screen_width * (3/4), 170), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center')
-            self.draw_text(str(savedFloors[1]), (self.screen_width * (3/4), 200), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center', scale = 0.75)
+            self.draw_text(str(savedDeaths[1]), (self.screen_width * (3/4), 200), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center', scale = 0.75)
             
-            self.draw_text('Save 2', (self.screen_width * (3/4) + 120, 170), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
-            self.draw_text(str(savedFloors[2]), (self.screen_width * (3/4) + 120, 200), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center', scale = 0.75) 
+            self.draw_text('Save 2', (self.screen_width * (3/4) + 160, 170), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
+            self.draw_text(str(savedDeaths[2]), (self.screen_width * (3/4) + 160, 200), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center', scale = 0.75) 
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -109,12 +112,12 @@ class Game:
             self.screen.blit(self.HUDdisplay, (0, 0))
             pygame.display.update()
             self.clock.tick(self.fps)
-            self.interractionFrame = False
+            self.interractionFrameZ = False
+            
             
     def run(self, saveSlot):
-        pygame.mixer.music.load('data/music.wav')
-        pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
+        
+        self.sfx['music'].play(-1)
 
         self.saveSlot = saveSlot
         self.load_game(self.saveSlot)
@@ -184,7 +187,7 @@ class Game:
                       pos = (rect.x + rect.width * random.random(), rect.y + rect.height * random.random())
                       self.particles.append(Particle(self, 'leaf', pos, vel = [0, random.uniform(0.2, 0.4)], frame = random.randint(0, 10)))
 
-            for currencyItem in self.currencyEntities:
+            for currencyItem in self.currencyEntities.copy():
                 if not self.paused:
                     if currencyItem.update(self.tilemap, (0, 0)):
                         self.currencyEntities.remove(currencyItem)
@@ -233,13 +236,22 @@ class Game:
                 self.transition += 1
             
             #Remove interaction frame
-            self.interractionFrame = False
+            self.interractionFrameZ = False
+            self.interractionFrameS = False
+            self.interractionFrameV = False
                     
             #Event handler
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.floors['infinite'] = 1
+                    
+                    #Add important items left on ground:
+                    for currency in self.currencyEntities:
+                        type = str(currency.currencyType) + 's'
+                        if type in self.notLostOnDeath:
+                            self.wallet[type] += currency.value
                     self.save_game(self.saveSlot)
+                    
                     pygame.quit()
                     sys.exit()
 
@@ -254,11 +266,16 @@ class Game:
                         self.movement[2] = True
                     if event.key == pygame.K_DOWN:
                         self.movement[3] = True
+                        self.player.gravity = 0.2
                     if event.key == pygame.K_x:
                         if not self.paused:
                             self.player.dash()
                     if event.key == pygame.K_z:
-                        self.interractionFrame = True
+                        self.interractionFrameZ = True
+                    if event.key == pygame.K_s:
+                        self.interractionFrameS = True
+                    if event.key == pygame.K_v:
+                        self.interractionFrameV = True
                     if event.key == pygame.K_ESCAPE:
                         if not self.talking and not self.dead:
                             self.paused = not self.paused
@@ -298,6 +315,7 @@ class Game:
                         self.movement[2] = False
                     if event.key == pygame.K_DOWN:
                         self.movement[3] = False
+                        self.player.gravity = 0.12
 
             if self.dead:
                 self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
@@ -307,7 +325,7 @@ class Game:
                 self.draw_text('Deaths: ' + str(self.deathCount), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 self.draw_text('Press z to Alive Yourself', (self.screen_width / 2, self.screen_height / 2 + 50), self.text_font, (200, 0, 0), self.render_scroll, mode = 'center', scale = 0.5)
                 
-                if self.interractionFrame:
+                if self.interractionFrameZ:
                     self.transitionToLevel('lobby')
 
             #Darkness effect blit:
@@ -315,7 +333,7 @@ class Game:
                 self.display_outline.blit(self.darkness_surface, (0, 0))         
             
             self.display.blit(self.display_outline, (0, 0))
-            screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) 
+            screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) if self.screenshakeOn else (0, 0)
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
             self.screen.blit(self.HUDdisplay, (0, 0))
             self.screen.blit(self.minimapdisplay, (3 * self.screen_width / 4, 3 * self.screen_height / 4))
@@ -365,7 +383,7 @@ class Game:
 
                 #SPECIAL CASES:
                 #e.g. dont unlock dialogue if in wrong floor etc.
-                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin', 'Rubik', 'Cantor']
+                characterMoveToLobby = ['Noether', 'Curie', 'Planck', 'Lorenz', 'Franklin', 'Rubik', 'Cantor', 'Melatos']
                 if (character.name in characterMoveToLobby) & (index >= 1) & (self.currentLevel != 'lobby'):
                     success = False         
 
@@ -400,10 +418,21 @@ class Game:
             if not isPrime(wallet[trade[1]]) or wallet[trade[1]] < trade[3]:
                 return False
             
+        #Reach a specific floor of a level:
+        elif trade[0] == 'floor':
+            #Check for maximum infinite floor
+            if trade[1] == 'infinite':
+                if self.infiniteFloorMax < trade[2]:
+                    return False
+            #Else check against current floor levels
+            elif self.floors[trade[1]] < trade[2]:
+                return False
+            
         #Also the previous dialogue needs to have been said:
         if index != 0:
             if not self.dialogueHistory[character.name][str(index - 1) + 'said']:
                 return False
+            
         #You can probably access the dialogue.
         return True
 
@@ -421,7 +450,7 @@ class Game:
             self.sfx['textBlip'].fadeout(50)
         
         #If all text in current chunk is displayed, move to next chunk.
-        if self.interractionFrame and self.textLength > 1:
+        if self.interractionFrameZ and self.textLength > 1:
             if self.textLength == self.textLengthEnd:
                 self.sfx['textBlip'].play(fade_ms = 50)
                 self.currentTextIndex += 1
@@ -471,42 +500,48 @@ class Game:
         #Save game:
         self.save_game(self.saveSlot)
 
+        #Add important items left on ground:
+        for currency in self.currencyEntities:
+            type = str(currency.currencyType) + 's'
+            if type in self.notLostOnDeath:
+                self.wallet[type] += currency.value
+
         self.particles = []
         self.projectiles = []
         self.currencyEntities = []
         self.sparks = []
         self.player.dashing = 0
         self.minimapList = {}
+
+        if self.nextLevel != 'infinite':
+            self.infiniteFloorMax = max(self.floors['infinite'], self.infiniteFloorMax)
+            self.floors['infinite'] = 1
         
         if self.dead:
             self.health = self.maxHealth
+            self.infiniteModeActive = False
             for currency in self.wallet:
                 self.walletTemp[currency] = 0 if not self.infiniteModeActive else int(self.walletTemp[currency] / 2)
                 self.wallet[currency] += self.walletTemp[currency]
                 self.walletTemp[currency] = 0
-
-            if self.previousLevel == 'infinite':
-                self.floors['infinite'] = 1
-            self.infiniteModeActive = False
 
         elif not self.dead and not self.infiniteModeActive:
             for currency in self.wallet:
                 self.wallet[currency] += self.walletTemp[currency]
                 self.walletTemp[currency] = 0
 
-            if not self.initialisingGame and (self.currentLevel == 'lobby') and self.previousLevel != 'lobby':
+            if not self.initialisingGame and (self.currentLevel == 'lobby') and self.previousLevel not in ['lobby', 'infinite']:
                 self.floors[self.previousLevel] += 1
         
         elif not self.dead and self.infiniteModeActive and self.previousLevel == 'infinite':
             self.floors[self.previousLevel] += 1
 
-        if self.nextLevel != 'infinite':
-            self.floors['infinite'] = 1
+        
                 
         #Spawn in leaf particle spawners
         self.potplants = []
         for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3), ('large_decor', 1), ('large_decor', 2)], keep = True):
-            self.potplants.append(pygame.Rect(plant['pos'][0], plant['pos'][1], 16 if plant['type'] == 'potplants' else 32, 16))
+            self.potplants.append(pygame.Rect(plant['pos'][0], plant['pos'][1], self.tilemap.tilesize if plant['type'] == 'potplants' else self.tilemap.tilesize*2, self.tilemap.tilesize))
 
         #Spawn in entities
         self.enemies = []
@@ -514,9 +549,8 @@ class Game:
         self.characters = []
         self.extraEntities = []
         self.spawnPoints = []
-        spawner_list = [('spawners', n) for n in range(0, 18)]
 
-        for spawner in self.tilemap.extract(spawner_list):
+        for spawner in self.tilemap.extract('spawners'):
             #Player
             if spawner['variant'] == 0:
                 #Spawn at spawnpoint if one is active, else default spawn pos.
@@ -527,7 +561,7 @@ class Game:
 
                 self.player.air_time = 0
                 self.player.pos[0] += 4
-                self.player.pos[1] += 4
+                self.player.pos[1] += 4      
                     
             #Character - Hilbert
             elif spawner['variant'] == 1 and self.charactersMet['Hilbert']:
@@ -561,9 +595,13 @@ class Game:
             elif spawner['variant'] == 16 and (self.charactersMet['Rubik'] or self.currentLevel != 'lobby'):
                 self.characters.append(Rubik(self, spawner['pos'], (8,15)))
 
-            #Character - Rubik
+            #Character - Cantor
             elif spawner['variant'] == 17 and (self.charactersMet['Cantor'] or self.currentLevel != 'lobby'):
                 self.characters.append(Cantor(self, spawner['pos'], (8,15)))
+
+            #Character - Rubik
+            elif spawner['variant'] == 21 and (self.charactersMet['Melatos'] or self.currentLevel != 'lobby'):
+                self.characters.append(Melatos(self, spawner['pos'], (8,15)))
 
             #GlowWorm
             elif spawner['variant'] == 5:
@@ -583,8 +621,7 @@ class Game:
 
             #SpawnPoint
             elif spawner['variant'] == 10:
-                setAction = 'active' if spawner['pos'] == self.spawnPoint else 'idle'
-                self.spawnPoints.append(SpawnPoint(self, spawner['pos'], (16, 16), action = setAction))
+                self.spawnPoints.append(SpawnPoint(self, spawner['pos'], (16, 16)))
 
             #Torch
             elif spawner['variant'] == 12:
@@ -597,9 +634,20 @@ class Game:
             #Cube
             elif spawner['variant'] == 15:
                 self.enemies.append(RubiksCube(self, spawner['pos'], (16, 16)))
+
+            #Heart Altar
+            elif spawner['variant'] == 18:
+                self.extraEntities.append(HeartAltar(self, spawner['pos'], (16, 16)))
+
+            #Kangaroo
+            elif spawner['variant'] == 19:
+                self.enemies.append(Kangaroo(self, spawner['pos'], (14, 11)))
             
-        portal_list = [('spawnersPortal', n) for n in range(0, 6)]
-        for portal in self.tilemap.extract(portal_list):
+            #Echidna
+            elif spawner['variant'] == 20:
+                self.enemies.append(Echidna(self, spawner['pos'], (14, 9)))
+            
+        for portal in self.tilemap.extract('spawnersPortal'):
 
             #To Lobby
             if portal['variant'] == 0 and self.portalsMet['lobby']:
@@ -624,6 +672,10 @@ class Game:
             #To infinite
             elif portal['variant'] == 5 and self.portalsMet['infinite']:
                 self.portals.append(Portal(self, portal['pos'], (16,16), 'infinite'))
+
+            #To Aussie
+            elif portal['variant'] == 6 and self.portalsMet['aussie']:
+                self.portals.append(Portal(self, portal['pos'], (16,16), 'aussie'))
                 
         self.dead = False
         self.player.velocity = [0, 0]
@@ -643,12 +695,12 @@ class Game:
             self.removeBrokenTunnels()
         elif self.currentLevel == 'normal':
             self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
-        elif self.currentLevel == 'grass':
+        elif self.currentLevel in ['grass', 'aussie']:
             self.caveDarkness = 0
         elif self.currentLevel == 'spooky':
             self.caveDarkness = random.randint(self.caveDarknessRange[1]-50, self.caveDarknessRange[1])
         elif self.currentLevel == 'rubiks':
-            self.caveDarkness = 100#random.randint(50, 100)
+            self.caveDarkness = 100
 
         self.update_dialogues()
         self.initialisingGame = False
@@ -677,13 +729,16 @@ class Game:
         
         if self.currentLevel != 'lobby':
             self.draw_text('Floor: ' + str(self.floors[self.currentLevel]), (self.screen_width - 10, 30), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')  
-            self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width - 10, 60), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')       
+            self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width / 2, 50), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'center')       
         else:
             self.draw_text('Floor: Lobby', (self.screen_width - 10, 30), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right') 
 
+        if self.player.total_jumps > 1:
+            self.draw_text('Total Jumps: ' + str(self.player.total_jumps), (self.screen_width - 10, 60), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')
+
         if self.powerLevel > 1:
             self.draw_text('Power: ' + str(self.powerLevel), (self.screen_width - 10, 90), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')  
-               
+              
         depth = 0
         for currency in self.wallet:
             if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
@@ -701,24 +756,33 @@ class Game:
 
         for n in range(self.maxHealth + self.temporaryHealth):
             if n < self.health:
-                heartImg = pygame.transform.scale(self.assets['heart'], (32, 32))
+                heartImg = self.assets['heart']
             elif n < self.maxHealth:
-                heartImg = pygame.transform.scale(self.assets['heartEmpty'], (32, 32))
+                heartImg = self.assets['heartEmpty']
             else:
-                heartImg = pygame.transform.scale(self.assets['heartTemp'], (32, 32))
+                heartImg = self.assets['heartTemp']
 
             self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - ((self.maxHealth + self.temporaryHealth) * 30) / 2 + n * 30, 10))
         
         if self.paused and not self.talking:
             self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
-            self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')        
-            if self.interractionFrame:
+            self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')
+            self.draw_text('Screenshake: ' + ('On' if self.screenshakeOn else 'Off') + ' (s)', (3 * self.screen_width / 4, self.screen_height - 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')               
+            self.draw_text('Volume: ' + ('On' if self.volumeOn else 'Off') + ' (v)', (self.screen_width / 4, self.screen_height - 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')               
+            if self.interractionFrameS:
+                self.screenshakeOn = not self.screenshakeOn
+            if self.interractionFrameV:
+                self.volumeOn = not self.volumeOn
+                for sound in self.sfxVolumes.keys():
+                    self.sfx[sound].set_volume(self.sfxVolumes[sound] if self.volumeOn else 0)
+            if self.interractionFrameZ:
                 self.paused = False
                 self.currentLevel = 'lobby'
                 self.floors['infinite'] = 1
                 self.save_game(self.saveSlot)
                 self.__init__()
                 self.loadMenu()
+            
             self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
 
         if self.talking:
@@ -733,11 +797,13 @@ class Game:
             'decor': load_images('tiles/decor'),
             'large_decor': load_images('tiles/large_decor'),
             'potplants': load_images('tiles/potplants'),
+            'cacti': load_images('tiles/cacti'),
             'stone': load_images('tiles/stone'),
             'grass': load_images('tiles/grass'),
             'normal': load_images('tiles/normal'),
             'spooky': load_images('tiles/spooky'),
             'rubiks': load_images('tiles/rubiks'),
+            'aussie': load_images('tiles/aussie'),
             'cracked': load_images('tiles/cracked'),
             'menuBackground': load_image('misc/menuBackground.png'),
             'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
@@ -747,16 +813,18 @@ class Game:
             'grassBackground': load_image('misc/grassBackground.png'),
             'spookyBackground': load_image('misc/spookyBackground.png'),
             'rubiksBackground': load_image('misc/rubiksBackground.png'),
+            'aussieBackground': load_image('misc/aussieBackground.png'),
             'infiniteBackground': load_image('misc/rubiksBackground.png'),
             'clouds': load_images('clouds'),
             'spawners': load_images('tiles/spawners'),
             'weapons/gun': load_images('weapons/gun'),
             'weapons/staff': load_images('weapons/staff'),
             'projectile': load_image('misc/projectile.png'),
-            'heart': load_image('misc/heart.png'),
+            'spine': load_image('misc/spine.png'),
+            'heart': pygame.transform.scale(load_image('misc/heart.png'), (32, 32)),
             'light': load_image('misc/light.png'),
-            'heartEmpty': load_image('misc/heartEmpty.png'),
-            'heartTemp': load_image('misc/heartTemp.png'),
+            'heartEmpty': pygame.transform.scale(load_image('misc/heartEmpty.png'), (32, 32)),
+            'heartTemp': pygame.transform.scale(load_image('misc/heartTemp.png'), (32, 32)),
             'witchHat': load_image('misc/witchHat.png'),
 
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
@@ -774,9 +842,19 @@ class Game:
             'spider/idle': Animation(load_images('entities/.enemies/spider/idle'), img_dur = 10),
             'spider/run': Animation(load_images('entities/.enemies/spider/run'), img_dur = 4),
             'spider/grace': Animation(load_images('entities/.enemies/spider/grace'), img_dur = 4),
+            'kangaroo/grace': Animation(load_images('entities/.enemies/kangaroo/grace'), img_dur = 4),
+            'kangaroo/idle': Animation(load_images('entities/.enemies/kangaroo/idle'), img_dur = 4),
+            'kangaroo/jumping': Animation(load_images('entities/.enemies/kangaroo/jumping'), img_dur = 4),
+            'echidna/grace': Animation(load_images('entities/.enemies/echidna/grace'), img_dur = 4),
+            'echidna/idle': Animation(load_images('entities/.enemies/echidna/idle'), img_dur = 4),
+            'echidna/walking': Animation(load_images('entities/.enemies/echidna/walking'), img_dur = 6),
+            'echidna/charging': Animation(load_images('entities/.enemies/echidna/charging'), img_dur = 30, loop = False),
 
             'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
             'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
+
+            'heartAltar/idle': Animation(load_images('entities/heartAltar/idle'), img_dur = 10),
+            'heartAltar/active': Animation(load_images('entities/heartAltar/active'), img_dur = 10),
 
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15),
@@ -791,22 +869,22 @@ class Game:
             self.assets[f'gunguy{gunguyColour}/grace'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/grace'), img_dur = 4)
             self.assets[f'gunguy{gunguyColour}/jump'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/jump'), img_dur = 20)
 
-        for currency in ['cog', 'redCog', 'blueCog', 'purpleCog', 'wing', 'heartFragment', 'eye', 'chitin', 'hammer']:
+        for currency in ['cog', 'redCog', 'blueCog', 'purpleCog', 'wing', 'heartFragment', 'eye', 'chitin', 'fairyBread', 'hammer']:
             self.assets[f'{currency}/idle'] = Animation(load_images(f'currencies/{currency}/idle'), img_dur = 6)
        
-        for levelType in ['lobby', 'normal', 'grass', 'spooky', 'rubiks', 'infinite']:
+        for levelType in ['lobby', 'normal', 'grass', 'spooky', 'rubiks', 'aussie', 'infinite']:
             self.assets[f'portal{levelType}/idle'] = Animation(load_images(f'entities/.portals/portal{levelType}/idle'), img_dur = 6)
             self.assets[f'portal{levelType}/opening'] = Animation(load_images(f'entities/.portals/portal{levelType}/opening'), img_dur = 6, loop = False)
             self.assets[f'portal{levelType}/active'] = Animation(load_images(f'entities/.portals/portal{levelType}/active'), img_dur = 6)
 
-        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin', 'rubik', 'cantor']:
+        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin', 'rubik', 'cantor', 'melatos']:
             self.assets[f'{character}/idle'] = Animation(load_images(f'entities/.characters/{character}/idle'), img_dur = 10)
             self.assets[f'{character}/run'] = Animation(load_images(f'entities/.characters/{character}/run'), img_dur = 4)
             self.assets[f'{character}/jump'] = Animation(load_images(f'entities/.characters/{character}/jump'), img_dur = 5)
 
         for n in range(1,5):
             self.assets[f'particle/particle{n}'] = Animation(load_images(f'particles/particle{n}'), img_dur = 6, loop = False)
-
+            
         self.walletTemp = {}
         self.walletLostAmount = {}
         self.walletGainedAmount = {}
@@ -816,29 +894,30 @@ class Game:
             self.walletLostAmount[currency] = ''
             self.walletGainedAmount[currency] = ''
             self.displayIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+        for floor in self.floors:
+            self.displayIcons[floor] = pygame.transform.scale(self.assets['normal' if floor == 'infinite' else floor][0 if floor == 'rubiks' else 1], (28,28))
         self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
+        self.displayIcons['heartAltars'] = pygame.transform.scale(self.assets['heartAltar/active'].images[0], (28,28))
         
-        self.sfx = {
-           'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
-           'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
-           'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
-           'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
-           'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
-           'ding': pygame.mixer.Sound('data/sfx/ding.wav'),
-           'textBlip': pygame.mixer.Sound('data/sfx/textBlip.wav'),
-           'coin': pygame.mixer.Sound('data/sfx/coin.wav'),
-           'dashClick': pygame.mixer.Sound('data/sfx/dashClick.wav')
-       }
-        
-        self.sfx['jump'].set_volume(0.7)
-        self.sfx['dash'].set_volume(0.2)
-        self.sfx['hit'].set_volume(0.8)
-        self.sfx['shoot'].set_volume(0.4)
-        self.sfx['coin'].set_volume(0.6)
-        self.sfx['ambience'].set_volume(0.2)
-        self.sfx['textBlip'].set_volume(0.25)
-        self.sfx['ding'].set_volume(0.1)
-        self.sfx['dashClick'].set_volume(0.1)
+        self.sfxVolumes = {
+            'music': 0.5,
+            'jump': 0.7,
+            'dash': 0.2,
+            'hit': 0.8,
+            'shoot': 0.4,
+            'coin': 0.6,
+            'ambience': 0.2,
+            'textBlip': 0.25,
+            'ding': 0.1,
+            'dashClick': 0.05
+        }
+
+        self.sfx = {}
+
+        for sound in self.sfxVolumes.keys():
+            
+            self.sfx[sound] = pygame.mixer.Sound(f'data/sfx/{sound}.wav')
+            self.sfx[sound].set_volume(self.sfxVolumes[sound])
 
         self.windowIcon = load_image('misc/windowIcon.png')
         pygame.display.set_icon(self.windowIcon)
@@ -878,15 +957,15 @@ class Game:
         pygame.draw.circle(self.darkness_surface, (0, 0, 0, transparency), pos, radius)
         
 
-    def getSavedFloors(self):
-        floorList = ['No Data', 'No Data', 'No Data']
-        for i in range(len(floorList)):
+    def getSavedDeaths(self):
+        deathList = ['No Data', 'No Data', 'No Data']
+        for i in range(len(deathList)):
             try:
                 f = open('data/saves/' + str(i) + '.json', 'r')
                 saveData = json.load(f)
                 f.close()
 
-                floorList[i] = 'Floor: ' + str(saveData['floors']['normal'])
+                deathList[i] = 'Deaths: ' + str(saveData['deathCount'])
                 
             except FileNotFoundError:
                 pass
@@ -895,7 +974,7 @@ class Game:
         except UnboundLocalError:
             pass
             
-        return floorList
+        return deathList
     
     def getRandomLevel(self):
         availableFloors = []
@@ -909,11 +988,10 @@ class Game:
     
 
     def removeBrokenTunnels(self):
-        for tunnel in self.tunnelsBroken:
-            if self.tunnelsBroken[tunnel] == True:
+        for tunnel in [e for e in self.tunnelsBroken if self.tunnelsBroken[e] == True]:
 
-                for loc in self.tunnelPositions[tunnel]:
-                    del self.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
+            for loc in self.tunnelPositions[tunnel]:
+                del self.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
 
 
     def delete_save(self, saveSlot):
@@ -937,10 +1015,13 @@ class Game:
                    'tunnelsBroken': self.tunnelsBroken,
                    'deathCount': self.deathCount,
                    'floors': self.floors,
+                   'infiniteFloorMax': self.infiniteFloorMax,
                    'spawnPoint': self.spawnPoint,
                    'enemyCountMax': self.enemyCountMax,
                    'mapSize': self.currentLevelSize,
                    'availableEnemyVariants': self.availableEnemyVariants,
+                   'screenshakeOn': self.screenshakeOn,
+                   'volumeOn': self.volumeOn,
                    'portalsMet': self.portalsMet,
                    'charactersMet': self.charactersMet,
                    'encountersCheck': self.encountersCheck,
@@ -962,10 +1043,13 @@ class Game:
                 self.tunnelsBroken = saveData['tunnelsBroken']
                 self.deathCount = saveData['deathCount']
                 self.floors = saveData['floors']
+                self.infiniteFloorMax = saveData['infiniteFloorMax']
                 self.spawnPoint = saveData['spawnPoint']
                 self.enemyCountMax = saveData['enemyCountMax']
                 self.currentLevelSize = saveData['mapSize']
                 self.availableEnemyVariants = saveData['availableEnemyVariants']
+                self.screenshakeOn = saveData['screenshakeOn']
+                self.volumeOn = saveData['volumeOn']
                 self.portalsMet = saveData['portalsMet']
                 self.charactersMet = saveData['charactersMet']
                 self.encountersCheck = saveData['encountersCheck']
@@ -975,6 +1059,9 @@ class Game:
             f = open('data/saves/' + str(saveSlot) + '.json', 'w')
             json.dump({'floor': self.floors}, f)
             f.close()
+
+        for sound in self.sfxVolumes.keys():
+            self.sfx[sound].set_volume(self.sfxVolumes[sound] if self.volumeOn else 0)
         
 
 if __name__ == '__main__':

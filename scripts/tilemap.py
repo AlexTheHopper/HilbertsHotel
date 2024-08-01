@@ -11,8 +11,8 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
-PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'cracked'}
-AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks'}
+PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'cracked'}
+AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
@@ -66,26 +66,46 @@ class tileMap:
                         self.game.minimapList[loc] = [(tile['pos'][0] * self.tile_size - offset[0]) / 16, (tile['pos'][1] * self.tile_size - offset[1]) / 16]
 
 
-    def extract(self, id_pairs, keep=False):
+    def extract(self, search, keep=False):
         matches = []
-        for tile in self.offgrid_tiles.copy():
-            
-            if (tile['type'], tile['variant']) in id_pairs:
-                matches.append(tile.copy())
+        if isinstance(search, list):
+            for tile in self.offgrid_tiles.copy():
+                
+                if (tile['type'], tile['variant']) in search:
+                    matches.append(tile.copy())
 
-                if not keep:
-                    self.offgrid_tiles.remove(tile)
+                    if not keep:
+                        self.offgrid_tiles.remove(tile)
 
-        for loc in self.tilemap.copy():
-            tile = self.tilemap[loc]
-            if (tile['type'], tile['variant']) in id_pairs:
-                matches.append(tile.copy())
-                matches[-1]['pos'] = matches[-1]['pos'].copy()
-                matches[-1]['pos'][0] *= self.tilesize
-                matches[-1]['pos'][1] *= self.tilesize
+            for loc in self.tilemap.copy():
+                tile = self.tilemap[loc]
+                if (tile['type'], tile['variant']) in search:
+                    matches.append(tile.copy())
+                    matches[-1]['pos'] = matches[-1]['pos'].copy()
+                    matches[-1]['pos'][0] *= self.tilesize
+                    matches[-1]['pos'][1] *= self.tilesize
 
-                if not keep:
-                    del self.tilemap[loc]
+                    if not keep:
+                        del self.tilemap[loc]
+        elif isinstance(search, str):
+            for tile in self.offgrid_tiles.copy():
+                
+                if tile['type'] == search:
+                    matches.append(tile.copy())
+
+                    if not keep:
+                        self.offgrid_tiles.remove(tile)
+
+            for loc in self.tilemap.copy():
+                tile = self.tilemap[loc]
+                if tile['type'] == search:
+                    matches.append(tile.copy())
+                    matches[-1]['pos'] = matches[-1]['pos'].copy()
+                    matches[-1]['pos'][0] *= self.tilesize
+                    matches[-1]['pos'][1] *= self.tilesize
+
+                    if not keep:
+                        del self.tilemap[loc]
         
         return matches
 
@@ -119,6 +139,12 @@ class tileMap:
         roomSize = size * 1
         corridorLengthMin = 5
         corridorLengthMax = int(size / 2)
+
+        #Floor specific alterations:
+        if levelType == 'aussie':
+            size *= 1.5
+            roomSize *= 2
+            roomCount *= 2
 
         buffer = 18
         self.mapSize = int(size + 2 * buffer)
@@ -159,8 +185,9 @@ class tileMap:
             currentRoomCount = 0
 
             while currentRoomCount < roomSize: 
-                currentDirection = [0, 0]           
-                currentDirection[random.randint(0,1)] = random.choice([-1,1])
+                currentDirection = [0, 0]
+                horiVert = random.choice([0, 1]) 
+                currentDirection[horiVert] = random.choice([-1,1])
                 newPos = [digPos[0] + currentDirection[0], digPos[1] + currentDirection[1]]
                 
                 if newPos[0] in range(buffer, self.mapSize - buffer) and newPos[1] in range(buffer, self.mapSize - buffer):
@@ -189,6 +216,7 @@ class tileMap:
         franklin_placed = False
         rubik_placed = False
         cantor_placed = False
+        melatos_placed = False
         enemyCount = 0
         attemptCounter = 0
 
@@ -202,8 +230,8 @@ class tileMap:
             #Important things:
             if not self.isTile([[x, y]]):
                 if self.isPhysicsTile([[x, y+1]]):
+
                     #Player
-                    print(levelType)
                     if not player_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 0, 'pos': [x, y]}
                         player_placed = True
@@ -239,9 +267,13 @@ class tileMap:
                     elif not self.game.charactersMet['Rubik'] and self.game.floors[levelType] > 1 and levelType == 'rubiks' and not rubik_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 16, 'pos': [x, y]}
                         rubik_placed = True
+                    elif not self.game.charactersMet['Melatos'] and self.game.floors[levelType] > 5 and levelType == 'aussie' and not melatos_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 21, 'pos': [x, y]}
+                        melatos_placed = True
                     elif not self.game.charactersMet['Cantor'] and self.game.floors['infinite'] > 5 and not cantor_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 17, 'pos': [x, y]}
                         cantor_placed = True
+                    
                            
                     #Add enemies:
                     else:
@@ -297,10 +329,12 @@ class tileMap:
                     else:
                         return False
                     
+                #also counts portal as physics tile to not block portal.
                 elif mode == 'any':
                     if loc in self.tilemap:
-                        if self.tilemap[loc]['type'] in PHYSICS_TILES:
+                        if self.tilemap[loc]['type'] in PHYSICS_TILES or self.tilemap[loc]['type'] == 'spawnersPortal':
                             return True
+                        
         return True if mode == 'all' else False
 
 
@@ -331,9 +365,11 @@ class tileMap:
     def load_tilemap(self, name = '', size = 50, enemyCountMax = 5):
         if name in self.game.floors.keys():
             #All levels scale with floor:
-            if True:
-                enemyCountMax = int(self.game.floors[name])
-                size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
+            enemyCountMax = int(self.game.floors[name])
+            size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
+            if name == 'infinite':
+                enemyCountMax *= 2
+                size += 5
                 
             self.load_random_tilemap(size, enemyCountMax, levelType = name)
             return()

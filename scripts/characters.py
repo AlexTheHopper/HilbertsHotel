@@ -23,7 +23,6 @@ class Character(physicsEntity):
     def update(self, tilemap, movement = (0, 0)):
         #Walking logic, turning around etc
         
-        
         if self.walking:
             if tilemap.solid_check((self.rect().centerx + (-7 if self.flip_x else 7), self.pos[1] + 23)):
                 if (self.collisions['left'] or self.collisions['right']):
@@ -63,19 +62,18 @@ class Character(physicsEntity):
             if requirementNum > 0:
                     offsetN = 0
                     for i, requirement in enumerate(self.currencyRequirements[self.currentDialogueIndex + 1]):
-
-                        self.game.HUDdisplay.blit(self.game.displayIcons[requirement[1]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos))
+                        #Display requirements above character:
+                        self.game.HUDdisplay.blit(self.game.displayIcons[requirement[1]], (xpos - (requirementNum * offsetLength) / 2 + offsetN * offsetLength + 10, ypos))
                         colour = (0,150,0) if self.currentTradeAbility[i] else (150,0,0)
-                        self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength, ypos - 2), self.game.text_font, colour, (0, 0), mode = 'left', scale = 0.75)
+                        self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirementNum * offsetLength) / 2 + offsetN * offsetLength + 10, ypos - 2), self.game.text_font, colour, (0, 0), mode = 'left', scale = 0.75)
                         offsetN += 1
             
             elif distToPlayer >= 15 and self.newDialogue:
                 self.game.draw_text('(!)', (xpos, ypos - (15 if requirementNum else -15)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
 
-
             if distToPlayer < 15:
                 self.game.draw_text('(z)', (xpos, ypos - (15 if requirementNum else -15)), self.game.text_font, (255, 255, 255), (0, 0), mode = 'center', scale = 0.75)
-                if self.game.interractionFrame:
+                if self.game.interractionFrameZ and not self.game.dead:
                     self.game.run_text(self)
 
 
@@ -127,6 +125,7 @@ class Hilbert(Character):
                     'How original...'],
 
             '1': ['Anyway, we\'ll need a few things to build a super secret weapon to fight back. Some of them are slightly odd, but trust in the process!',
+                  'You can travel up the hotel through my portal elevator!',
                   'Please bring me back the cogs that were stolen! I\'m gonna need about 5 to start this.'],
 
             '2': ['Thanks for getting some cogs woow!',
@@ -276,9 +275,9 @@ class Curie(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['purchase', 'wings', 25]],
-            3: [['purchase', 'wings', 50]],
-            4: [['purchase', 'wings', 100]]
+            2: [['purchase', 'wings', 20]],
+            3: [['purchase', 'wings', 35]],
+            4: [['purchase', 'wings', 50]]
         }
 
         self.dialogue = {
@@ -287,13 +286,13 @@ class Curie(Character):
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you winged boots! They let you jump more in the air!',
-                  'I just need a few bat wings! Bring me 25 and the extra jump is yours!'],
+                  'I just need a few bat wings! Bring me 20 and the extra jump is yours!'],
 
             '2': ['You\'ve got two jumps! Woo! Isn\'t this such a novel mechanic?',
-                    'I\'ll give ya another for 50 wings.'],
+                    'I\'ll give ya another for 35 wings.'],
 
             '3': ['You\'ve got three jumps! Woo! We\'re really pushing this double jump idea.',
-                    'I\'ll give ya another for 100 wings.'],
+                    'I\'ll give ya another for 50 wings.'],
             
             '4': ['You\'ve got four jumps! Woo! How many is too many?',
                   'Sorry chief! All out of boots for now.']}
@@ -306,17 +305,17 @@ class Curie(Character):
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 25
+            self.game.wallet['wings'] -= 20
 
         elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 50
+            self.game.wallet['wings'] -= 35
 
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 100
+            self.game.wallet['wings'] -= 50
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
@@ -405,7 +404,9 @@ class Lorenz(Character):
             2: [],
             3: [['prime', 'cogs', 'P']],
             4: [['primePurchase', 'cogs', 'P>50', 50]],
-            5: [['primePurchase', 'cogs', 'P>200', 200]]
+            5: [['primePurchase', 'cogs', 'P>200', 200]],
+            6: [['prime', 'redCogs', 'P'], ['prime', 'blueCogs', 'P']],
+            7: [['floor', 'spooky', 20], ['floor', 'rubiks', 20], ['floor', 'grass', 20]]
         }
 
         self.dialogue = {
@@ -432,7 +433,13 @@ class Lorenz(Character):
                   'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!'],
 
             '5': ['Hammer go smash!',
-                  'But at the moment hammer dont go smash I dont have anymore :(']}
+                  'I have another hammer, but now I want a prime number of a couple types of special cogs pls!'],
+                  
+            '6': ['Hammer go SMASH!',
+                  'I only have one more hammer, now can you reach the 20th floor on each of these three areas?'],
+                  
+            '7': ['Hammer go SMASH!!',
+                  'WOO! No more hammers well done!!']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -440,9 +447,16 @@ class Lorenz(Character):
             self.game.charactersMet['Lorenz'] = True
 
         if key in [3, 4, 5] and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.pos))
+            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
             self.game.wallet['cogs'] = 0
 
+        if key == 6 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
+            self.game.wallet['redCogs'] = 0
+            self.game.wallet['blueCogs'] = 0
+
+        if key == 7 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
         
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
@@ -556,7 +570,8 @@ class Cantor(Character):
                   'And every time you enter it, you go back to floor one. So you must climb up it all every time.',
                   'However it is quite nifty! When you enter here with a bunch of stuff, you are not at risk of losing it, only items you found in here will disappear.',
                   'And if you die, you only lose half of what you have collected!',
-                  'You could always come back to the lobby from any of the floors and save it all, but if you were a true madlad you would keep going until you die.']}
+                  'You could always come back to the lobby from any of the floors and save it all, but if you were a true madlad you would keep going until you die.',
+                  f'The furthest you have made it through The Infinite is to Floor {self.game.infiniteFloorMax}.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -567,3 +582,57 @@ class Cantor(Character):
 
     
     
+class Melatos(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Melatos')
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [['purchase', 'eyes', 25]],
+            3: [['floor', 'aussie', 15], ['purchase', 'wings', 25], ['purchase', 'heartFragments', 10]],
+            4: [['floor', 'aussie', 20], ['purchase', 'fairyBreads', 50]]
+        }
+
+        self.dialogue = {
+            '0': ['G\'day champ! I\'ve gone and found myself stuck in what appears to be stereotypical Australia.',
+                    'I will be following you out of here I think.'],
+
+            '1': ['Damn, now that I am out of there I\'m getting really peckish.',
+                  'Can you bring me something to eat?'],
+
+            '2': ['EW! No! I am not eating eyes, I\'m not Hilbert...',
+                    'Something MUCH more tasy, and Australian would be a win.',
+                    'I was just thinking that world isn\'t actually Australian enough, when I heard some lil cuties scurrying around!',
+                    'Can you explore it a bit for me, you should be able to find some prickly friends!'
+                    '(Also snacks pls)'],
+
+            '3': ['You absolutely cannot be serious? I am also not eating hearts and wings, you really have been spending too much time with Hilbert!',
+                    'Anyway, I saw a cute little friend through the portal, have you seen one yet?',
+                    'Keep exploring and I bet there are even more!',
+                    'Also bring me actual food please I beg you.'],
+            
+            '4': ['YESSS!! This is absolutely delicious oh my god. Fairy Bread, Echidnas AND Kangaroos! :O']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Melatos'] = True
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['eyes'] -= 25
+
+        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['wings'] -= 25
+            self.game.wallet['heartFragments'] -= 10
+
+            self.game.availableEnemyVariants['aussie'].append(19)
+            self.game.availableEnemyVariants['aussieWeights'].append(2)
+
+        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['fairyBreads'] -= 50
+
+            self.game.availableEnemyVariants['aussie'].append(20)
+            self.game.availableEnemyVariants['aussieWeights'].append(2)
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True

@@ -28,8 +28,8 @@ for filename in os.listdir(directory):
         # Loop through each pixel in the image data
         for item in data:
             # Change all black (also checking for transparency) pixels to white
-            if item[:3] == (63, 72, 204):
-                new_data.append((1, 1, 1))  # Preserve the alpha channel
+            if item[:3] == (255, 221, 0):
+                new_data.append((155, 187, 255))  # Preserve the alpha channel
 
             else:
                 new_data.append(item)
