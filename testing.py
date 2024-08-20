@@ -3,6 +3,13 @@ import math
 import random
 import numpy as np
 
+floor = 5
+
+if True:
+    if floor == 0:
+        continue
+    print('shoot')
+
 def generate(size):
     vertBuffer = 720 // (16 * 4)
     mapHeight = int(size + 2 * vertBuffer) 
@@ -79,6 +86,6 @@ def generate(size):
 
     return map
 
-for i in range(100,120):
-    plt.imshow(generate(i))
-    plt.show()
+# for i in range(100,120):
+#     plt.imshow(generate(i))
+#     plt.show()

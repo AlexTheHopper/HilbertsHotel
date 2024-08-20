@@ -2,7 +2,8 @@ import pygame
 import os
 import numpy as np
 import math
-import random
+from scripts.entities import *
+from scripts.characters import *
 
 BASE_PATH = 'data/images/'
 
@@ -68,6 +69,7 @@ def initialiseGameParams(game):
         'spooky': 1,
         'rubiks': 1,
         'aussie': 1,
+        'space': 1,
         'infinite': 1
         }
     
@@ -95,10 +97,14 @@ def initialiseGameParams(game):
                                 ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
         'aussie': {'decorationMod': 1,
-                   'decorations': [['cacti', range(0, 2), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['cacti', [2], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
-                                   ['cacti', [3], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]],
-                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]}
+                   'decorations': [['cacti', [0], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['cacti', [1], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
+                                   ['cacti', [2], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]],
+                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
+
+        'space': {'decorationMod': 1,
+                   'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
         }
 
     game.availableEnemyVariants = {
@@ -111,7 +117,48 @@ def initialiseGameParams(game):
         'rubiks': [3, 15],
         'rubiksWeights': [1, 1],
         'aussie': [3],
-        'aussieWeights': [1]
+        'aussieWeights': [1],
+        'space': [3, 22],
+        'spaceWeights': [1, 1]
+    }
+
+    game.entityInfo = {
+        1: {'type': 'character', 'object': Hilbert, 'name': 'Hilbert'},
+        6: {'type': 'character', 'object': Noether, 'name': 'Noether'},
+        7: {'type': 'character', 'object': Curie, 'name': 'Curie'},
+        8: {'type': 'character', 'object': Planck, 'name': 'Planck'},
+        2: {'type': 'character', 'object': Faraday, 'name': 'Faraday'},
+        11: {'type': 'character', 'object': Lorenz, 'name': 'Lorenz'},
+        14: {'type': 'character', 'object': Franklin, 'name': 'Franklin'},
+        16: {'type': 'character', 'object': Rubik, 'name': 'Rubik'},
+        17: {'type': 'character', 'object': Cantor, 'name': 'Cantor'},
+        21: {'type': 'character', 'object': Melatos, 'name': 'Melatos'},
+        23: {'type': 'character', 'object': Webster, 'name': 'Webster'},
+
+        5: {'type': 'extraEntity', 'object': Glowworm, 'size': (5,5)},
+        12: {'type': 'extraEntity', 'object': Torch, 'size': (16,16)},
+        18: {'type': 'extraEntity', 'object': HeartAltar, 'size': (16,16)},
+
+        10: {'type': 'spawnPoint', 'object': SpawnPoint, 'size': (16,16)},
+
+        3: {'type': 'enemy', 'object': GunGuy, 'size': (8,15)},
+        4: {'type': 'enemy', 'object': Bat, 'size': (6,6)},
+        9: {'type': 'enemy', 'object': RolyPoly, 'size': (12,12)},
+        13: {'type': 'enemy', 'object': Spider, 'size': (10,10)},
+        15: {'type': 'enemy', 'object': RubiksCube, 'size': (16,16)},
+        19: {'type': 'enemy', 'object': Kangaroo, 'size': (14,11)},
+        20: {'type': 'enemy', 'object': Echidna, 'size': (14,9)},
+        22: {'type': 'enemy', 'object': AlienShip, 'size': (12,8)},
+    }
+    game.portalInfo = {
+        0: 'lobby',
+        1: 'normal',
+        2: 'grass',
+        3: 'spooky',
+        4: 'rubiks',
+        5: 'infinite',
+        6: 'aussie',
+        7: 'space'
     }
 
     #Screen and display
@@ -147,6 +194,7 @@ def initialiseGameParams(game):
         'eyes': 0,
         'chitins': 0,
         'fairyBreads': 0,
+        'boxingGloves': 0,
         'hammers': 0
     }
 
@@ -169,7 +217,9 @@ def initialiseGameParams(game):
                 '7available': False,
                 '7said': False,
                 '8available': False,
-                '8said': False},
+                '8said': False,
+                '9available': False,
+                '9said': False},
 
         'Noether': {'0available': True,
                 '0said': False,
@@ -226,7 +276,9 @@ def initialiseGameParams(game):
                 '6available': False,
                 '6said': False,
                 '7available': False,
-                '7said': False},
+                '7said': False,
+                '8available': False,
+                '8said': False},
 
         'Franklin': {'0available': True,
                 '0said': False,
@@ -251,9 +303,24 @@ def initialiseGameParams(game):
                 '1available': False,
                 '1said': False,
                 '2available': False,
-                '2said': False},
+                '2said': False,
+                '3available': False,
+                '3said': False},
 
         'Melatos': {'0available': True,
+                '0said': False,
+                '1available': False,
+                '1said': False,
+                '2available': False,
+                '2said': False,
+                '3available': False,
+                '3said': False,
+                '4available': False,
+                '4said': False,
+                '5available': False,
+                '5said': False},
+
+        'Webster': {'0available': True,
                 '0said': False,
                 '1available': False,
                 '1said': False,
@@ -276,7 +343,8 @@ def initialiseGameParams(game):
         'Franklin': False,
         'Rubik': False,
         'Cantor': False,
-        'Melatos': False
+        'Melatos': False,
+        'Webster': True
     }
 
     game.portalsMet = {
@@ -286,9 +354,9 @@ def initialiseGameParams(game):
         'spooky': True,
         'rubiks': True,
         'aussie': True,
+        'space': True,
         'infinite': True
     }
-
 
     game.encountersCheck = {
         'spawnPoints': False,
@@ -302,6 +370,7 @@ def initialiseGameParams(game):
         'eyes': False,
         'chitins': False,
         'fairyBreads': False,
+        'boxingGloves': False,
         'hammers': False
     }
 
@@ -317,6 +386,7 @@ def initialiseGameParams(game):
         'eyes': ['Eyes: Ew this is just getting disgusting. The more you have, the more you can see. Common drop from roly-poly eyeballs.'],
         'chitins': ['Chitin: What the hell is this thing? Apparently some strong stuff in insects, this could probably increase the power of your smacks.'],
         'fairyBreads': ['Fairy Bread: Only the most delicious snack that has ever existed.'],
+        'boxingGloves': ['Boxing Gloves: For some reason kangaroos got \'em. Punchy punch!'],
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.']
     }
 
@@ -325,7 +395,8 @@ def initialiseGameParams(game):
         'tunnel2': False,
         'tunnel3': False,
         'tunnel4': False,
-        'tunnel5': False
+        'tunnel5': False,
+        'tunnel6': False
     }
 
     game.tunnelPositions = {
@@ -333,7 +404,8 @@ def initialiseGameParams(game):
         'tunnel2': [[x, y] for x in range(-17, 1) for y in range(-1,1)],
         'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)],
         'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33,-30)],
-        'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33,-30)]
+        'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33,-30)],
+        'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51,-44)]
     }
 
     #Death message stuff
@@ -358,7 +430,9 @@ def initialiseGameParams(game):
         'spider': 'Spider',
         'rubiksCube': 'Rubik\'s Cube',
         'kangaroo': 'Kangaroo',
-        'echidna': 'Echidna'
+        'echidna': 'Echidna',
+        'meteor': 'Meteor',
+        'alienship': 'Alien Spaceship',
     }
     game.deathVerbs = ['killed', 
                        'vanquished', 

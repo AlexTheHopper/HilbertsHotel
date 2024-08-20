@@ -11,8 +11,8 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
-PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'cracked'}
-AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie'}
+PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
+AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
@@ -270,7 +270,7 @@ class tileMap:
                     elif not self.game.charactersMet['Melatos'] and self.game.floors[levelType] > 5 and levelType == 'aussie' and not melatos_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 21, 'pos': [x, y]}
                         melatos_placed = True
-                    elif not self.game.charactersMet['Cantor'] and self.game.floors['infinite'] > 5 and not cantor_placed:
+                    elif not self.game.charactersMet['Cantor'] and self.game.floors['infinite'] > 3 and not cantor_placed:
                         self.tilemap[loc] = {'type': 'spawners', 'variant': 17, 'pos': [x, y]}
                         cantor_placed = True
                     

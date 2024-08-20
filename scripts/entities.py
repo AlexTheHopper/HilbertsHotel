@@ -6,7 +6,6 @@ import numpy as np
 
 from scripts.particle import *
 from scripts.spark import *
-from scripts.utilities import *
 
 class physicsEntity:
     def __init__(self, game, e_type, pos, size):
@@ -26,7 +25,7 @@ class physicsEntity:
         self.anim_offset = (-3, -3)
         self.flip_x = False
         self.set_action('idle')
-        self.renderDistance = self.game.screen_width / 2
+        self.renderDistance = self.game.screen_width / 3
 
         self.last_movement = [0, 0]
 
@@ -42,6 +41,8 @@ class physicsEntity:
             self.animation = self.game.assets[self.type + '/' + self.action].copy()
 
     def update(self, tilemap, movement = (0, 0)):
+        # pygame.draw.rect(self.game.display_outline, (255,0,0), (1*(self.pos[0] - self.game.render_scroll[0]), 1*(self.pos[1] - self.game.render_scroll[1]), self.size[0], self.size[1]))
+        
         # Only update/render at close distances
         renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
         if renderDistToPlayer > self.renderDistance:
@@ -127,7 +128,7 @@ class physicsEntity:
             surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
 
 
-    def kill(self, intensity = 10, cogCount = 0, redCogCount = 0, blueCogCount = 0, purpleCogCount = 0, heartFragmentCount = 0, wingCount = 0, eyeCount = 0, chitinCount = 0, fairyBreadCount = 0):
+    def kill(self, intensity = 10, cogCount = 0, redCogCount = 0, blueCogCount = 0, purpleCogCount = 0, heartFragmentCount = 0, wingCount = 0, eyeCount = 0, chitinCount = 0, fairyBreadCount = 0, boxingGloveCount = 0):
         self.game.screenshake = max(intensity, self.game.screenshake)
         self.game.sfx['hit'].play()
         for _ in range(intensity):
@@ -161,6 +162,8 @@ class physicsEntity:
             self.game.currencyEntities.append(Currency(self.game, 'chitin', spawnLoc))
         for _ in range(fairyBreadCount):
             self.game.currencyEntities.append(Currency(self.game, 'fairyBread', spawnLoc))
+        for _ in range(boxingGloveCount):
+            self.game.currencyEntities.append(Currency(self.game, 'boxingGlove', spawnLoc))
 
 
 class Bat(physicsEntity):
@@ -184,7 +187,7 @@ class Bat(physicsEntity):
             self.velocity = velocity
         
         self.isAttacking = False
-        self.anim_offset = [-2, -1]
+        self.anim_offset = [-3, -2]
         self.timer = 0
         self.pos[1] += 9
         self.pos[0] += 4
@@ -255,8 +258,8 @@ class Bat(physicsEntity):
                 return True
 
         #Check for player collision, not dashing and in attack mode:
-        if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50 and self.action == 'attacking':
-            if not self.game.dead:
+        if self.game.player.rect().colliderect(self.rect()):
+            if abs(self.game.player.dashing) < 50 and self.action == 'attacking' and not self.game.dead:
                 self.game.player.damage(self.attackPower, self.type)
 
 
@@ -283,17 +286,19 @@ class GunGuy(physicsEntity):
         self.gravityAffected = True
         
         self.intelligence = math.floor(self.game.floors[str(self.game.currentLevel)] / 5) if self.game.currentLevel == 'normal' else 2
-        self.weapon = 'gun' if self.intelligence < 2 else ('staff' if random.random() < (0.85 if self.game.currentLevel == 'spooky' else 0.25) else 'gun')
+        self.weapon = 'gun' if self.intelligence < 2 else ('staff' if random.random() < (0.75 if self.game.currentLevel in ['spooky', 'space'] else 0.25) else 'gun')
 
         self.witch = False
-        if self.weapon == 'staff' and self.game.floors['spooky'] > 1 and random.random() < 0.5:
+        if ((self.weapon == 'staff' and self.game.floors['spooky'] > 1) or self.game.difficulty >= 2) and random.random() < 0.5:
+            self.witch = True
+        elif self.weapon == 'staff' and self.game.currentLevel == 'space' and random.random() < 0.75:
             self.witch = True
 
         self.staffCooldown = 120
         self.trajectory = [0, 0]
         self.colours = [(196, 44, 54), (120, 31, 44)]
 
-        if self.game.difficulty >= 2 and self.game.currentLevel == 'normal':
+        if self.game.difficulty >= 2 and self.game.currentLevel in ['normal', 'space']:
             self.difficultyLevel = random.randint(0, self.game.difficulty)
             if self.difficultyLevel == 2:
                 self.type = 'gunguyOrange'
@@ -327,7 +332,7 @@ class GunGuy(physicsEntity):
         renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
         if renderDistToPlayer > self.renderDistance:
             return False
-        
+
         if not self.graceDone:
             self.grace = max(0, self.grace - 1)
             if self.grace == 0:
@@ -362,13 +367,26 @@ class GunGuy(physicsEntity):
                         bulletVelocity = toPlayer / np.linalg.norm(toPlayer) * 1.5 
                         self.staffCooldown = 0
                     
-                    #Create bullet/bat
-                    if self.witch and random.random() < 0.25:
+                    #Create bullet/bat/meteor
+                    if self.witch and self.game.currentLevel == 'space':
+                        #Find empty space near/on player and summon meteor
+                        foundSpot = False
+                        checkSpot = [0, 0]
+                        playerPosTile = (self.game.player.pos[0] // self.game.tilemap.tilesize, self.game.player.pos[1] // self.game.tilemap.tilesize)
+                        
+                        while not foundSpot:
+                            checkSpot[0], checkSpot[1] = int(playerPosTile[0] + random.choice(range(-3,4))), int(playerPosTile[1] + random.choice(range(-2,3)))
+                            locStr = str(checkSpot[0]) + ';' + str(checkSpot[1])
+                            if locStr not in self.game.tilemap.tilemap:
+                                foundSpot = True
+                        self.game.extraEntities.append(Meteor(self.game, (checkSpot[0] * self.game.tilemap.tilesize, checkSpot[1] * self.game.tilemap.tilesize), (16, 16)))
+
+                    elif self.witch and random.random() < 0.25:
                         batpos = (self.pos[0] - self.pos[0] % self.game.tilemap.tilesize, self.pos[1] - self.pos[1] % self.game.tilemap.tilesize - 5)
                         self.game.enemies.append(Bat(self.game, batpos, (10, 10), graceDone = True, velocity = bulletVelocity))
                     else:
                         self.game.sfx['shoot'].play()
-                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - bulletOffset[0], self.rect().centery + bulletOffset[1]], bulletVelocity, self.label))
+                        self.game.projectiles.append(Bullet(self.game, [self.rect().centerx - (bulletOffset[0] if self.flip_x else -bulletOffset[0]), self.rect().centery + bulletOffset[1]], bulletVelocity, self.label))
                         for _ in range(4):
                             self.game.sparks.append(Spark(self.game.projectiles[-1].pos, random.random() - 0.5 + (math.pi if self.flip_x else 0), 2 + random.random()))
                     
@@ -443,37 +461,45 @@ class GunGuy(physicsEntity):
                     self.walking = random.randint(30, 120)
 
             #Attack condition
-            if (random.random() < 0.02 and not self.shootCountdown):
+            if (random.random() < 0.02):
+                if self.game.floors[self.game.currentLevel] != 1 and not self.shootCountdown:
        
-                if self.weapon == 'gun':
-                    disty = self.game.player.pos[1] - self.pos[1]
-                    distx = self.game.player.pos[0] - self.pos[0]
-                    #Y axis condition:
-                    if abs(disty) < self.attack_dist_y and not self.game.dead:
-                        #X axis condition
-                        if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
+                    if self.weapon == 'gun':
+                        disty = self.game.player.pos[1] - self.pos[1]
+                        distx = self.game.player.pos[0] - self.pos[0]
+                        #Y axis condition:
+                        if abs(disty) < self.attack_dist_y and not self.game.dead:
+                            #X axis condition
+                            if (self.flip_x and distx < 0) or (not self.flip_x and distx > 0):
+                                self.shootCountdown = 60
+                                self.walking = 0
+
+                    elif self.weapon == 'staff' and self.game.currentLevel == 'space':
+                        distToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
+
+                        if distToPlayer < self.game.screen_width / 8:
                             self.shootCountdown = 60
                             self.walking = 0
 
-                elif self.weapon == 'staff' and not self.staffCooldown:
-                   
-                    x1, y1 = self.pos[0], self.pos[1]
-                    x2, y2 = self.game.player.pos[0], self.game.player.pos[1]
-                
-                    xDist = x2 - x1
-                    yDist = y2 - y1
-                    clear = True
-                    self.staffCooldown = 120
-                    for n in range(10):
-                        x = int((x1 + (n/10) * xDist) // 16)
-                        y = int((y1 + (n/10) * yDist) // 16)
-                        loc = str(x) + ';' + str(y)
-                        if loc in self.game.tilemap.tilemap:
-                            clear = False
-                            
-                    if clear:
-                        self.shootCountdown = 60
-                        self.walking = 0
+                    elif self.weapon == 'staff':
+                    
+                        x1, y1 = self.pos[0], self.pos[1]
+                        x2, y2 = self.game.player.pos[0], self.game.player.pos[1]
+                    
+                        xDist = x2 - x1
+                        yDist = y2 - y1
+                        clear = True
+                        self.staffCooldown = 120
+                        for n in range(10):
+                            x = int((x1 + (n/10) * xDist) // 16)
+                            y = int((y1 + (n/10) * yDist) // 16)
+                            loc = str(x) + ';' + str(y)
+                            if loc in self.game.tilemap.tilemap:
+                                clear = False
+                                
+                        if clear:
+                            self.shootCountdown = 60
+                            self.walking = 0
                        
             super().update(tilemap, movement = movement)
 
@@ -538,7 +564,8 @@ class Portal(physicsEntity):
             'grass': [(36, 120, 29), (12, 62, 8)],
             'spooky': [(55, 20, 15), (108, 50, 40)],
             'rubiks': [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)],
-            'aussie': [(55, 20, 15)]}
+            'aussie': [(55, 20, 15)],
+            'space': [(0, 0, 0), (255, 255, 255)],}
         self.colours['infinite'] = [colour for colours in self.colours.values() for colour in colours]
         
         if self.game.currentLevel == 'lobby':
@@ -1338,8 +1365,9 @@ class Kangaroo(physicsEntity):
         super().__init__(game, 'kangaroo', pos, size)
 
         self.cogCount = random.randint(0,3)
-        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.heartFragmentCount = (1 if random.random() < 0.3 else 0)
         self.fairyBreadCount = random.randint(0, 4)
+        self.boxingGloveCount = random.randint(0, 3)
         self.attackPower = 1
         self.deathIntensity = 10
         
@@ -1403,13 +1431,13 @@ class Kangaroo(physicsEntity):
         #Death Condition
         if abs(self.game.player.dashing) >= 50:
             if self.rect().colliderect(self.game.player.rect()):
-                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount, boxingGloveCount = self.boxingGloveCount)
                 return True
             
         #Also dies if hit by bullet:
         for projectile in self.game.projectiles:
             if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
-                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount)
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, fairyBreadCount = self.fairyBreadCount, boxingGloveCount = self.boxingGloveCount)
                 self.game.projectiles.remove(projectile)
                 return True
 
@@ -1424,7 +1452,7 @@ class Echidna(physicsEntity):
         super().__init__(game, 'echidna', pos, size)
 
         self.cogCount = random.randint(0,3)
-        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.heartFragmentCount = (1 if random.random() < 0.3 else 0)
         self.fairyBreadCount = random.randint(0, 4)
         self.attackPower = 1
         self.deathIntensity = 10
@@ -1435,6 +1463,7 @@ class Echidna(physicsEntity):
         self.set_action('grace')
         self.anim_offset = [0, 0]
         self.timer = 0
+        self.flip_x = True if random.random() < 0.5 else False
         
     
     def update(self, tilemap, movement = (0, 0)):
@@ -1507,3 +1536,105 @@ class Echidna(physicsEntity):
                 self.game.player.damage(self.attackPower, self.type)
         
         super().update(tilemap, movement = movement)
+
+
+
+class Meteor(physicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'meteor', pos, size)
+
+        self.attackPower = 1
+
+        self.gravityAffected = False
+        self.collideWallCheck = False
+        self.set_action('idle')
+        self.anim_offset = [0, 0]        
+    
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)  
+
+        if self.action == 'idle':
+            if self.animation.done:
+                self.set_action('kaboom')
+
+        elif self.action == 'kaboom':
+            
+            #Check for player collision:
+            if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'grace':
+                if not self.game.dead:
+                    self.game.player.damage(self.attackPower, self.type)
+            
+            if self.animation.done:
+                return True
+
+
+
+class AlienShip(physicsEntity):
+    def __init__(self, game, pos, size, graceDone = False, velocity = [0, 0]):
+        super().__init__(game, 'alienship', pos, size)
+
+        self.cogCount = random.randint(0,3)
+        self.heartFragmentCount = (1 if random.random() < 0.2 else 0)
+        self.purpleCogCount = (1 if random.random() < 0.2 else 0)
+
+        self.attackPower = 1
+        self.deathIntensity = 10
+
+        self.gravityAffected = False
+        self.grace = random.randint(90,210)
+        self.graceDone = graceDone
+        self.set_action('idle')
+        if self.graceDone:
+            self.set_action('flying')
+            self.velocity = velocity
+
+        self.anim_offset = [0, -1]
+        self.pos[1] += 9
+        self.pos[0] += 4
+        
+    
+    def update(self, tilemap, movement = (0, 0)):
+        super().update(tilemap, movement = movement)
+         
+        if not self.graceDone:
+            self.grace = max(0, self.grace - 1)
+            if self.grace == 0:
+                self.set_action('flying')
+                self.velocity = [random.random() - 1/2, random.random()*0.5 + 0.5]                
+                self.graceDone = True
+                   
+            self.animation.update()
+
+        if self.graceDone:
+            if self.collisions['up'] or self.collisions['down']:
+                self.velocity[1] = -self.velocity[1]
+            elif self.collisions['left'] or self.collisions['right']:
+                self.velocity[0] = -self.velocity[0]
+
+            if any(self.collisions.values()) and random.random() < 0.1:
+                toPlayer = (self.game.player.pos[0] - self.pos[0], self.game.player.pos[1] - self.pos[1])
+                norm = np.linalg.norm(toPlayer) * random.uniform(1.2, 1.5)
+
+                if not (tilemap.solid_check((self.rect().centerx + 8, self.rect().centery)) and tilemap.solid_check((self.rect().centerx - 8, self.rect().centery))):
+                    self.velocity[0] = toPlayer[0] / norm
+                if not (tilemap.solid_check((self.rect().centerx, self.rect().centery + 8)) and tilemap.solid_check((self.rect().centerx, self.rect().centery - 8))):
+                    self.velocity[1] = toPlayer[1] / norm
+                    
+        #Death Condition
+        if abs(self.game.player.dashing) >= 50:
+            if self.rect().colliderect(self.game.player.rect()):
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, purpleCogCount = self.purpleCogCount)
+                return True
+            
+        #Also dies if hit by bullet:
+        for projectile in self.game.projectiles:
+            if self.rect().collidepoint(projectile.pos) and projectile.type == 'projectile':
+                self.kill(intensity = self.deathIntensity, cogCount = self.cogCount, heartFragmentCount = self.heartFragmentCount, purpleCogCount = self.purpleCogCount)
+                self.game.projectiles.remove(projectile)
+                return True
+
+        #Check for player collision, not dashing and in attack mode:
+        if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action == 'flying':
+            if not self.game.dead:
+                self.game.player.damage(self.attackPower, self.type)                        
+                

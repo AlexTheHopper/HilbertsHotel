@@ -201,10 +201,11 @@ class Game:
                 if kill:
                     self.sparks.remove(spark)
            
-            for glowworm in self.extraEntities:
+            for extraEntity in self.extraEntities.copy():
+                extraEntity.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
-                    glowworm.update(self.tilemap)
-                glowworm.render(self.display_outline, offset = self.render_scroll)
+                    if extraEntity.update(self.tilemap):
+                        self.extraEntities.remove(extraEntity)
             
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
@@ -347,7 +348,6 @@ class Game:
 
             pygame.display.update()
             self.clock.tick(self.fps)
-            # self.clock.tick()
 
         #####################################################
         ####################GAME LOOP END####################
@@ -426,6 +426,12 @@ class Game:
                     return False
             #Else check against current floor levels
             elif self.floors[trade[1]] < trade[2]:
+                return False
+            
+        #Specifically prime num floor
+        elif trade[0] == 'primeFloor':
+            if not isPrime(self.floors[trade[1]]):
+                print('returning false for ', self.floors[trade[1]])
                 return False
             
         #Also the previous dialogue needs to have been said:
@@ -536,20 +542,20 @@ class Game:
         elif not self.dead and self.infiniteModeActive and self.previousLevel == 'infinite':
             self.floors[self.previousLevel] += 1
 
-        
-                
-        #Spawn in leaf particle spawners
-        self.potplants = []
-        for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3), ('large_decor', 1), ('large_decor', 2)], keep = True):
-            self.potplants.append(pygame.Rect(plant['pos'][0], plant['pos'][1], self.tilemap.tilesize if plant['type'] == 'potplants' else self.tilemap.tilesize*2, self.tilemap.tilesize))
-
         #Spawn in entities
         self.enemies = []
         self.portals = []
         self.characters = []
         self.extraEntities = []
         self.spawnPoints = []
+        self.potplants = []
 
+        #Spawn in leaf particle spawners
+        self.potplants = []
+        for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3), ('large_decor', 1), ('large_decor', 2)], keep = True):
+            self.potplants.append(pygame.Rect(plant['pos'][0], plant['pos'][1], self.tilemap.tilesize if plant['type'] == 'potplants' else self.tilemap.tilesize*2, self.tilemap.tilesize))
+        
+        #Replaces spawn tile with an actual object of the entity:
         for spawner in self.tilemap.extract('spawners'):
             #Player
             if spawner['variant'] == 0:
@@ -561,122 +567,30 @@ class Game:
 
                 self.player.air_time = 0
                 self.player.pos[0] += 4
-                self.player.pos[1] += 4      
-                    
-            #Character - Hilbert
-            elif spawner['variant'] == 1 and self.charactersMet['Hilbert']:
-                self.characters.append(Hilbert(self, spawner['pos'], (8,15)))
-               
-            #Character - Noether
-            elif spawner['variant'] == 6 and (self.charactersMet['Noether'] or self.currentLevel != 'lobby'):
-                self.characters.append(Noether(self, spawner['pos'], (8,15)))
+                self.player.pos[1] += 4    
 
-            #Character - Curie
-            elif spawner['variant'] == 7 and (self.charactersMet['Curie'] or self.currentLevel != 'lobby'):
-                self.characters.append(Curie(self, spawner['pos'], (8,15)))
+            #Spawns characters if met OR in their world
+            elif self.entityInfo[spawner['variant']]['type'] == 'character':
+                if self.charactersMet[self.entityInfo[spawner['variant']]['name']] or self.currentLevel != 'lobby':
+                    self.characters.append(self.entityInfo[spawner['variant']]['object'](self, spawner['pos'], (8, 15)))
 
-            #Character - Planck
-            elif spawner['variant'] == 8 and (self.charactersMet['Planck'] or self.currentLevel != 'lobby'):
-                self.characters.append(Planck(self, spawner['pos'], (8,15)))
+            #Spawns Enemies
+            elif self.entityInfo[spawner['variant']]['type'] == 'enemy':
+                self.enemies.append(self.entityInfo[spawner['variant']]['object'](self, spawner['pos'], self.entityInfo[spawner['variant']]['size']))
 
-            #Character - Faraday
-            elif spawner['variant'] == 2 and (self.charactersMet['Faraday'] or self.currentLevel != 'lobby'):
-                self.characters.append(Faraday(self, spawner['pos'], (8,15)))
+            #Spawns Entities
+            elif self.entityInfo[spawner['variant']]['type'] == 'extraEntity':
+                self.extraEntities.append(self.entityInfo[spawner['variant']]['object'](self, spawner['pos'], self.entityInfo[spawner['variant']]['size']))
 
-            #Character - Lorenz
-            elif spawner['variant'] == 11 and (self.charactersMet['Lorenz'] or self.currentLevel != 'lobby'):
-                self.characters.append(Lorenz(self, spawner['pos'], (8,15)))
+            #Spawns Spawn Points
+            elif self.entityInfo[spawner['variant']]['type'] == 'spawnPoint':
+                self.spawnPoints.append(self.entityInfo[spawner['variant']]['object'](self, spawner['pos'], self.entityInfo[spawner['variant']]['size']))
 
-            #Character - Lorenz
-            elif spawner['variant'] == 14 and (self.charactersMet['Franklin'] or self.currentLevel != 'lobby'):
-                self.characters.append(Franklin(self, spawner['pos'], (8,15)))
-
-            #Character - Rubik
-            elif spawner['variant'] == 16 and (self.charactersMet['Rubik'] or self.currentLevel != 'lobby'):
-                self.characters.append(Rubik(self, spawner['pos'], (8,15)))
-
-            #Character - Cantor
-            elif spawner['variant'] == 17 and (self.charactersMet['Cantor'] or self.currentLevel != 'lobby'):
-                self.characters.append(Cantor(self, spawner['pos'], (8,15)))
-
-            #Character - Rubik
-            elif spawner['variant'] == 21 and (self.charactersMet['Melatos'] or self.currentLevel != 'lobby'):
-                self.characters.append(Melatos(self, spawner['pos'], (8,15)))
-
-            #GlowWorm
-            elif spawner['variant'] == 5:
-                self.extraEntities.append(Glowworm(self, spawner['pos'], (5, 5)))
-
-            #GunGuy
-            elif spawner['variant'] == 3:
-                self.enemies.append(GunGuy(self, spawner['pos'], (8, 15)))
-                
-            #Bat
-            elif spawner['variant'] == 4:
-                self.enemies.append(Bat(self, spawner['pos'], (10, 10)))
-
-            #Rolypoly
-            elif spawner['variant'] == 9:
-                self.enemies.append(RolyPoly(self, spawner['pos'], (12, 12)))
-
-            #SpawnPoint
-            elif spawner['variant'] == 10:
-                self.spawnPoints.append(SpawnPoint(self, spawner['pos'], (16, 16)))
-
-            #Torch
-            elif spawner['variant'] == 12:
-                self.extraEntities.append(Torch(self, spawner['pos'], (16, 16)))
-
-            #Spider
-            elif spawner['variant'] == 13:
-                self.enemies.append(Spider(self, spawner['pos'], (10, 10)))
-
-            #Cube
-            elif spawner['variant'] == 15:
-                self.enemies.append(RubiksCube(self, spawner['pos'], (16, 16)))
-
-            #Heart Altar
-            elif spawner['variant'] == 18:
-                self.extraEntities.append(HeartAltar(self, spawner['pos'], (16, 16)))
-
-            #Kangaroo
-            elif spawner['variant'] == 19:
-                self.enemies.append(Kangaroo(self, spawner['pos'], (14, 11)))
-            
-            #Echidna
-            elif spawner['variant'] == 20:
-                self.enemies.append(Echidna(self, spawner['pos'], (14, 9)))
-            
+        #Replaces spawn tile with an actual object of the portal:
         for portal in self.tilemap.extract('spawnersPortal'):
+            if self.portalsMet[self.portalInfo[portal['variant']]]:
+                self.portals.append(Portal(self, portal['pos'], (16, 16), self.portalInfo[portal['variant']]))
 
-            #To Lobby
-            if portal['variant'] == 0 and self.portalsMet['lobby']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'lobby'))
-
-            #To normal
-            elif portal['variant'] == 1 and self.portalsMet['normal']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'normal'))
-
-            #To grass
-            elif portal['variant'] == 2 and self.portalsMet['grass']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'grass'))
-
-            #To spooky
-            elif portal['variant'] == 3 and self.portalsMet['spooky']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'spooky'))
-
-            #To rubiks
-            elif portal['variant'] == 4 and self.portalsMet['rubiks']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'rubiks'))
-
-            #To infinite
-            elif portal['variant'] == 5 and self.portalsMet['infinite']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'infinite'))
-
-            #To Aussie
-            elif portal['variant'] == 6 and self.portalsMet['aussie']:
-                self.portals.append(Portal(self, portal['pos'], (16,16), 'aussie'))
-                
         self.dead = False
         self.player.velocity = [0, 0]
         self.player.set_action('idle')
@@ -697,9 +611,9 @@ class Game:
             self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
         elif self.currentLevel in ['grass', 'aussie']:
             self.caveDarkness = 0
-        elif self.currentLevel == 'spooky':
+        elif self.currentLevel in ['spooky', 'space']:
             self.caveDarkness = random.randint(self.caveDarknessRange[1]-50, self.caveDarknessRange[1])
-        elif self.currentLevel == 'rubiks':
+        elif self.currentLevel in ['rubiks']:
             self.caveDarkness = 100
 
         self.update_dialogues()
@@ -779,6 +693,7 @@ class Game:
                 self.paused = False
                 self.currentLevel = 'lobby'
                 self.floors['infinite'] = 1
+                self.sfx['music'].stop()
                 self.save_game(self.saveSlot)
                 self.__init__()
                 self.loadMenu()
@@ -793,62 +708,28 @@ class Game:
     def loadGameAssets(self):
         #one day ill clean this up
         #BASE_PATH = 'data/images/'
+
         self.assets = {
-            'decor': load_images('tiles/decor'),
-            'large_decor': load_images('tiles/large_decor'),
-            'potplants': load_images('tiles/potplants'),
-            'cacti': load_images('tiles/cacti'),
-            'stone': load_images('tiles/stone'),
-            'grass': load_images('tiles/grass'),
-            'normal': load_images('tiles/normal'),
-            'spooky': load_images('tiles/spooky'),
-            'rubiks': load_images('tiles/rubiks'),
-            'aussie': load_images('tiles/aussie'),
-            'cracked': load_images('tiles/cracked'),
-            'menuBackground': load_image('misc/menuBackground.png'),
-            'menuBackgroundHH': load_image('misc/menuBackgroundHH.png'),
-            'menuBackgroundHHForeground': load_image('misc/menuBackgroundHHForeground.png'),
-            'lobbyBackground': load_image('misc/lobbyBackground.png'),
-            'normalBackground': load_image('misc/caveBackground.png'),
-            'grassBackground': load_image('misc/grassBackground.png'),
-            'spookyBackground': load_image('misc/spookyBackground.png'),
-            'rubiksBackground': load_image('misc/rubiksBackground.png'),
-            'aussieBackground': load_image('misc/aussieBackground.png'),
-            'infiniteBackground': load_image('misc/rubiksBackground.png'),
             'clouds': load_images('clouds'),
-            'spawners': load_images('tiles/spawners'),
             'weapons/gun': load_images('weapons/gun'),
             'weapons/staff': load_images('weapons/staff'),
-            'projectile': load_image('misc/projectile.png'),
-            'spine': load_image('misc/spine.png'),
             'heart': pygame.transform.scale(load_image('misc/heart.png'), (32, 32)),
-            'light': load_image('misc/light.png'),
             'heartEmpty': pygame.transform.scale(load_image('misc/heartEmpty.png'), (32, 32)),
             'heartTemp': pygame.transform.scale(load_image('misc/heartTemp.png'), (32, 32)),
-            'witchHat': load_image('misc/witchHat.png'),
 
             'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
             'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
             'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
-            'player/slide': Animation(load_images('entities/player/slide'), img_dur = 5),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
 
-            'bat/idle': Animation(load_images('entities/.enemies/bat/idle'), img_dur = 10),
-            'bat/grace': Animation(load_images('entities/.enemies/bat/grace'), img_dur = 10),
             'bat/attacking': Animation(load_images('entities/.enemies/bat/attacking'), img_dur = 10),
             'bat/charging': Animation(load_images('entities/.enemies/bat/charging'), img_dur = 20, loop = False),
-            'rolypoly/idle': Animation(load_images('entities/.enemies/rolypoly/idle'), img_dur = 10),
             'rolypoly/run': Animation(load_images('entities/.enemies/rolypoly/run'), img_dur = 4),
-            'spider/idle': Animation(load_images('entities/.enemies/spider/idle'), img_dur = 10),
             'spider/run': Animation(load_images('entities/.enemies/spider/run'), img_dur = 4),
-            'spider/grace': Animation(load_images('entities/.enemies/spider/grace'), img_dur = 4),
-            'kangaroo/grace': Animation(load_images('entities/.enemies/kangaroo/grace'), img_dur = 4),
-            'kangaroo/idle': Animation(load_images('entities/.enemies/kangaroo/idle'), img_dur = 4),
             'kangaroo/jumping': Animation(load_images('entities/.enemies/kangaroo/jumping'), img_dur = 4),
-            'echidna/grace': Animation(load_images('entities/.enemies/echidna/grace'), img_dur = 4),
-            'echidna/idle': Animation(load_images('entities/.enemies/echidna/idle'), img_dur = 4),
             'echidna/walking': Animation(load_images('entities/.enemies/echidna/walking'), img_dur = 6),
             'echidna/charging': Animation(load_images('entities/.enemies/echidna/charging'), img_dur = 30, loop = False),
+            'alienship/flying': Animation(load_images('entities/.enemies/alienship/flying'), img_dur = 10),
 
             'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
             'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
@@ -856,9 +737,24 @@ class Game:
             'heartAltar/idle': Animation(load_images('entities/heartAltar/idle'), img_dur = 10),
             'heartAltar/active': Animation(load_images('entities/heartAltar/active'), img_dur = 10),
 
+            'meteor/idle': Animation(load_images('entities/meteor/idle'), img_dur = 10, loop = False),
+            'meteor/kaboom': Animation(load_images('entities/meteor/kaboom'), img_dur = 5, loop = False),
+
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15),
             'torch/idle': Animation(load_images('entities/torch/idle'),img_dur=4)}
+        
+        for idleEnemy in ['bat', 'rolypoly', 'spider', 'kangaroo', 'echidna', 'alienship']:
+            self.assets[f'{idleEnemy}/idle'] = Animation(load_images(f'entities/.enemies/{idleEnemy}/idle'), img_dur = 10)
+
+        for graceEnemy in ['bat', 'spider', 'kangaroo', 'echidna']:
+            self.assets[f'{graceEnemy}/grace'] = Animation(load_images(f'entities/.enemies/{graceEnemy}/grace'), img_dur = 10)
+        
+        for tile in ['decor', 'large_decor', 'potplants', 'cacti', 'spawners', 'cracked']:
+            self.assets[tile] = load_images(f'tiles/{tile}')
+
+        for misc in ['menuBackground', 'menuBackgroundHH', 'menuBackgroundHHForeground', 'projectile', 'spine', 'light', 'witchHat']:
+            self.assets[misc] = load_image(f'misc/{misc}.png')
         
         for cubeState in ['idle', 'white', 'yellow', 'blue', 'green', 'red', 'orange']:
             self.assets[f'rubiksCube/{cubeState}'] = Animation(load_images(f'entities/.enemies/rubiksCube/{cubeState}'), img_dur = 60)
@@ -869,18 +765,22 @@ class Game:
             self.assets[f'gunguy{gunguyColour}/grace'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/grace'), img_dur = 4)
             self.assets[f'gunguy{gunguyColour}/jump'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/jump'), img_dur = 20)
 
-        for currency in ['cog', 'redCog', 'blueCog', 'purpleCog', 'wing', 'heartFragment', 'eye', 'chitin', 'fairyBread', 'hammer']:
-            self.assets[f'{currency}/idle'] = Animation(load_images(f'currencies/{currency}/idle'), img_dur = 6)
+        for currency in self.wallet.keys():
+            self.assets[f'{currency[:-1]}/idle'] = Animation(load_images(f'currencies/{currency[:-1]}/idle'), img_dur = 6)
        
-        for levelType in ['lobby', 'normal', 'grass', 'spooky', 'rubiks', 'aussie', 'infinite']:
+        for levelType in self.portalsMet.keys():
             self.assets[f'portal{levelType}/idle'] = Animation(load_images(f'entities/.portals/portal{levelType}/idle'), img_dur = 6)
             self.assets[f'portal{levelType}/opening'] = Animation(load_images(f'entities/.portals/portal{levelType}/opening'), img_dur = 6, loop = False)
             self.assets[f'portal{levelType}/active'] = Animation(load_images(f'entities/.portals/portal{levelType}/active'), img_dur = 6)
+            self.assets[f'{levelType}Background'] = load_image(f'misc/background{levelType}.png')
 
-        for character in ['hilbert', 'noether', 'curie', 'planck', 'faraday', 'lorenz', 'franklin', 'rubik', 'cantor', 'melatos']:
-            self.assets[f'{character}/idle'] = Animation(load_images(f'entities/.characters/{character}/idle'), img_dur = 10)
-            self.assets[f'{character}/run'] = Animation(load_images(f'entities/.characters/{character}/run'), img_dur = 4)
-            self.assets[f'{character}/jump'] = Animation(load_images(f'entities/.characters/{character}/jump'), img_dur = 5)
+            if levelType not in ['infinite', 'lobby']:
+                self.assets[levelType] = load_images(f'tiles/{levelType}')
+
+        for character in self.charactersMet.keys():
+            self.assets[f'{character.lower()}/idle'] = Animation(load_images(f'entities/.characters/{character.lower()}/idle'), img_dur = 10)
+            self.assets[f'{character.lower()}/run'] = Animation(load_images(f'entities/.characters/{character.lower()}/run'), img_dur = 4)
+            self.assets[f'{character.lower()}/jump'] = Animation(load_images(f'entities/.characters/{character.lower()}/jump'), img_dur = 5)
 
         for n in range(1,5):
             self.assets[f'particle/particle{n}'] = Animation(load_images(f'particles/particle{n}'), img_dur = 6, loop = False)
@@ -915,13 +815,11 @@ class Game:
         self.sfx = {}
 
         for sound in self.sfxVolumes.keys():
-            
             self.sfx[sound] = pygame.mixer.Sound(f'data/sfx/{sound}.wav')
             self.sfx[sound].set_volume(self.sfxVolumes[sound])
 
         self.windowIcon = load_image('misc/windowIcon.png')
         pygame.display.set_icon(self.windowIcon)
-
 
     def run_text(self, character, talkType = 'npc'):
         self.paused = True
