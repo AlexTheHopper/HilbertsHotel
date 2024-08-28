@@ -42,7 +42,7 @@ class physicsEntity:
 
     def update(self, tilemap, movement = (0, 0)):
         # pygame.draw.rect(self.game.display_outline, (255,0,0), (1*(self.pos[0] - self.game.render_scroll[0]), 1*(self.pos[1] - self.game.render_scroll[1]), self.size[0], self.size[1]))
-        
+
         # Only update/render at close distances
         renderDistToPlayer = np.linalg.norm((self.pos[0] - self.game.player.pos[0], self.pos[1] - self.game.player.pos[1]))
         if renderDistToPlayer > self.renderDistance:
@@ -102,7 +102,7 @@ class physicsEntity:
             self.flip_x = True
 
         #Add gravity up to terminal velocity
-        if self.gravityAffected:
+        if self.gravityAffected and not (self.collisions['down'] or self.collisions['up']):
             self.velocity[1] = min(self.velocity[1] + self.gravity, self.terminal_vel)
 
         #Reset velocity if vertically hit tile if affected by gravity:
@@ -125,7 +125,7 @@ class physicsEntity:
             image = pygame.transform.rotate(self.animation.img(), rotation * 180 / math.pi)
             surface.blit(pygame.transform.flip(image, self.flip_x, False), (posx, posy))
         else:
-            surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (posx, posy))
+            surface.blit(pygame.transform.flip(self.animation.img(), self.flip_x, False), (math.floor(posx), math.floor(posy)))
 
 
     def kill(self, intensity = 10, cogCount = 0, redCogCount = 0, blueCogCount = 0, purpleCogCount = 0, heartFragmentCount = 0, wingCount = 0, eyeCount = 0, chitinCount = 0, fairyBreadCount = 0, boxingGloveCount = 0):
@@ -462,7 +462,7 @@ class GunGuy(physicsEntity):
 
             #Attack condition
             if (random.random() < 0.02):
-                if self.game.floors[self.game.currentLevel] != 1 and not self.shootCountdown:
+                if (self.game.floors[self.game.currentLevel] != 1 or self.game.currentLevel == 'infinite') and not self.shootCountdown:
        
                     if self.weapon == 'gun':
                         disty = self.game.player.pos[1] - self.pos[1]
@@ -666,7 +666,7 @@ class Player(physicsEntity):
                 self.game.sparks.append(Spark((self.rect().centerx, self.rect().top), angle, speed + extra, color = (190, 200, 220)))
           
         self.wall_slide = False
-        if (self.collisions['left'] or self.collisions['right']) and self.air_time > 4:
+        if (self.collisions['left'] or self.collisions['right']) and self.air_time > 5:
             self.wall_slide = True
             self.velocity[1] = min(self.velocity[1], 0.5)
 
@@ -687,7 +687,7 @@ class Player(physicsEntity):
                     self.game.sparks.append(Spark(((self.rect().left if self.collisions['left'] else self.rect().right), self.rect().centery), angle, speed + extra, color = (190, 200, 220)))
             
         if not self.wall_slide:
-            if self.air_time > 4:
+            if self.air_time > 5:
                 self.set_action('jump')
             elif movement[0] != 0:
                 self.set_action('run')
@@ -1548,7 +1548,8 @@ class Meteor(physicsEntity):
         self.gravityAffected = False
         self.collideWallCheck = False
         self.set_action('idle')
-        self.anim_offset = [0, 0]        
+        self.anim_offset = [0, 0]  
+        self.angle = random.random() * 2 * math.pi   
     
     def update(self, tilemap, movement = (0, 0)):
         super().update(tilemap, movement = movement)  
@@ -1558,14 +1559,16 @@ class Meteor(physicsEntity):
                 self.set_action('kaboom')
 
         elif self.action == 'kaboom':
-            
             #Check for player collision:
-            if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.action != 'grace':
+            if self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and self.animation.frame > 10:
                 if not self.game.dead:
                     self.game.player.damage(self.attackPower, self.type)
             
             if self.animation.done:
                 return True
+            
+    def render(self, surface, offset = (0, 0)):
+        super().render(surface, offset = offset, rotation = self.angle)
 
 
 

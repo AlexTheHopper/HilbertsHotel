@@ -44,10 +44,10 @@ class Game:
         selected = (86, 31, 126)
         notSelected = (1, 1, 1)
         
-        self.clouds = Clouds(self.assets['clouds'], count = 20)
+        self.clouds = Clouds(self.assets['clouds'], count = 30)
 
-        background = pygame.transform.scale(self.assets['menuBackgroundHH'], (self.screen_width / 2, self.screen_height / 2))
-        foreground = pygame.transform.scale(self.assets['menuBackgroundHHForeground'], (self.screen_width / 2, self.screen_height / 2))
+        background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
+        foreground = pygame.transform.scale(self.assets['menuForeground'], (self.screen_width / 2, self.screen_height / 2))
         
         while inMenu:
             
@@ -68,20 +68,20 @@ class Game:
             
             #Displaying menu HUD:
             displaySlot = (hoverSlot % len(saveSlots))
-            self.draw_text('Hilbert\'s Hotel', (self.screen_width * (3/4), 60), self.text_font, selected, (0, 0), scale = 1.5, mode = 'center') 
-            self.draw_text('Select: x', (self.screen_width * (3/4), 100), self.text_font, notSelected, (0, 0), scale = 0.5, mode = 'center')  
-            self.draw_text('Delete: z (hold)', (self.screen_width * (3/4), 120), self.text_font,notSelected, (0, 0), scale = 0.5, mode = 'center')  
+            self.draw_text('Hilbert\'s Hotel', (self.screen_width * (1/2), 45), self.text_font, selected, (0, 0), scale = 1.5, mode = 'center') 
+            self.draw_text('Select: x', (self.screen_width * (2/4) - 75, 690), self.text_font, notSelected, (0, 0), scale = 0.5, mode = 'center')  
+            self.draw_text('Delete: z (hold)', (self.screen_width * (2/4) + 75, 690), self.text_font,notSelected, (0, 0), scale = 0.5, mode = 'center')  
             if deleting:
                 self.draw_text('Deleting save ' + str(hoverSlot % len(saveSlots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's', (self.screen_width * (3/4), 140), self.text_font, (200, 0, 0), (0, 0), scale = 0.5, mode = 'center')
             
-            self.draw_text('Save 0', (self.screen_width * (3/4) - 160, 170), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
-            self.draw_text(str(savedDeaths[0]), (self.screen_width * (3/4) - 160, 200), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
+            self.draw_text('Save 0', (self.screen_width * (2/4) - 160, 635), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
+            self.draw_text(str(savedDeaths[0]), (self.screen_width * (2/4) - 160, 660), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
             
-            self.draw_text('Save 1', (self.screen_width * (3/4), 170), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center')
-            self.draw_text(str(savedDeaths[1]), (self.screen_width * (3/4), 200), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center', scale = 0.75)
+            self.draw_text('Save 1', (self.screen_width * (2/4), 635), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center')
+            self.draw_text(str(savedDeaths[1]), (self.screen_width * (2/4), 660), self.text_font, selected if displaySlot == 1 else notSelected, (0, 0), mode = 'center', scale = 0.75)
             
-            self.draw_text('Save 2', (self.screen_width * (3/4) + 160, 170), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
-            self.draw_text(str(savedDeaths[2]), (self.screen_width * (3/4) + 160, 200), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center', scale = 0.75) 
+            self.draw_text('Save 2', (self.screen_width * (2/4) + 160, 635), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center') 
+            self.draw_text(str(savedDeaths[2]), (self.screen_width * (2/4) + 160, 660), self.text_font, selected if displaySlot == 2 else notSelected, (0, 0), mode = 'center', scale = 0.75) 
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -163,15 +163,15 @@ class Game:
                     if enemy.update(self.tilemap, (0, 0)):
                         self.enemies.remove(enemy)
                         self.player.updateNearestEnemy()
-
-            for spawnPoint in self.spawnPoints:
-                spawnPoint.render(self.display_outline, offset = self.render_scroll)
-                spawnPoint.update(self.tilemap)
             
             for character in self.characters.copy():
                 if not self.paused:
                     character.update(self.tilemap)
                 character.render(self.display_outline, offset = self.render_scroll)
+
+            for spawnPoint in self.spawnPoints:
+                spawnPoint.render(self.display_outline, offset = self.render_scroll)
+                spawnPoint.update(self.tilemap)
 
             if not self.dead:
                 if not self.paused:
@@ -181,6 +181,8 @@ class Game:
             for projectile in self.projectiles.copy():
                 if projectile.update(self):
                     self.projectiles.remove(projectile)
+
+            
                 
             for rect in self.potplants:
                   if random.random() < 0.01 and not self.paused:
@@ -192,8 +194,14 @@ class Game:
                     if currencyItem.update(self.tilemap, (0, 0)):
                         self.currencyEntities.remove(currencyItem)
                 currencyItem.render(self.display_outline, offset = self.render_scroll)
-          
+
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
+
+            for extraEntity in self.extraEntities.copy():
+                extraEntity.render(self.display_outline, offset = self.render_scroll)
+                if not self.paused:
+                    if extraEntity.update(self.tilemap):
+                        self.extraEntities.remove(extraEntity)
   
             for spark in self.sparks.copy():
                 kill = spark.update()
@@ -201,12 +209,6 @@ class Game:
                 if kill:
                     self.sparks.remove(spark)
            
-            for extraEntity in self.extraEntities.copy():
-                extraEntity.render(self.display_outline, offset = self.render_scroll)
-                if not self.paused:
-                    if extraEntity.update(self.tilemap):
-                        self.extraEntities.remove(extraEntity)
-            
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
 
@@ -267,7 +269,7 @@ class Game:
                         self.movement[2] = True
                     if event.key == pygame.K_DOWN:
                         self.movement[3] = True
-                        self.player.gravity = 0.2
+                        self.player.gravity = 0.12 if self.levelType == 'space' else 0.2
                     if event.key == pygame.K_x:
                         if not self.paused:
                             self.player.dash()
@@ -316,7 +318,7 @@ class Game:
                         self.movement[2] = False
                     if event.key == pygame.K_DOWN:
                         self.movement[3] = False
-                        self.player.gravity = 0.12
+                        self.player.gravity = 0.075 if self.levelType == 'space' else 0.12
 
             if self.dead:
                 self.darkness_surface.fill((0, 0, 0, max(self.minPauseDarkness, self.caveDarkness)))
@@ -506,6 +508,10 @@ class Game:
         #Save game:
         self.save_game(self.saveSlot)
 
+
+        if self.currentLevel != 'infinite':
+            self.levelType = self.currentLevel
+
         #Add important items left on ground:
         for currency in self.currencyEntities:
             type = str(currency.currencyType) + 's'
@@ -604,17 +610,28 @@ class Game:
 
         self.background = pygame.transform.scale(self.assets[f'{self.currentLevel}Background'], (self.screen_width / 2, self.screen_height / 2))
             
-        if self.currentLevel == 'lobby':
-            self.caveDarkness = self.caveDarknessRange[0]
-            self.removeBrokenTunnels()
-        elif self.currentLevel == 'normal':
-            self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
-        elif self.currentLevel in ['grass', 'aussie']:
+
+        #Level Specifics
+        if self.levelType == 'lobby':
             self.caveDarkness = 0
-        elif self.currentLevel in ['spooky', 'space']:
+            self.removeBrokenTunnels()
+        elif self.levelType == 'normal':
+            self.caveDarkness = random.randint(self.caveDarknessRange[0], self.caveDarknessRange[1])
+        elif self.levelType in ['grass', 'aussie']:
+            self.caveDarkness = 0
+        elif self.levelType in ['spooky', 'space']:
             self.caveDarkness = random.randint(self.caveDarknessRange[1]-50, self.caveDarknessRange[1])
-        elif self.currentLevel in ['rubiks']:
+        elif self.levelType in ['rubiks']:
             self.caveDarkness = 100
+
+        #Gravity:
+        self.player.gravity = 0.12
+        if self.levelType == 'space':
+            self.player.gravity = 0.075
+            for enemy in self.enemies:
+                enemy.gravity = 0.075
+
+
 
         self.update_dialogues()
         self.initialisingGame = False
@@ -748,12 +765,12 @@ class Game:
             self.assets[f'{idleEnemy}/idle'] = Animation(load_images(f'entities/.enemies/{idleEnemy}/idle'), img_dur = 10)
 
         for graceEnemy in ['bat', 'spider', 'kangaroo', 'echidna']:
-            self.assets[f'{graceEnemy}/grace'] = Animation(load_images(f'entities/.enemies/{graceEnemy}/grace'), img_dur = 10)
+            self.assets[f'{graceEnemy}/grace'] = Animation(load_images(f'entities/.enemies/{graceEnemy}/grace'), img_dur = 5)
         
-        for tile in ['decor', 'large_decor', 'potplants', 'cacti', 'spawners', 'cracked']:
+        for tile in ['decor', 'potplants', 'spawners', 'cracked']:
             self.assets[tile] = load_images(f'tiles/{tile}')
 
-        for misc in ['menuBackground', 'menuBackgroundHH', 'menuBackgroundHHForeground', 'projectile', 'spine', 'light', 'witchHat']:
+        for misc in ['menuBackground', 'menuForeground', 'projectile', 'spine', 'light', 'witchHat']:
             self.assets[misc] = load_image(f'misc/{misc}.png')
         
         for cubeState in ['idle', 'white', 'yellow', 'blue', 'green', 'red', 'orange']:

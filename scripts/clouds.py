@@ -23,9 +23,9 @@ class Clouds:
         self.clouds = []
         for _ in range(count):
             newCloudX = random.random() * 1080
-            newCloudY = random.random() * 360
+            newCloudY = random.random() * 450
             newCloudImg = random.choice(cloud_images)
-            newCloudSpeed = random.random() * 0.1 + 0.05
+            newCloudSpeed = random.random() * 0.2 + 0.05
             newCloudDepth = random.random() * 0.6 + 0.2
 
             newCloud = Cloud((newCloudX, newCloudY), newCloudImg, newCloudSpeed, newCloudDepth)

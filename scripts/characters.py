@@ -120,7 +120,9 @@ class Hilbert(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh no! My hotel was attacked! The whole thing has collapsed into the ground!',
+            '0': ['Welcome...To my (Hilbert\'s) Hotel!',
+                  'Where it\'s not only bigger, but INFINITE on the inside!'
+                    'I sure am glad I hired you, it\'s been attacked and the whole thing is full of intruders!',
                     'Would you be able to help me take back control, and find my friends somewhere in the hotel?',
                     'Oh! You can dash attack with your x key?',
                     'How original...'],
@@ -431,7 +433,7 @@ class Lorenz(Character):
                   '...................................................................',
                   'HAMMERS!!'],
 
-            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound.',
+            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound. You can see those lil cracks just like on my right!',
                   'But I aint a fan of the normal \'pay this much for this hammer\' boring shenanigans, I only like prime numbers!',
                   'Bring me EXACTLY a prime number of cogs and a hammer is yours!'],
 
@@ -440,7 +442,8 @@ class Lorenz(Character):
                   'I got more too! But this time you gotta bring me a prime number of cogs OVER 50!'],
                   
             '4': ['Hammer go smash!',
-                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!'],
+                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!',
+                  'Also, have you noticed those cracks on the middle of the roof? Suuuuuper weird...'],
 
             '5': ['Hammer go smash!',
                   'I have another hammer, but now I want a prime number of a couple types of special cogs pls!',
@@ -690,14 +693,15 @@ class Webster(Character):
 
             '1': ['Anyway, surely by now you\'ve realised that Hilbert is up to no good. For some sweet sweet purple cogs, I\'ll give you some more goss.'],
 
-            '2': ['As you probably know, these so-called \'gunguys\' never seem to attack you on floor 1 of any part of the Hotel.',
+            '2': ['As you probably know, these so-called \'Gun Guys\' never seem to attack you on floor 1 of any part of the Hotel.',
                   'What you may not know, is that they\'re not the bad guys at all, in fact they\'re the Hotel\'s security personnel!',
-                  'They can only communicate within a slice of the Hotel and so just dont bother you if they dont know about you.'],
+                  'They can only communicate within a slice of the Hotel and so just leave you alone if they dont know about you.'],
 
             '3': ['So you may be thinking, \'well then, all of these monsters must be the ones attacking the hotel\' and youd be wrong too, silly.',
                   'They\'re the Hotel\'s GUESTS! They just have very well-suited rooms catered to their specific needs.'],
             
             '4': ['I\'m not sure why, but Hilbert has hired you to kill all of his security AND his guests.',
+                  'There isn\'t anyone attacking this Hotel at all!',
                   'I don\'t know what he\'s planning, but you\'re in too deep now, you musn\'t tell him anything! Play along for now or he will kill every living thing in here, I know he has the power to do so.']}
 
     def conversationAction(self, key):

@@ -5,14 +5,13 @@ from tkinter import filedialog
 import os
 import random
 import math
-from perlin_noise import PerlinNoise
 import matplotlib.pyplot as plt
 import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
 PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
-AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space'}
+AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
@@ -124,6 +123,7 @@ class tileMap:
     def load_random_tilemap(self, size, enemyCountMax = 5, levelType = 'normal'):
         if levelType == 'infinite':
             levelType = self.game.getRandomLevel()
+        self.game.levelType = levelType
 
         self.tilemap = self.generateTiles(size, levelType)
         self.offgrid_tiles = self.populateMap(size, enemyCountMax, levelType)
@@ -285,7 +285,7 @@ class tileMap:
         decoNum = 0
         glowwormCount = 0
         glowwwormMax = 15
-        decoNumMax = int(size / 5 * self.game.floorSpecifics[levelType]['decorationMod'])
+        decoNumMax = math.ceil(size / 5 * self.game.floorSpecifics[levelType]['decorationMod'])
         decorationList = self.game.floorSpecifics[levelType]['decorations']
         weights = [deco[2] for deco in decorationList]
         attemptCounter = 0
@@ -418,8 +418,20 @@ class tileMap:
         for loc in self.tilemap:
             tile = self.tilemap[loc]
 
+            #Rubik's level randomising
             if tile['type'] == 'rubiks':
                 tile['variant'] = random.choice(range(0,6))
+                continue
+
+            #Tunnel correction
+            if tile['type'] == 'cracked':
+                tile['variant'] = 4
+                for int, shift in enumerate([(0, 1), (0, -1), (1, 0), (-1, 0)]):
+                    check_loc  = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
+                    if check_loc not in self.tilemap:
+                        tile['variant'] = int
+                        print('setting cracked to var. ', int)
+                        continue
                 continue
 
             neighbours = set()
@@ -434,7 +446,13 @@ class tileMap:
 
             if (tile['type'] in AUTOTILE_TYPES) and (neighbours in AUTOTILE_MAP):
                 if AUTOTILE_MAP[neighbours] == 5 and windows == True:
-                    tile['variant'] = random.choice([10,11,12]) if random.random() < 0.01 else 5
+
+                    windowChoice = random.choice(range(10, len(self.game.assets[tile['type']])))
+                    tile['variant'] = windowChoice if random.random() < 0.01 else 5
+
+                    if tile['type'] == 'space' and random.random() < 0.1:
+                        tile['variant'] = random.choice(range(13, len(self.game.assets[tile['type']])))
+
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]
 
