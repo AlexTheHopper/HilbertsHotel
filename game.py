@@ -72,8 +72,8 @@ class Game:
             self.draw_text('Select: x', (self.screen_width * (2/4) - 75, 690), self.text_font, notSelected, (0, 0), scale = 0.5, mode = 'center')  
             self.draw_text('Delete: z (hold)', (self.screen_width * (2/4) + 75, 690), self.text_font,notSelected, (0, 0), scale = 0.5, mode = 'center')  
             if deleting:
-                self.draw_text('Deleting save ' + str(hoverSlot % len(saveSlots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's', (self.screen_width * (3/4), 140), self.text_font, (200, 0, 0), (0, 0), scale = 0.5, mode = 'center')
-            
+                self.draw_text('Deleting save ' + str(hoverSlot % len(saveSlots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's', (self.screen_width * (2/4) + 160 * (hoverSlot % len(saveSlots) - 1), 610), self.text_font, (200, 0, 0), (0, 0), scale = 0.5, mode = 'center')
+            (hoverSlot % len(saveSlots))
             self.draw_text('Save 0', (self.screen_width * (2/4) - 160, 635), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center')
             self.draw_text(str(savedDeaths[0]), (self.screen_width * (2/4) - 160, 660), self.text_font, selected if displaySlot == 0 else notSelected, (0, 0), mode = 'center', scale = 0.75)
             
@@ -163,6 +163,12 @@ class Game:
                     if enemy.update(self.tilemap, (0, 0)):
                         self.enemies.remove(enemy)
                         self.player.updateNearestEnemy()
+
+            for boss in self.bosses.copy():
+                boss.render(self.display_outline, offset = self.render_scroll)
+                if not self.paused:
+                    if boss.update(self.tilemap, (0, 0)):
+                        self.bosses.remove(boss)
             
             for character in self.characters.copy():
                 if not self.paused:
@@ -204,7 +210,7 @@ class Game:
                         self.extraEntities.remove(extraEntity)
   
             for spark in self.sparks.copy():
-                kill = spark.update()
+                kill = spark.update(offset = self.render_scroll)
                 spark.render(self.display_outline, offset = self.render_scroll)
                 if kill:
                     self.sparks.remove(spark)
@@ -420,20 +426,19 @@ class Game:
             if not isPrime(wallet[trade[1]]) or wallet[trade[1]] < trade[3]:
                 return False
             
-        #Reach a specific floor of a level:
+        #Beat a specific floor of a level:
         elif trade[0] == 'floor':
             #Check for maximum infinite floor
             if trade[1] == 'infinite':
                 if self.infiniteFloorMax < trade[2]:
                     return False
             #Else check against current floor levels
-            elif self.floors[trade[1]] < trade[2]:
+            elif self.floors[trade[1]] < trade[2] + 1:
                 return False
             
         #Specifically prime num floor
         elif trade[0] == 'primeFloor':
             if not isPrime(self.floors[trade[1]]):
-                print('returning false for ', self.floors[trade[1]])
                 return False
             
         #Also the previous dialogue needs to have been said:
@@ -491,7 +496,7 @@ class Game:
             
         #Actually display the text (and icon):
         for n in range(len(self.displayTextList)):
-            self.draw_text(str(self.displayTextList[n]), (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30 + 30*n), self.text_font, (255,255,255), (0, 0), mode = 'center')
+            self.draw_text(str(self.displayTextList[n]), (2*(self.player.pos[0]-self.render_scroll[0]), 2*(self.player.pos[1]-self.render_scroll[1])-30 + 40*n), self.text_font, (255,255,255), (0, 0), mode = 'center')
         if self.displayIcon:
             icon = self.displayIcons[self.displayIcon]
             icon = pygame.transform.scale(icon, (icon.get_width() * 2, icon.get_height() * 2))
@@ -507,8 +512,6 @@ class Game:
     def load_level(self):
         #Save game:
         self.save_game(self.saveSlot)
-
-
         if self.currentLevel != 'infinite':
             self.levelType = self.currentLevel
 
@@ -550,6 +553,7 @@ class Game:
 
         #Spawn in entities
         self.enemies = []
+        self.bosses = []
         self.portals = []
         self.characters = []
         self.extraEntities = []
@@ -583,6 +587,10 @@ class Game:
             #Spawns Enemies
             elif self.entityInfo[spawner['variant']]['type'] == 'enemy':
                 self.enemies.append(self.entityInfo[spawner['variant']]['object'](self, spawner['pos'], self.entityInfo[spawner['variant']]['size']))
+
+            #Spawns Bosses
+            elif self.entityInfo[spawner['variant']]['type'] == 'boss':
+                self.bosses.append(self.entityInfo[spawner['variant']]['object'](self, spawner['pos'], self.entityInfo[spawner['variant']]['size']))
 
             #Spawns Entities
             elif self.entityInfo[spawner['variant']]['type'] == 'extraEntity':
@@ -630,8 +638,8 @@ class Game:
             self.player.gravity = 0.075
             for enemy in self.enemies:
                 enemy.gravity = 0.075
-
-
+            for boss in self.bosses:
+                boss.gravity = 0.075
 
         self.update_dialogues()
         self.initialisingGame = False
@@ -660,7 +668,7 @@ class Game:
         
         if self.currentLevel != 'lobby':
             self.draw_text('Floor: ' + str(self.floors[self.currentLevel]), (self.screen_width - 10, 30), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')  
-            self.draw_text('Enemies Remaining: ' + str(len(self.enemies)), (self.screen_width / 2, 50), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'center')       
+            self.draw_text('Enemies Remaining: ' + str(len(self.enemies) + len(self.bosses)), (self.screen_width / 2, 50), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'center')       
         else:
             self.draw_text('Floor: Lobby', (self.screen_width - 10, 30), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right') 
 
@@ -670,6 +678,7 @@ class Game:
         if self.powerLevel > 1:
             self.draw_text('Power: ' + str(self.powerLevel), (self.screen_width - 10, 90), self.text_font, textCol, (0, 0), scale = 0.5, mode = 'right')  
               
+        #Display Wallet
         depth = 0
         for currency in self.wallet:
             if self.wallet[currency] > 0 or self.walletTemp[currency] > 0:
@@ -685,6 +694,7 @@ class Game:
                 self.draw_text(currencyDisplay, (40, 13 + depth*30), self.text_font, textCol, (0, 0), scale = 0.5)
                 depth += 1
 
+        #Display Player Health
         for n in range(self.maxHealth + self.temporaryHealth):
             if n < self.health:
                 heartImg = self.assets['heart']
@@ -694,7 +704,21 @@ class Game:
                 heartImg = self.assets['heartTemp']
 
             self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - ((self.maxHealth + self.temporaryHealth) * 30) / 2 + n * 30, 10))
+
+        #Display Boss Health once active
+        for index, boss in enumerate(self.bosses):
+            if boss.action != 'idle':
+                for n in range(boss.maxHealth):
+                    if n < boss.health:
+                        heartImg = self.assets['bossHeart']
+                    else:
+                        heartImg = self.assets['bossHeartEmpty']
+
+                    self.HUDdisplay.blit(heartImg, (self.screen_width / 2 - (boss.maxHealth * 30) / 2 + n * 30, 70 + 30*index))
+
         
+        
+        #Display Pause Menu
         if self.paused and not self.talking:
             self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2), self.text_font, (200, 200, 200), (0, 0), mode = 'center')
             self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 200, 200), (0, 0), scale = 0.5, mode = 'center')
@@ -744,9 +768,15 @@ class Game:
             'rolypoly/run': Animation(load_images('entities/.enemies/rolypoly/run'), img_dur = 4),
             'spider/run': Animation(load_images('entities/.enemies/spider/run'), img_dur = 4),
             'kangaroo/jumping': Animation(load_images('entities/.enemies/kangaroo/jumping'), img_dur = 4),
+            'kangaroo/prep': Animation(load_images('entities/.enemies/kangaroo/prep'), img_dur = 4),
             'echidna/walking': Animation(load_images('entities/.enemies/echidna/walking'), img_dur = 6),
             'echidna/charging': Animation(load_images('entities/.enemies/echidna/charging'), img_dur = 30, loop = False),
             'alienship/flying': Animation(load_images('entities/.enemies/alienship/flying'), img_dur = 10),
+
+            'bossHeart': pygame.transform.scale(load_image('misc/bossHeart.png'), (32, 32)),
+            'bossHeartEmpty': pygame.transform.scale(load_image('misc/bossHeartEmpty.png'), (32, 32)),
+            'testboss/idle': Animation(load_images('entities/.bosses/testboss/idle'), img_dur = 10),
+            'testboss/active': Animation(load_images('entities/.bosses/testboss/active'), img_dur = 10),
 
             'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
             'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
@@ -759,6 +789,7 @@ class Game:
 
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
             'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15),
+            'creepyeyes/idle': Animation(load_images('entities/creepyeyes/idle'),img_dur=15),
             'torch/idle': Animation(load_images('entities/torch/idle'),img_dur=4)}
         
         for idleEnemy in ['bat', 'rolypoly', 'spider', 'kangaroo', 'echidna', 'alienship']:
@@ -766,6 +797,11 @@ class Game:
 
         for graceEnemy in ['bat', 'spider', 'kangaroo', 'echidna']:
             self.assets[f'{graceEnemy}/grace'] = Animation(load_images(f'entities/.enemies/{graceEnemy}/grace'), img_dur = 5)
+
+        for normalBossState in ['idle', 'flying']:
+            self.assets[f'normalboss/{normalBossState}'] = Animation(load_images(f'entities/.bosses/normalboss/{normalBossState}'), img_dur = 6)
+        self.assets['normalboss/activating'] = Animation(load_images(f'entities/.bosses/normalboss/activating'), img_dur = 16, loop = False)
+        self.assets['normalboss/attacking'] = Animation(load_images(f'entities/.bosses/normalboss/attacking'), img_dur = 16, loop = False)
         
         for tile in ['decor', 'potplants', 'spawners', 'cracked']:
             self.assets[tile] = load_images(f'tiles/{tile}')
@@ -783,7 +819,7 @@ class Game:
             self.assets[f'gunguy{gunguyColour}/jump'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/jump'), img_dur = 20)
 
         for currency in self.wallet.keys():
-            self.assets[f'{currency[:-1]}/idle'] = Animation(load_images(f'currencies/{currency[:-1]}/idle'), img_dur = 6)
+            self.assets[f'{currency[:-1]}/idle'] = Animation(load_images(f'currencies/{currency[:-1]}/idle', dim = (7, 7)), img_dur = 6)
        
         for levelType in self.portalsMet.keys():
             self.assets[f'portal{levelType}/idle'] = Animation(load_images(f'entities/.portals/portal{levelType}/idle'), img_dur = 6)
@@ -801,6 +837,8 @@ class Game:
 
         for n in range(1,5):
             self.assets[f'particle/particle{n}'] = Animation(load_images(f'particles/particle{n}'), img_dur = 6, loop = False)
+
+        self.assets['stone'] = load_images('tiles/stone')
             
         self.walletTemp = {}
         self.walletLostAmount = {}
@@ -810,7 +848,7 @@ class Game:
             self.walletTemp[currency] = 0
             self.walletLostAmount[currency] = ''
             self.walletGainedAmount[currency] = ''
-            self.displayIcons[currency] = pygame.transform.scale(self.assets[str(currency)[:-1] + '/idle'].images[0], (28,28))
+            self.displayIcons[currency] = pygame.transform.scale(load_image(f'currencies/{currency[:-1]}/idle/0.png'), (28,28))
         for floor in self.floors:
             self.displayIcons[floor] = pygame.transform.scale(self.assets['normal' if floor == 'infinite' else floor][0 if floor == 'rubiks' else 1], (28,28))
         self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
@@ -850,7 +888,10 @@ class Game:
             self.displayTextList = [str(character.name) + ': ', ' ']
             self.displayIcon = False
         else:
-            self.currentTextList = self.encountersCheckText[talkType]
+            try:
+                self.currentTextList = self.encountersCheckText[talkType]
+            except KeyError:
+                self.currentTextList = self.encountersCheckText['error']
             self.displayTextList = [character, '']
             self.displayIcon = talkType
 
@@ -948,6 +989,10 @@ class Game:
             with open('data/saves/' + str(saveSlot) + '.json', 'r') as f:
                 saveData = json.load(f)
 
+                #Ensure needed data exists:
+                self.validateSave(saveData)
+
+                #load data:
                 self.wallet = saveData['wallet']
                 self.maxHealth = saveData['maxHealth']
                 self.powerLevel = saveData['powerLevel']
@@ -977,6 +1022,42 @@ class Game:
 
         for sound in self.sfxVolumes.keys():
             self.sfx[sound].set_volume(self.sfxVolumes[sound] if self.volumeOn else 0)
+
+    def validateSave(self, data):
+
+        for currency in self.wallet.keys():
+            if currency not in data['wallet']:
+                data['wallet'][currency] = 0
+
+        for tunnel in self.tunnelsBroken.keys():
+            if tunnel not in data['tunnelsBroken']:
+                data['tunnelsBroken'][tunnel] = False
+
+        for floor in self.floors.keys():
+            if floor not in data['floors']:
+                data['floors'][floor] = 1
+        
+        for portal in self.portalsMet.keys():
+            if portal not in data['portalsMet']:
+                data['portalsMet'][portal] = self.portalsMet[portal]
+
+        for character in self.charactersMet.keys():
+            if character not in data['charactersMet']:
+                data['charactersMet'][character] = self.charactersMet[character]
+
+        for encounter in self.encountersCheck.keys():
+            if encounter not in data['encountersCheck']:
+                data['encountersCheck'][encounter] = False
+
+        for character in self.dialogueHistory.keys():
+            if character not in data['dialogue'].keys():
+                data['dialogue'][character] = self.dialogueHistory[character]
+
+            else:
+                for textInfo in self.dialogueHistory[character].keys():
+                    if textInfo not in data['dialogue'][character]:
+                        data['dialogue'][character][textInfo] = self.dialogueHistory[character][textInfo]
+
         
 
 if __name__ == '__main__':

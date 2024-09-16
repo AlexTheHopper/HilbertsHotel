@@ -24,7 +24,6 @@ class Editor:
         self.assets = {
             'decor': load_images('tiles/decor'),
             'grass': load_images('tiles/grass'),
-            'large_decor': load_images('tiles/large_decor'),
             'stone': load_images('tiles/stone'),
             'potplants': load_images('tiles/potplants'),
             'normal': load_images('tiles/normal'),
@@ -149,12 +148,12 @@ class Editor:
                     if tile_r.collidepoint(mouse_pos):
                         self.tilemap.offgrid_tiles.remove(tile)
 
-            for variant_i in range(len(self.assets[self.tile_list[self.tile_group]])):
+            for index, variant_i in enumerate(range(len(self.assets[self.tile_list[self.tile_group]]))):
                 choice_tile = self.assets[self.tile_list[self.tile_group]][variant_i].copy()
                 choice_tile.set_alpha(100)
                 if variant_i == self.tile_variant:
                     choice_tile.set_alpha(200)
-                self.display.blit(choice_tile, (10 + 20*variant_i, 10))
+                self.display.blit(choice_tile, ((10 + 20*(variant_i % 20)), 10 + 30 * (math.floor(index / 20))))
 
 
 

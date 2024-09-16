@@ -91,7 +91,7 @@ def initialiseGameParams(game):
         'spooky': {'decorationMod': 1,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                 ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['spawners', [12], 1, [[0, 0]], ['any'], [[0], [0]]]]},
+                                ['spawners', [12], 1, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]]]},
 
         'rubiks': {'decorationMod': 1,
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
@@ -141,10 +141,12 @@ def initialiseGameParams(game):
         17: {'type': 'character', 'object': Cantor, 'name': 'Cantor'},
         21: {'type': 'character', 'object': Melatos, 'name': 'Melatos'},
         23: {'type': 'character', 'object': Webster, 'name': 'Webster'},
+        26: {'type': 'character', 'object': Watson, 'name': 'Watson'},
 
         5: {'type': 'extraEntity', 'object': Glowworm, 'size': (5,5)},
         12: {'type': 'extraEntity', 'object': Torch, 'size': (16,16)},
         18: {'type': 'extraEntity', 'object': HeartAltar, 'size': (16,16)},
+        24: {'type': 'extraEntity', 'object': CreepyEyes, 'size': (16,16)},
 
         10: {'type': 'spawnPoint', 'object': SpawnPoint, 'size': (16,16)},
 
@@ -156,6 +158,9 @@ def initialiseGameParams(game):
         19: {'type': 'enemy', 'object': Kangaroo, 'size': (14,11)},
         20: {'type': 'enemy', 'object': Echidna, 'size': (14,9)},
         22: {'type': 'enemy', 'object': AlienShip, 'size': (12,8)},
+
+        25: {'type': 'boss', 'object': TestBoss, 'size': (16,16)},
+        27: {'type': 'boss', 'object': NormalBoss, 'size': (32,10)},
     }
     game.portalInfo = {
         0: 'lobby',
@@ -202,7 +207,8 @@ def initialiseGameParams(game):
         'chitins': 0,
         'fairyBreads': 0,
         'boxingGloves': 0,
-        'hammers': 0
+        'hammers': 0,
+        'credits': 0
     }
 
     #Prep dialogue management.
@@ -285,7 +291,9 @@ def initialiseGameParams(game):
                 '7available': False,
                 '7said': False,
                 '8available': False,
-                '8said': False},
+                '8said': False,
+                '9available': False,
+                '9said': False},
 
         'Franklin': {'0available': True,
                 '0said': False,
@@ -336,7 +344,18 @@ def initialiseGameParams(game):
                 '3available': False,
                 '3said': False,
                 '4available': False,
-                '4said': False}
+                '4said': False},
+
+        'Watson': {'0available': True,
+                '0said': False,
+                '1available': False,
+                '1said': False,
+                '2available': False,
+                '2said': False,
+                '3available': False,
+                '3said': False,
+                '4available': False,
+                '4said': False},
 
     }
 
@@ -351,7 +370,8 @@ def initialiseGameParams(game):
         'Rubik': False,
         'Cantor': False,
         'Melatos': False,
-        'Webster': True
+        'Webster': True,
+        'Watson': True
     }
 
     game.portalsMet = {
@@ -378,7 +398,8 @@ def initialiseGameParams(game):
         'chitins': False,
         'fairyBreads': False,
         'boxingGloves': False,
-        'hammers': False
+        'hammers': False,
+        'credits': False
     }
 
     game.encountersCheckText = {
@@ -394,7 +415,9 @@ def initialiseGameParams(game):
         'chitins': ['Chitin: What the hell is this thing? Apparently some strong stuff in insects, this could probably increase the power of your smacks.'],
         'fairyBreads': ['Fairy Bread: Only the most delicious snack that has ever existed.'],
         'boxingGloves': ['Boxing Gloves: For some reason kangaroos got \'em. Punchy punch!'],
-        'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.']
+        'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.'],
+        'credits': ['Credit: Ooh, interesting little thingy, can be used to give credit where credit it due. Of this game. Not DNA.'],
+        'error': ['OOPS! Something went wrong here and I couldnt find the text for you, soz.']
     }
 
     game.tunnelsBroken = {
@@ -403,7 +426,8 @@ def initialiseGameParams(game):
         'tunnel3': False,
         'tunnel4': False,
         'tunnel5': False,
-        'tunnel6': False
+        'tunnel6': False,
+        'tunnel7': False,
     }
 
     game.tunnelPositions = {
@@ -412,7 +436,8 @@ def initialiseGameParams(game):
         'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)],
         'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33,-30)],
         'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33,-30)],
-        'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51,-44)]
+        'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51,-44)],
+        'tunnel7': [[18, y] for y in range(12, 16)],
     }
 
     #Death message stuff
@@ -440,6 +465,13 @@ def initialiseGameParams(game):
         'echidna': 'Echidna',
         'meteor': 'Meteor',
         'alienship': 'Alien Spaceship',
+
+        'normalboss': 'Big Bat',
+        'grassboss': 'Big Roly Poly',
+        'spookyboss': 'Ghost',
+        'rubiksboss': 'Big Rubik\'s Cube',
+        'aussieboss': 'PUT THIS IN LATER',
+        'spaceboss': 'Big Alien Spaceship',
     }
     game.deathVerbs = ['killed', 
                        'vanquished', 
@@ -462,7 +494,7 @@ def initialiseGameParams(game):
 def isPrime(num):
     if num < 2:
         return False
-    if num == 2:
+    elif num == 2:
         return True
     
     for n in range(2, math.ceil(np.sqrt(num)) + 1):

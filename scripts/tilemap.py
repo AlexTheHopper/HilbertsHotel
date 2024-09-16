@@ -10,6 +10,7 @@ import numpy as np
 
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
+NEIGHBOR_OFFSETS_EXTRA = [(x, y) for x in range(-2,3) for y in range(-2,3)]
 PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
 AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
 
@@ -40,6 +41,7 @@ class tileMap:
         self.tile_size = tile_size
         self.tilemap = {}
         self.offgrid_tiles = []
+        self.mapSize = 50
         self.game = game
 
     def render(self, surface, offset = (0, 0)):
@@ -109,10 +111,10 @@ class tileMap:
         return matches
 
 
-    def nearby_tiles(self, pixPos):
+    def nearby_tiles(self, pixPos, isBoss = False):
         potentialTiles = []
         tile_pos = (int(pixPos[0] // self.tile_size), int(pixPos[1] // self.tile_size))
-        for offset in NEIGHBOR_OFFSETS:
+        for offset in (NEIGHBOR_OFFSETS if not isBoss else NEIGHBOR_OFFSETS_EXTRA):
             check_loc = str(tile_pos[0] + offset[0]) + ';' + str(tile_pos[1] + offset[1])
 
             if check_loc in self.tilemap:
@@ -148,7 +150,6 @@ class tileMap:
 
         buffer = 18
         self.mapSize = int(size + 2 * buffer)
-        self.mapSize = self.mapSize
 
         map = np.zeros((self.mapSize, self.mapSize))
         for i in range(self.mapSize):
@@ -363,17 +364,24 @@ class tileMap:
     
 
     def load_tilemap(self, name = '', size = 50, enemyCountMax = 5):
+        #Floors levels:
         if name in self.game.floors.keys():
-            #All levels scale with floor:
-            enemyCountMax = int(self.game.floors[name])
-            size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
-            if name == 'infinite':
-                enemyCountMax *= 2
-                size += 5
-                
-            self.load_random_tilemap(size, enemyCountMax, levelType = name)
-            return()
-        
+            #Normal levels:
+            if (self.game.floors[name] + (1 if name == 'infinite' else 0)) % 10 != 0:
+                #All levels scale with floor:
+                enemyCountMax = int(self.game.floors[name])
+                size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
+                if name == 'infinite':
+                    enemyCountMax *= 2
+                    size += 5
+                    
+                self.load_random_tilemap(size, enemyCountMax, levelType = name)
+                return()
+
+            #Boss levels:
+            else:
+                filepath = 'data/maps/' + str(name) + 'Boss.json'
+       
         #Only for level editor
         elif name == 'editor':
             root = tkinter.Tk()
@@ -430,7 +438,6 @@ class tileMap:
                     check_loc  = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
                     if check_loc not in self.tilemap:
                         tile['variant'] = int
-                        print('setting cracked to var. ', int)
                         continue
                 continue
 
@@ -453,15 +460,19 @@ class tileMap:
                     if tile['type'] == 'space' and random.random() < 0.1:
                         tile['variant'] = random.choice(range(13, len(self.game.assets[tile['type']])))
 
+                    elif tile['type'] == 'spooky' and random.random() < 0.005:
+                        self.offgrid_tiles.append({'type': 'spawners', 'variant': 24, 'pos': [tile['pos'][0] * self.tilesize, tile['pos'][1] * self.tilesize]})
+                        tile['variant'] = random.choice(range(13, len(self.game.assets[tile['type']])))
+
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]
 
             
 
 
-    def physics_rects_around(self, pos):
+    def physics_rects_around(self, pos, isBoss = False):
         rects = []
-        for tile in self.nearby_tiles(pos):
+        for tile in self.nearby_tiles(pos, isBoss = isBoss):
             if tile['type'] in PHYSICS_TILES:
                 rects.append(pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size))
         return rects

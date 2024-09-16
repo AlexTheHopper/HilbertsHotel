@@ -205,6 +205,7 @@ class Hilbert(Character):
             self.game.enemyCountMax = 40
             self.game.currentLevelSize = 55
             self.game.wallet['purpleCogs'] -= 5
+            self.game.wallet['blueCogs'] -= 5
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
@@ -416,9 +417,10 @@ class Lorenz(Character):
             3: [['prime', 'cogs', 'P']],
             4: [['primePurchase', 'cogs', 'P>50', 50]],
             5: [['primePurchase', 'cogs', 'P>200', 200]],
-            6: [['prime', 'redCogs', 'P'], ['prime', 'blueCogs', 'P']],
-            7: [['primeFloor', 'normal', 'P'], ['primeFloor', 'rubiks', 'P']],
-            8: [['floor', 'rubiks', 20], ['purchase', 'blueCogs', 30]]
+            6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
+            7: [['prime', 'redCogs', 'P'], ['prime', 'blueCogs', 'P']],
+            8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'rubiks', 'P']],
+            9: [['floor', 'rubiks', 20], ['purchase', 'blueCogs', 30]]
         }
 
         self.dialogue = {
@@ -446,16 +448,19 @@ class Lorenz(Character):
                   'Also, have you noticed those cracks on the middle of the roof? Suuuuuper weird...'],
 
             '5': ['Hammer go smash!',
+                  'I have another hammer, but now I want a prime number of more things! :)'],
+
+            '6': ['Hammer go smash!',
                   'I have another hammer, but now I want a prime number of a couple types of special cogs pls!',
                   'Not really sure why they\'re special, but Hilbert seems to like them so they must be valuable!'],
                   
-            '6': ['Hammer go SMASH!',
+            '7': ['Hammer go SMASH!',
                   'Now for this next hammer, can you reach a prime floor on each of these areas please?'],
 
-            '7': ['Hammer go SMASH!',
+            '8': ['Hammer go SMASH!',
                   'For the FINAL hammer, can you do some exploring and bring me back some more of my favourite coloured cogs?'],
                   
-            '8': ['Hammer go SMASH!!',
+            '9': ['Hammer go SMASH!!',
                   'WOO! No more hammers well done!!']}
 
     def conversationAction(self, key):
@@ -469,13 +474,19 @@ class Lorenz(Character):
 
         if key == 6 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
-            self.game.wallet['redCogs'] = 0
-            self.game.wallet['blueCogs'] = 0
+            self.game.wallet['cogs'] = 0
+            self.game.wallet['wings'] = 0
+            self.game.wallet['heartFragments'] = 0
 
         if key == 7 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
-        
+            self.game.wallet['redCogs'] = 0
+            self.game.wallet['blueCogs'] = 0
+
         if key == 8 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
+        
+        if key == 9 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
             self.game.wallet['blueCogs'] -= 30
 
@@ -703,6 +714,57 @@ class Webster(Character):
             '4': ['I\'m not sure why, but Hilbert has hired you to kill all of his security AND his guests.',
                   'There isn\'t anyone attacking this Hotel at all!',
                   'I don\'t know what he\'s planning, but you\'re in too deep now, you musn\'t tell him anything! Play along for now or he will kill every living thing in here, I know he has the power to do so.']}
+
+    def conversationAction(self, key):
+        #Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.charactersMet['Webster'] = True
+            self.game.difficulty += 1
+
+        elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['purpleCogs'] -= 5
+
+        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['purpleCogs'] -= 10
+
+        elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['purpleCogs'] -= 15
+
+        self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+
+class Watson(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Watson')
+
+        self.currencyRequirements = {
+            0: [],
+            1: [],
+            2: [['purchase', 'credits', 5]],
+            3: [['purchase', 'credits', 5]],
+            4: [['purchase', 'credits', 5]]
+        }
+
+        self.dialogue = {
+            '0': ['Woah hey hi!',
+                    'I been sitting down here so long it\'s been ages since I\'ve seen anyone!',
+                    'I have some reeeaaallly top secret information for you... for a price.',
+                    'It\'s worth it, I promise, I was told this by God!'],
+
+            '1': ['Gimme CREDIT!! Mmmm gobble gobble gobble yummy I just love credit!',
+                  'Uh I mean credits, yeah, the currency.'],
+
+            '2': ['So... The first, and most important piece of information:',
+                  'I hear this "world" was created by another being and is called a "game". Here are God\'s words:',
+                  'Created By: Alex Hopper',
+                  'Yummy yummy gimme more credits for more!'],
+
+            '3': ['God also says:',
+                  'Playtested by: Eloisa Perez-Bennetts.',
+                  'Yummy yooo, more credits pleeeease!'],
+            
+            '4': ['Yeah just kidding, no more words of God.',
+                  'But, if you want to be mentioned by God, this "game" is still in playtest so let him know what you think!',
+                  'Pretty please.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
