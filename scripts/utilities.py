@@ -147,6 +147,9 @@ def initialiseGameParams(game):
         12: {'type': 'extraEntity', 'object': Torch, 'size': (16,16)},
         18: {'type': 'extraEntity', 'object': HeartAltar, 'size': (16,16)},
         24: {'type': 'extraEntity', 'object': CreepyEyes, 'size': (16,16)},
+        29: {'type': 'extraEntity', 'object': MeteorBait, 'size': (16,16)},
+        31: {'type': 'extraEntity', 'object': Gravestone, 'size': (32,32)},
+        32: {'type': 'extraEntity', 'object': FlyGhost, 'size': (12,12)},
 
         10: {'type': 'spawnPoint', 'object': SpawnPoint, 'size': (16,16)},
 
@@ -159,9 +162,48 @@ def initialiseGameParams(game):
         20: {'type': 'enemy', 'object': Echidna, 'size': (14,9)},
         22: {'type': 'enemy', 'object': AlienShip, 'size': (12,8)},
 
-        25: {'type': 'boss', 'object': TestBoss, 'size': (16,16)},
-        27: {'type': 'boss', 'object': NormalBoss, 'size': (32,10)},
+        25: {'type': 'boss', 'object': SpookyBoss, 'size': (14,28)},
+        27: {'type': 'boss', 'object': NormalBoss, 'size': (26,8)},
+        28: {'type': 'boss', 'object': GrassBoss, 'size': (20,20)},
+        30: {'type': 'boss', 'object': SpaceBoss, 'size': (26,8)},
     }
+
+    game.assetInfo = {
+        'entities/.enemies/': {
+            'alienship/': [['idle', 10, True], ['flying', 10, True]],
+            'bat/': [['idle', 10, True], ['grace', 10, True], ['charging', 20, False], ['attacking', 10, True]],
+            'echidna/': [['idle', 10, True], ['grace', 10, True], ['charging', 30, False], ['walking', 6, True]],
+            'gunguy/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
+            'gunguyBlue/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
+            'gunguyOrange/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
+            'gunguyPurple/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
+            'kangaroo/': [['idle', 10, True], ['grace', 5, True], ['prep', 4, True], ['jumping', 4, True]],
+            'rolypoly/': [['idle', 10, True], ['run', 4, True]],
+            'rubiksCube/': [['idle', 60, True], ['blue', 60, True], ['green', 60, True], ['orange', 60, True], ['red', 60, True], ['white', 60, True], ['yellow', 60, True]],
+            'spider/': [['idle', 10, True], ['grace', 5, True], ['run', 4, True]],
+            },
+
+        'entities/': {
+            'player/': [['idle', 10, True], ['jump', 5, True], ['run', 4, True], ['wall_slide', 5, True]],
+            'creepyeyes/': [['idle', 15, True]],
+            'glowworm/': [['idle', 15, True]],
+            'heartAltar/': [['idle', 10, True], ['active', 10, True]],
+            'meteor/': [['idle', 10, False], ['kaboom', 5, False]],
+            'meteorbait/': [['idle', 6, True]],
+            'spawnPoint/': [['idle', 5, True], ['active', 5, True]],
+            'torch/': [['idle', 4, True]],
+            'gravestone/': [['idle', 4, True]],
+            'flyghost/': [['idle', 4, True]],
+            },
+
+        'entities/.bosses/': {
+            'normalboss/': [['idle', 45, True], ['activating', 16, False], ['flying', 6, True], ['attacking', 16, False]],
+            'grassboss/': [['idle', 45, True], ['activating', 10, False], ['run', 6, True], ['attacking', 6, True]],
+            'spaceboss/': [['idle', 45, True], ['activating', 10, True], ['flying', 6, True], ['attacking', 30, False]],
+            'spookyboss/': [['idle', 20, False], ['flying', 6, True], ['teleporting', 6, True]],
+        }
+    }
+
     game.portalInfo = {
         0: 'lobby',
         1: 'normal',
@@ -465,6 +507,7 @@ def initialiseGameParams(game):
         'echidna': 'Echidna',
         'meteor': 'Meteor',
         'alienship': 'Alien Spaceship',
+        'flyghost': 'Lil\' Ghost',
 
         'normalboss': 'Big Bat',
         'grassboss': 'Big Roly Poly',

@@ -18,7 +18,7 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        gameVersion = '0.3.0'
+        gameVersion = '0.4.2'
         pygame.display.set_caption(f'Hilbert\'s Hotel v{gameVersion}')
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
         self.clock = pygame.time.Clock()       
@@ -158,17 +158,17 @@ class Game:
                 portal.render(self.display_outline, offset = self.render_scroll)
             
             for enemy in self.enemies.copy():
-                enemy.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if enemy.update(self.tilemap, (0, 0)):
                         self.enemies.remove(enemy)
                         self.player.updateNearestEnemy()
+                enemy.render(self.display_outline, offset = self.render_scroll)
 
             for boss in self.bosses.copy():
-                boss.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if boss.update(self.tilemap, (0, 0)):
                         self.bosses.remove(boss)
+                boss.render(self.display_outline, offset = self.render_scroll)
             
             for character in self.characters.copy():
                 if not self.paused:
@@ -176,8 +176,8 @@ class Game:
                 character.render(self.display_outline, offset = self.render_scroll)
 
             for spawnPoint in self.spawnPoints:
-                spawnPoint.render(self.display_outline, offset = self.render_scroll)
                 spawnPoint.update(self.tilemap)
+                spawnPoint.render(self.display_outline, offset = self.render_scroll)
 
             if not self.dead:
                 if not self.paused:
@@ -188,8 +188,6 @@ class Game:
                 if projectile.update(self):
                     self.projectiles.remove(projectile)
 
-            
-                
             for rect in self.potplants:
                   if random.random() < 0.01 and not self.paused:
                       pos = (rect.x + rect.width * random.random(), rect.y + rect.height * random.random())
@@ -204,16 +202,16 @@ class Game:
             self.tilemap.render(self.display_outline, offset = self.render_scroll)
 
             for extraEntity in self.extraEntities.copy():
-                extraEntity.render(self.display_outline, offset = self.render_scroll)
                 if not self.paused:
                     if extraEntity.update(self.tilemap):
                         self.extraEntities.remove(extraEntity)
+                extraEntity.render(self.display_outline, offset = self.render_scroll)
   
             for spark in self.sparks.copy():
-                kill = spark.update(offset = self.render_scroll)
+                if not self.paused:
+                    if spark.update(self, offset = self.render_scroll):
+                        self.sparks.remove(spark)
                 spark.render(self.display_outline, offset = self.render_scroll)
-                if kill:
-                    self.sparks.remove(spark)
            
             display_outline_mask = pygame.mask.from_surface(self.display_outline)
             display_outline_sillhouette = display_outline_mask.to_surface(setcolor = (0, 0, 0, 180), unsetcolor = (0, 0, 0, 0))
@@ -562,7 +560,7 @@ class Game:
 
         #Spawn in leaf particle spawners
         self.potplants = []
-        for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3), ('large_decor', 1), ('large_decor', 2)], keep = True):
+        for plant in self.tilemap.extract([('potplants', 0), ('potplants', 1), ('potplants', 2), ('potplants', 3), ('decor', 8), ('decor', 9)], keep = True):
             self.potplants.append(pygame.Rect(plant['pos'][0], plant['pos'][1], self.tilemap.tilesize if plant['type'] == 'potplants' else self.tilemap.tilesize*2, self.tilemap.tilesize))
         
         #Replaces spawn tile with an actual object of the entity:
@@ -747,9 +745,7 @@ class Game:
 
 
     def loadGameAssets(self):
-        #one day ill clean this up
         #BASE_PATH = 'data/images/'
-
         self.assets = {
             'clouds': load_images('clouds'),
             'weapons/gun': load_images('weapons/gun'),
@@ -757,66 +753,23 @@ class Game:
             'heart': pygame.transform.scale(load_image('misc/heart.png'), (32, 32)),
             'heartEmpty': pygame.transform.scale(load_image('misc/heartEmpty.png'), (32, 32)),
             'heartTemp': pygame.transform.scale(load_image('misc/heartTemp.png'), (32, 32)),
-
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur = 10),
-            'player/run': Animation(load_images('entities/player/run'), img_dur = 4),
-            'player/jump': Animation(load_images('entities/player/jump'), img_dur = 5),
-            'player/wall_slide': Animation(load_images('entities/player/wall_slide'), img_dur = 5),
-
-            'bat/attacking': Animation(load_images('entities/.enemies/bat/attacking'), img_dur = 10),
-            'bat/charging': Animation(load_images('entities/.enemies/bat/charging'), img_dur = 20, loop = False),
-            'rolypoly/run': Animation(load_images('entities/.enemies/rolypoly/run'), img_dur = 4),
-            'spider/run': Animation(load_images('entities/.enemies/spider/run'), img_dur = 4),
-            'kangaroo/jumping': Animation(load_images('entities/.enemies/kangaroo/jumping'), img_dur = 4),
-            'kangaroo/prep': Animation(load_images('entities/.enemies/kangaroo/prep'), img_dur = 4),
-            'echidna/walking': Animation(load_images('entities/.enemies/echidna/walking'), img_dur = 6),
-            'echidna/charging': Animation(load_images('entities/.enemies/echidna/charging'), img_dur = 30, loop = False),
-            'alienship/flying': Animation(load_images('entities/.enemies/alienship/flying'), img_dur = 10),
-
             'bossHeart': pygame.transform.scale(load_image('misc/bossHeart.png'), (32, 32)),
             'bossHeartEmpty': pygame.transform.scale(load_image('misc/bossHeartEmpty.png'), (32, 32)),
-            'testboss/idle': Animation(load_images('entities/.bosses/testboss/idle'), img_dur = 10),
-            'testboss/active': Animation(load_images('entities/.bosses/testboss/active'), img_dur = 10),
-
-            'spawnPoint/idle': Animation(load_images('entities/spawnPoint/idle'), img_dur = 4),
-            'spawnPoint/active': Animation(load_images('entities/spawnPoint/active'), img_dur = 4),
-
-            'heartAltar/idle': Animation(load_images('entities/heartAltar/idle'), img_dur = 10),
-            'heartAltar/active': Animation(load_images('entities/heartAltar/active'), img_dur = 10),
-
-            'meteor/idle': Animation(load_images('entities/meteor/idle'), img_dur = 10, loop = False),
-            'meteor/kaboom': Animation(load_images('entities/meteor/kaboom'), img_dur = 5, loop = False),
-
             'particle/leaf': Animation(load_images('particles/leaf'),img_dur=20, loop = False),
-            'glowworm/idle': Animation(load_images('entities/glowworm/idle'),img_dur=15),
-            'creepyeyes/idle': Animation(load_images('entities/creepyeyes/idle'),img_dur=15),
-            'torch/idle': Animation(load_images('entities/torch/idle'),img_dur=4)}
-        
-        for idleEnemy in ['bat', 'rolypoly', 'spider', 'kangaroo', 'echidna', 'alienship']:
-            self.assets[f'{idleEnemy}/idle'] = Animation(load_images(f'entities/.enemies/{idleEnemy}/idle'), img_dur = 10)
+        }
 
-        for graceEnemy in ['bat', 'spider', 'kangaroo', 'echidna']:
-            self.assets[f'{graceEnemy}/grace'] = Animation(load_images(f'entities/.enemies/{graceEnemy}/grace'), img_dur = 5)
+        #Most entity animations:
+        for path in self.assetInfo.keys():
+            for entityType in self.assetInfo[path].keys():
+                for stateInfo in self.assetInfo[path][entityType]:
 
-        for normalBossState in ['idle', 'flying']:
-            self.assets[f'normalboss/{normalBossState}'] = Animation(load_images(f'entities/.bosses/normalboss/{normalBossState}'), img_dur = 6)
-        self.assets['normalboss/activating'] = Animation(load_images(f'entities/.bosses/normalboss/activating'), img_dur = 16, loop = False)
-        self.assets['normalboss/attacking'] = Animation(load_images(f'entities/.bosses/normalboss/attacking'), img_dur = 16, loop = False)
-        
+                    self.assets[f'{entityType}{stateInfo[0]}'] = Animation(load_images(f'{path}{entityType}{stateInfo[0]}'), img_dur = stateInfo[1], loop = stateInfo[2])
+
         for tile in ['decor', 'potplants', 'spawners', 'cracked']:
             self.assets[tile] = load_images(f'tiles/{tile}')
 
         for misc in ['menuBackground', 'menuForeground', 'projectile', 'spine', 'light', 'witchHat']:
             self.assets[misc] = load_image(f'misc/{misc}.png')
-        
-        for cubeState in ['idle', 'white', 'yellow', 'blue', 'green', 'red', 'orange']:
-            self.assets[f'rubiksCube/{cubeState}'] = Animation(load_images(f'entities/.enemies/rubiksCube/{cubeState}'), img_dur = 60)
-
-        for gunguyColour in ['', 'Orange', 'Blue', 'Purple']:
-            self.assets[f'gunguy{gunguyColour}/idle'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/idle'), img_dur = 10)
-            self.assets[f'gunguy{gunguyColour}/run'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/run'), img_dur = 4)
-            self.assets[f'gunguy{gunguyColour}/grace'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/grace'), img_dur = 4)
-            self.assets[f'gunguy{gunguyColour}/jump'] = Animation(load_images(f'entities/.enemies/gunguy{gunguyColour}/jump'), img_dur = 20)
 
         for currency in self.wallet.keys():
             self.assets[f'{currency[:-1]}/idle'] = Animation(load_images(f'currencies/{currency[:-1]}/idle', dim = (7, 7)), img_dur = 6)
@@ -839,7 +792,7 @@ class Game:
             self.assets[f'particle/particle{n}'] = Animation(load_images(f'particles/particle{n}'), img_dur = 6, loop = False)
 
         self.assets['stone'] = load_images('tiles/stone')
-            
+
         self.walletTemp = {}
         self.walletLostAmount = {}
         self.walletGainedAmount = {}
