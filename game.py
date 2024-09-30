@@ -18,18 +18,17 @@ class Game:
 
         #Pygame specific parameters and initialisation
         pygame.init()
-        gameVersion = '0.4.2'
+        gameVersion = '0.4.5'
         pygame.display.set_caption(f'Hilbert\'s Hotel v{gameVersion}')
         self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold = True)
-        self.clock = pygame.time.Clock()       
+        self.clock = pygame.time.Clock()     
 
         #Define all general game parameters and load in assets
         initialiseMainScreen(self)
         initialiseGameParams(self)
         self.loadGameAssets()
-      
-        #Initialise player and map 
-        self.player = Player(self, (0, 0), (8, 12))
+
+        self.player = Player(self, (0, 0), (8, 12))  
         self.tilemap = tileMap(self, tile_size = 16)
         
     def loadMenu(self):
@@ -140,16 +139,7 @@ class Game:
             self.display_outline.fill((0, 0, 0, 0))
             self.HUDdisplay.fill((0, 0, 0, 0))
             self.darkness_surface.fill((0, 0, 0, self.caveDarkness))
-            self.minimapdisplay.fill((0, 0, 0, 0))
             self.screenshake = max(0, self.screenshake - 1)
-
-            #Minimap:
-            if self.minimapActive:
-                pygame.draw.rect(self.minimapdisplay, (255,100,100, 255), ((self.player.pos[0] - self.render_scroll[0] + self.player.anim_offset[0]) / 16 * 8, (self.player.pos[1] - self.render_scroll[1] + self.player.anim_offset[1]) / 16 * 8, 8, 8))
-                for loc in self.minimapList:
-                    tile = self.minimapList[loc]
-                    pygame.draw.rect(self.minimapdisplay, (255,255,255, 200), (tile[0] * 8, tile[1] * 8, 8, 8))
-                self.minimapList = {}
   
             #RENDER AND UPDATE ALL THE THINGS
             for portal in self.portals:
@@ -305,13 +295,13 @@ class Game:
                             self.enemies.remove(e)
                     if event.key == pygame.K_p:
                         for e in self.enemies.copy():
-                            if (e.pos[0] < 0 or e.pos[0] > self.tilemap.mapSize*16) or (e.pos[1] < 0 or e.pos[1] > self.tilemap.mapSize*16):
+                            if (e.pos[0] < 0 or e.pos[0] > self.tilemap.mapSize*self.tilemap.tilesize) or (e.pos[1] < 0 or e.pos[1] > self.tilemap.mapSize*self.tilemap.tilesize):
                                 print(e.type, e.pos)
                                 print('OUT OF BOUNDS^')
                         print('player: ', self.player.pos)
-                        print('bounds: ', 0,0, ",",self.tilemap.mapSize*16, self.tilemap.mapSize*16)
+                        print('bounds: ', 0,0, ",",self.tilemap.mapSize*self.tilemap.tilesize, self.tilemap.mapSize*self.tilemap.tilesize)
                     if event.key == pygame.K_l:
-                        print('player pos: ', self.player.pos[0] // 16, self.player.pos[1] // 16)
+                        print('player pos: ', self.player.pos[0] // self.tilemap.tilesize, self.player.pos[1] // self.tilemap.tilesize)
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
@@ -343,7 +333,6 @@ class Game:
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) if self.screenshakeOn else (0, 0)
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
             self.screen.blit(self.HUDdisplay, (0, 0))
-            self.screen.blit(self.minimapdisplay, (3 * self.screen_width / 4, 3 * self.screen_height / 4))
 
             #Level transition circle
             if self.transition:
@@ -524,7 +513,6 @@ class Game:
         self.currencyEntities = []
         self.sparks = []
         self.player.dashing = 0
-        self.minimapList = {}
 
         if self.nextLevel != 'infinite':
             self.infiniteFloorMax = max(self.floors['infinite'], self.infiniteFloorMax)
@@ -601,7 +589,7 @@ class Game:
         #Replaces spawn tile with an actual object of the portal:
         for portal in self.tilemap.extract('spawnersPortal'):
             if self.portalsMet[self.portalInfo[portal['variant']]]:
-                self.portals.append(Portal(self, portal['pos'], (16, 16), self.portalInfo[portal['variant']]))
+                self.portals.append(Portal(self, portal['pos'], (self.tilemap.tilesize, self.tilemap.tilesize), self.portalInfo[portal['variant']]))
 
         self.dead = False
         self.player.velocity = [0, 0]

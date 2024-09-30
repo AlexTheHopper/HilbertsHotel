@@ -25,7 +25,7 @@ class Spark:
         pygame.draw.polygon(surface, self.color, render_points)
 
 class ExpandingArc:
-    def __init__(self, pos, maxRadius, angleA, angleB, speed, color = (255, 255, 255), width = 1, damage = 1, type = 'default'):
+    def __init__(self, pos, maxRadius, angleA, angleB, speed, color = (255, 255, 255), colorStr = 'white', canDamageBoss = False, width = 1, damage = 1, type = 'default'):
         self.pos = list(pos)
         self.maxRadius = maxRadius
         self.radius = 0
@@ -33,6 +33,8 @@ class ExpandingArc:
         self.angleB = angleB
         self.speed = speed
         self.color = color
+        self.colorStr = colorStr
+        self.canDamageBoss = canDamageBoss
         self.width = width
         self.displayWidth = width
         self.type = type
@@ -53,14 +55,27 @@ class ExpandingArc:
         self.posRect = pygame.Rect(self.pos[0] - self.radius, self.pos[1] - self.radius, 2 * self.radius, 2 * self.radius)
 
         #Check for player collision:
-        if self.posRect.colliderect(game.player.rect()):
+        if self.checkCollision(game.player.rect()):
+            game.player.damage(self.damage, self.type)
+
+        #Check for boss collision (Rubiks)
+        for boss in game.bosses.copy():
+            if self.checkCollision(boss.rect()) and self.colorStr == boss.action and self.canDamageBoss:
+                if boss.damageSelf(1):
+                    boss.set_action('dying')
+                    boss.gravityAffected = True
+
+
+    def render(self, surface, offset = (0, 0)):
+        pygame.draw.arc(surface, self.color, self.dispRect, self.angleA, self.angleB, width = self.displayWidth)
+
+    def checkCollision(self, rectToCollide):
+        if self.posRect.colliderect(rectToCollide):
+
             for angle in range(int(math.degrees(self.angleA)), int(math.degrees(self.angleB)), 5):
                 rad_angle = math.radians(angle)
                 x = self.posRect.centerx + self.radius * math.cos(rad_angle)
                 y = self.posRect.centery + self.radius * math.sin(rad_angle)
 
-                if game.player.rect().collidepoint(x, y):
-                    game.player.damage(self.damage, self.type)
-
-    def render(self, surface, offset = (0, 0)):
-        pygame.draw.arc(surface, self.color, self.dispRect, self.angleA, self.angleB, width = self.displayWidth)
+                if rectToCollide.collidepoint(x, y):
+                    return True

@@ -50,8 +50,6 @@ def initialiseGameParams(game):
     game.caveDarknessRange = (50,250)
     game.caveDarkness = True
     game.minPauseDarkness = 150
-    game.minimapActive = False
-    game.minimapList = {}
     game.currencyEntities = []
 
     game.currentTextList = []
@@ -150,6 +148,7 @@ def initialiseGameParams(game):
         29: {'type': 'extraEntity', 'object': MeteorBait, 'size': (16,16)},
         31: {'type': 'extraEntity', 'object': Gravestone, 'size': (32,32)},
         32: {'type': 'extraEntity', 'object': FlyGhost, 'size': (12,12)},
+        34: {'type': 'extraEntity', 'object': RubiksCubeThrow, 'size': (16,16)},
 
         10: {'type': 'spawnPoint', 'object': SpawnPoint, 'size': (16,16)},
 
@@ -166,6 +165,7 @@ def initialiseGameParams(game):
         27: {'type': 'boss', 'object': NormalBoss, 'size': (26,8)},
         28: {'type': 'boss', 'object': GrassBoss, 'size': (20,20)},
         30: {'type': 'boss', 'object': SpaceBoss, 'size': (26,8)},
+        33: {'type': 'boss', 'object': RubiksBoss, 'size': (32,32)},
     }
 
     game.assetInfo = {
@@ -197,10 +197,11 @@ def initialiseGameParams(game):
             },
 
         'entities/.bosses/': {
-            'normalboss/': [['idle', 45, True], ['activating', 16, False], ['flying', 6, True], ['attacking', 16, False]],
-            'grassboss/': [['idle', 45, True], ['activating', 10, False], ['run', 6, True], ['attacking', 6, True]],
-            'spaceboss/': [['idle', 45, True], ['activating', 10, True], ['flying', 6, True], ['attacking', 30, False]],
-            'spookyboss/': [['idle', 20, False], ['flying', 6, True], ['teleporting', 6, True]],
+            'normalboss/': [['idle', 45, True], ['activating', 16, False], ['flying', 6, True], ['attacking', 16, False], ['dying', 30, False]],
+            'grassboss/': [['idle', 45, True], ['activating', 10, False], ['run', 6, True], ['attacking', 6, True], ['dying', 30, False]],
+            'spaceboss/': [['idle', 45, True], ['activating', 10, True], ['flying', 6, True], ['attacking', 30, False], ['dying', 30, False]],
+            'spookyboss/': [['idle', 20, False], ['flying', 6, True], ['teleporting', 6, True], ['dying', 30, False]],
+            'rubiksboss/': [['idle', 60, True], ['blue', 60, True], ['green', 60, True], ['orange', 60, True], ['red', 60, True], ['white', 60, True], ['yellow', 60, True], ['dying', 6, True]],
         }
     }
 
@@ -222,7 +223,6 @@ def initialiseGameParams(game):
     #overlay displays
     game.display_outline = pygame.Surface((game.screen_width / 2, game.screen_height / 2), pygame.SRCALPHA)
     game.display = pygame.Surface((game.screen_width / 2, game.screen_height / 2))
-    game.minimapdisplay = pygame.Surface((game.screen_width / 4, game.screen_height / 4), pygame.SRCALPHA)
     game.darkness_surface = pygame.Surface(game.display_outline.get_size(), pygame.SRCALPHA)
 
     #VALUES THAT SAVE

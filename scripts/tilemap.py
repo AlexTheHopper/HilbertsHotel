@@ -41,7 +41,7 @@ class tileMap:
         self.tile_size = tile_size
         self.tilemap = {}
         self.offgrid_tiles = []
-        self.mapSize = 50
+        self.mapSize = 80
         self.game = game
 
     def render(self, surface, offset = (0, 0)):
@@ -61,11 +61,6 @@ class tileMap:
                     asset = self.game.assets[tile['type']][tile['variant']]
                     position = (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1])
                     surface.blit(asset, position)
-                    
-                    #Add tiles to minimap:
-                    if self.game.minimapActive and tile['type'] in PHYSICS_TILES:
-                        self.game.minimapList[loc] = [(tile['pos'][0] * self.tile_size - offset[0]) / 16, (tile['pos'][1] * self.tile_size - offset[1]) / 16]
-
 
     def extract(self, search, keep=False):
         matches = []
