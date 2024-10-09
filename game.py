@@ -223,9 +223,11 @@ class Game:
                     
             #Level transition
             if self.transition > 30:
-                self.tilemap.load_tilemap(self.nextLevel, self.currentLevelSize, self.enemyCountMax)
+                self.tilemap.load_tilemap(self.levelNext)
                 self.previousLevel = self.currentLevel
-                self.currentLevel = self.nextLevel
+                self.currentLevel = self.levelNext
+
+                self.currentLevel = self.levelNext
                 self.load_level()
                 self.dead = False
 
@@ -499,6 +501,9 @@ class Game:
     def load_level(self):
         #Save game:
         self.save_game(self.saveSlot)
+
+        #Sort increasing level:
+
         if self.currentLevel != 'infinite':
             self.levelType = self.currentLevel
 
@@ -514,7 +519,7 @@ class Game:
         self.sparks = []
         self.player.dashing = 0
 
-        if self.nextLevel != 'infinite':
+        if self.levelNext != 'infinite':
             self.infiniteFloorMax = max(self.floors['infinite'], self.infiniteFloorMax)
             self.floors['infinite'] = 1
         
@@ -602,7 +607,7 @@ class Game:
         self.scroll = [self.player.rect().centerx - self.screen_width / 4,
                        self.player.rect().centery - self.screen_height / 4]
 
-        self.background = pygame.transform.scale(self.assets[f'{self.currentLevel}Background'], (self.screen_width / 2, self.screen_height / 2))
+        self.background = pygame.transform.scale(self.assets[f'{self.heavenHell + self.currentLevel}Background'], (self.screen_width / 2, self.screen_height / 2))
             
 
         #Level Specifics
@@ -765,11 +770,19 @@ class Game:
         for levelType in self.portalsMet.keys():
             self.assets[f'portal{levelType}/idle'] = Animation(load_images(f'entities/.portals/portal{levelType}/idle'), img_dur = 6)
             self.assets[f'portal{levelType}/opening'] = Animation(load_images(f'entities/.portals/portal{levelType}/opening'), img_dur = 6, loop = False)
+            self.assets[f'portal{levelType}/closing'] = Animation(load_images(f'entities/.portals/portal{levelType}/opening', reverse = True), img_dur = 3, loop = False)
             self.assets[f'portal{levelType}/active'] = Animation(load_images(f'entities/.portals/portal{levelType}/active'), img_dur = 6)
-            self.assets[f'{levelType}Background'] = load_image(f'misc/background{levelType}.png')
 
-            if levelType not in ['infinite', 'lobby']:
+            if levelType != 'heavenHell':
+                self.assets[f'{levelType}Background'] = load_image(f'misc/background{levelType}.png')
+
+            if levelType not in ['infinite', 'lobby', 'heavenHell']:
                 self.assets[levelType] = load_images(f'tiles/{levelType}')
+
+        self.assets[f'heavenheavenHellBackground'] = load_image(f'misc/backgroundheaven.png')
+        self.assets['heaven'] = load_images(f'tiles/heaven')
+        self.assets[f'hellheavenHellBackground'] = load_image(f'misc/backgroundhell.png')
+        self.assets['hell'] = load_images(f'tiles/hell')
 
         for character in self.charactersMet.keys():
             self.assets[f'{character.lower()}/idle'] = Animation(load_images(f'entities/.characters/{character.lower()}/idle'), img_dur = 10)
@@ -791,7 +804,9 @@ class Game:
             self.walletGainedAmount[currency] = ''
             self.displayIcons[currency] = pygame.transform.scale(load_image(f'currencies/{currency[:-1]}/idle/0.png'), (28,28))
         for floor in self.floors:
-            self.displayIcons[floor] = pygame.transform.scale(self.assets['normal' if floor == 'infinite' else floor][0 if floor == 'rubiks' else 1], (28,28))
+            self.displayIcons[floor] = pygame.transform.scale(self.assets['normal' if floor in ['infinite', 'heavenHell'] else floor][0 if floor == 'rubiks' else 1], (28,28))
+        self.displayIcons['infinite'] = pygame.transform.scale(load_image(f'misc/infiniteDisplayIcon.png'), (28,28))
+        self.displayIcons['heavenHell'] = pygame.transform.scale(load_image(f'misc/heavenHellDisplayIcon.png'), (28,28))
         self.displayIcons['spawnPoints'] = pygame.transform.scale(self.assets['spawnPoint/active'].images[0], (28,28))
         self.displayIcons['heartAltars'] = pygame.transform.scale(self.assets['heartAltar/active'].images[0], (28,28))
         
@@ -846,7 +861,7 @@ class Game:
 
 
     def transitionToLevel(self, newLevel):
-        self.nextLevel = newLevel
+        self.levelNext = newLevel
         self.transition += 1
 
 
@@ -875,12 +890,17 @@ class Game:
     
     def getRandomLevel(self):
         availableFloors = []
+
         for level in self.floors.keys():
-            if self.floors[level] > 1 and level != 'infinite':
+            if self.floors[level] > 1 and level not in ['infinite', 'heavenHell']:
                 availableFloors.append(level)
+            elif self.floors[level] > 1 and level == 'heavenHell':
+                availableFloors.append('hell')
+                availableFloors.append('heaven')
         try:
             return random.choice(availableFloors)
         except IndexError:
+
             return 'normal'
     
 
@@ -889,6 +909,20 @@ class Game:
 
             for loc in self.tunnelPositions[tunnel]:
                 del self.tilemap.tilemap[str(loc[0]) + ';' + str(loc[1])]
+
+    def getCompletedCharacters(self):
+        completed = []
+
+        for character in self.dialogueHistory:
+            lastKey = list(self.dialogueHistory[character])[-1]
+
+            if self.dialogueHistory[character][lastKey]:
+                completed.append(character)
+            
+            elif character == 'Planck' and self.tempHeartsBought >= self.tempHeartsForPlanck:
+                completed.append(character)
+        
+        return completed
 
 
     def delete_save(self, saveSlot):
@@ -907,7 +941,9 @@ class Game:
                    'powerLevel': self.powerLevel,
                    'difficulty': self.difficulty,
                    'tempHealth': self.temporaryHealth,
+                   'tempHeartsBought': self.tempHeartsBought,
                    'totalJumps': self.player.total_jumps,
+                   'totalDashes': self.player.total_dashes,
                    'health': self.health,
                    'tunnelsBroken': self.tunnelsBroken,
                    'deathCount': self.deathCount,
@@ -939,7 +975,9 @@ class Game:
                 self.powerLevel = saveData['powerLevel']
                 self.difficulty = saveData['difficulty']
                 self.temporaryHealth = saveData['tempHealth']
+                self.tempHeartsBought = saveData['tempHeartsBought']
                 self.player.total_jumps = saveData['totalJumps']
+                self.player.total_dashes = saveData['totalDashes']
                 self.health = saveData['health']
                 self.tunnelsBroken = saveData['tunnelsBroken']
                 self.deathCount = saveData['deathCount']

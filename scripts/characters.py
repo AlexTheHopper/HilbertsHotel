@@ -86,7 +86,6 @@ class Character(physicsEntity):
             available = dialogue[str(index) + 'available']
             said = dialogue[str(index) + 'said']
             
-
             if not available:
                 return(self.dialogue[str(index - 1)], index - 1)
             
@@ -218,9 +217,13 @@ class Noether(Character):
             0: [],
             1: [],
             2: [['purchase', 'heartFragments', 5]],
-            3: [['purchase', 'heartFragments', 20]],
+            3: [['purchase', 'heartFragments', 25]],
             4: [['purchase', 'heartFragments', 50]],
-            5: [['purchase', 'heartFragments', 100]]
+            5: [['purchase', 'heartFragments', 75]],
+            6: [['purchase', 'heartFragments', 100]],
+            7: [['purchase', 'heartFragments', 100]],
+            8: [['purchase', 'heartFragments', 100]],
+            9: [['purchase', 'heartFragments', 100]],
         }
 
         self.dialogue = {
@@ -233,19 +236,34 @@ class Noether(Character):
 
             '2': ['You\'ve got two hearts! Woo!',
                     'Ew, these things are disgusting... and still beating! EW!',
-                    'Hearts are super useful! If you run out, you\'ll lose a quarter of everything :( I\'ll give ya another for 20 fragments.'],
+                    'Hearts are super useful! If you run out, you\'ll lose a quarter of everything :( I\'ll give ya another for 25 fragments.'],
 
             '3': ['You\'ve got three hearts! Woo!',
                     'Look at you go, youll be a cat in no time!',
-                    'Keep \'em comin\' please.'],
+                    'You know what else has three hearts? Octopuses!',
+                    'Octopi? Octopodes? Octipodes? I dunno, but them!'],
 
             '4': ['You\'ve got four hearts! Woo!',
                     'Did you know that hagfish also have four hearts?',
-                    'I\'ve only got one more, sorry!'],
+                    'Yummy yummy hearts in my tummy!'],
                      
             '5': ['You\'ve got five hearts! Woo!',
-                  'Similarly, earthworms also have five!',
-                  'Sorry chief! All out of hearts for now :('] }
+                  'Similarly, earthworms also have five, isn\'t that crazy!',
+                  'I bet you want six right?'],
+                   
+            '6': ['You\'ve got six hearts! Woo!',
+                  'That\'s like, two octopoides!',
+                  'I bet you want seven right?'],
+                   
+            '7': ['You\'ve got seven hearts! Woo!',
+                  'Damn, seven hearts is like if an earthworm and Mr. David Tennant had a baby! Isn\'t that neat to think about?'],
+                   
+            '8': ['You\'ve got eight hearts! Woo!',
+                  'Crazy how if two octopodidies and Mr. David Tennant all had a baby it would also have that many hearts!'],
+                   
+            '9': ['You\'ve got nine whole hearts! Woo!',
+                  'You\'re a cat now, go you!!',
+                  'Wow I love cats, I\'ll follow you to the ends of the world!'], }
 
 
     def conversationAction(self, key):
@@ -263,7 +281,7 @@ class Noether(Character):
             self.game.maxHealth += 1
             self.game.health = self.game.maxHealth
 
-            self.game.wallet['heartFragments'] -= 20
+            self.game.wallet['heartFragments'] -= 25
             
         elif key == 4 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.maxHealth += 1
@@ -272,6 +290,12 @@ class Noether(Character):
             self.game.wallet['heartFragments'] -= 50
 
         elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.maxHealth += 1
+            self.game.health = self.game.maxHealth
+
+            self.game.wallet['heartFragments'] -= 75
+
+        elif key in [6, 7, 8, 9] and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.maxHealth += 1
             self.game.health = self.game.maxHealth
 
@@ -289,7 +313,9 @@ class Curie(Character):
             1: [],
             2: [['purchase', 'wings', 20]],
             3: [['purchase', 'wings', 25]],
-            4: [['purchase', 'wings', 40]]
+            4: [['purchase', 'wings', 40]],
+            5: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 25], ['purchase', 'chitins', 25]],
+            6: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'chitins', 50]]
         }
 
         self.dialogue = {
@@ -307,7 +333,16 @@ class Curie(Character):
                     'I\'ll give ya another for 40 wings.'],
             
             '4': ['You\'ve got four jumps! Woo! How many is too many?',
-                  'Sorry chief! All out of boots for now.']}
+                  'Now, this next deal I got for ya is very lucrative. Not even Hilbert knows about this tech. I heard that you can do a lil dash in the air right?',
+                  'Well, I have worked out a way to let you dash more times in a row before cooling down!',
+                  'It\'s a bit expensive but I\'m sure you\'ll love it!'],
+                  
+            '5': ['How crazy is this! You can do two lil dashes in the air!',
+                    'I can improve this more, just you watch!'],
+                    
+            '6': ['Wow. I\'m digging your style, my guy.',
+                    'Unfortunately, that\'s the limit of my tech at the moment, but I would love to see these boots in action soon! Let me know if you need any help in there!']
+                    }
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -329,6 +364,22 @@ class Curie(Character):
 
             self.game.wallet['wings'] -= 40
 
+        elif key == 5 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.player.total_dashes += 1
+
+            self.game.wallet['wings'] -= 50
+            self.game.wallet['cogs'] -= 100
+            self.game.wallet['redCogs'] -= 25
+            self.game.wallet['chitins'] -= 25
+
+        elif key == 6 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.player.total_dashes += 1
+
+            self.game.wallet['wings'] -= 50
+            self.game.wallet['cogs'] -= 100
+            self.game.wallet['redCogs'] -= 50
+            self.game.wallet['chitins'] -= 50
+
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
 
@@ -336,7 +387,6 @@ class Curie(Character):
 class Planck(Character):
     def __init__(self, game, pos, size):
         super().__init__(game, pos, size, 'Planck')
-
 
         self.currencyRequirements = {
             0: [],
@@ -350,10 +400,13 @@ class Planck(Character):
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you temporary hearts! They will only last until you get hit.',
-                  'They\'re each yours for just 5 heart fragments!'],
+                  'They\'re each yours for just 5 heart fragments! It\'s been a bit slow here at the ol\' Temporary Heart Shop... Please buy them...'],
 
             '2': ['Here\'s a temporary heart!',
-                    'Don\'t go losing it all at once!']}
+                    'Don\'t go losing it all at once!',
+                    '']}
+        
+        self.updateFinalText()
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -362,10 +415,16 @@ class Planck(Character):
 
         elif key == 2 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.wallet['heartFragments'] -= 5
+            self.game.tempHeartsBought += 1
+            self.updateFinalText()
             self.game.temporaryHealth += 1
 
         if key != 2:
             self.game.dialogueHistory[self.name][str(key) + 'said'] = True
+
+    def updateFinalText(self):
+        self.finalText = f'If you buy {self.game.tempHeartsForPlanck - self.game.tempHeartsBought} more I will be able to pay off all my debts to Hilbert and be forever in your debt!' if self.game.tempHeartsBought < self.game.tempHeartsForPlanck else 'I can finally pay off my debts! Thank you so so much kind stranger!'
+        self.dialogue['2'][2] = self.finalText
 
 
 class Faraday(Character):
@@ -393,7 +452,8 @@ class Faraday(Character):
                   'I\'ll hide it here so Hilbert wont see it! Give me a jiffy and it\'ll be ready!'],
 
             '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to most of them! They\'ve all been sealed off but I managed to scrape this portal together.',
-                  'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.']}
+                  'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.',
+                  'I\'m too scared to face Hilbert on my own but if you ever build up the courage, I\'ll be there by your side.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -418,9 +478,9 @@ class Lorenz(Character):
             4: [['primePurchase', 'cogs', 'P>50', 50]],
             5: [['primePurchase', 'cogs', 'P>200', 200]],
             6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
-            7: [['prime', 'redCogs', 'P'], ['prime', 'blueCogs', 'P']],
-            8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'rubiks', 'P']],
-            9: [['floor', 'rubiks', 20], ['purchase', 'blueCogs', 30]]
+            7: [['floor', 'normal', 25]],
+            8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'infinite', 'P']],
+            9: [['floor', 'infinite', 20]]
         }
 
         self.dialogue = {
@@ -451,17 +511,19 @@ class Lorenz(Character):
                   'I have another hammer, but now I want a prime number of more things! :)'],
 
             '6': ['Hammer go smash!',
-                  'I have another hammer, but now I want a prime number of a couple types of special cogs pls!',
-                  'Not really sure why they\'re special, but Hilbert seems to like them so they must be valuable!'],
+                  'I have another hammer, but can you explore and clear up to floor 25 please!',
+                  'Some of the others keep talking about something special in there and I reeeeealy wanna know what it is!'],
                   
             '7': ['Hammer go SMASH!',
-                  'Now for this next hammer, can you reach a prime floor on each of these areas please?'],
+                  'Now for this next hammer, can you clea up to a prime floor on each of these areas please?'],
 
             '8': ['Hammer go SMASH!',
-                  'For the FINAL hammer, can you do some exploring and bring me back some more of my favourite coloured cogs?'],
+                  'For the FINAL hammer, can you clear floor 20 on this infinite thing please?',
+                  'Doesn\'t seem like this special thing is where the bats are so maybe it\'s somewhere else!'],
                   
             '9': ['Hammer go SMASH!!',
-                  'WOO! No more hammers well done!!']}
+                  'Please forgive me, I don\'t have anymore hammers :(',
+                  'But if you find it and need me, I\'ll be there for you!']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -478,18 +540,9 @@ class Lorenz(Character):
             self.game.wallet['wings'] = 0
             self.game.wallet['heartFragments'] = 0
 
-        if key == 7 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
-            self.game.wallet['redCogs'] = 0
-            self.game.wallet['blueCogs'] = 0
-
-        if key == 8 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+        if key in [7, 8, 9] and not self.game.dialogueHistory[self.name][str(key) + 'said']:
             self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
         
-        if key == 9 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
-            self.game.currencyEntities.append(Currency(self.game, 'hammer', self.game.player.pos))
-            self.game.wallet['blueCogs'] -= 30
-
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
 
@@ -504,7 +557,7 @@ class Franklin(Character):
             1: [],
             2: [['purchase', 'chitins', 50]],
             3: [['purchase', 'chitins', 50], ['purchase', 'boxingGloves', 50], ['purchase', 'cogs', 50]],
-            4: [['purchase', 'chitins', 50], ['purchase', 'cogs', 50]]
+            4: [['purchase', 'chitins', 50], ['purchase', 'cogs', 50], ['purchase', 'blueCogs', 25], ['purchase', 'redCogs', 25]]
         }
 
         self.dialogue = {
@@ -513,6 +566,7 @@ class Franklin(Character):
 
             '1': ['Oh yeah by the way I\'m likely the most useful in these here parts.',
                   'I can tippity tap into your own DNA and make you stronger. There\'s this nifty stuff called chitin that I can use to reinforce you!',
+                  '"What is chitin?" you ask? Who knows!'
                   'Bring me 50 chitin and I\'ll make you stronger!'],
 
             '2': ['Yay woo! Your power level is now 2!',
@@ -522,7 +576,7 @@ class Franklin(Character):
                     'I\'ll give ya another for 50 more chitin and a few little goodies.'],
             
             '4': ['Yay woo! Your power level is OVER 3!',
-                  'But I\'m sorry chief! All out of upgrades for now.']}
+                  'I would love to see this power in action! When you take on your biggest challenge, I\'ll be there!']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -544,6 +598,9 @@ class Franklin(Character):
             self.game.powerLevel += 1
 
             self.game.wallet['chitins'] -= 50
+            self.game.wallet['cogs'] -= 50
+            self.game.wallet['redCgs'] -= 25
+            self.game.wallet['blueCogs'] -= 25
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
             
@@ -555,7 +612,8 @@ class Rubik(Character):
         self.currencyRequirements = {
             0: [],
             1: [],
-            2: [['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'blueCogs', 25]]
+            2: [['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'blueCogs', 25]],
+            3: [['purchase', 'cogs', 50], ['purchase', 'fairyBreads', 25], ['floor', 'rubiks', 20]]
         }
 
         self.dialogue = {
@@ -570,7 +628,10 @@ class Rubik(Character):
                   'Don\'t go telling anyone, but I actually created this slice on purpose. I was trying to get away from Hilbert and got stuck.',
                   'He was doing some really weird stuff before you arrived and all of us on the concierge team are very suspicious.',
                   'He was hanging out on his penthouse floor for days, and I think he has created something terribly scary.',
-                  'Just be a bit careful pls.']}
+                  'Just be a bit careful pls.'],
+                  
+            '3': ['With your altrustic gifts, I have a newfound sense of bravery that came out of nowhere!',
+                  'If you decide to take down Hilbert, I will stand with you.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -581,6 +642,10 @@ class Rubik(Character):
             self.game.wallet['cogs'] -= 100
             self.game.wallet['redCogs'] -= 50
             self.game.wallet['blueCogs'] -= 25
+
+        elif key == 3 and not self.game.dialogueHistory[self.name][str(key) + 'said']:
+            self.game.wallet['cogs'] -= 50
+            self.game.wallet['fairyBreads'] -= 25
 
         self.game.dialogueHistory[self.name][str(key) + 'said'] = True
 
@@ -593,7 +658,8 @@ class Cantor(Character):
             0: [],
             1: [],
             2: [],
-            3: []
+            3: [],
+            4: [['floor', 'infinite', 30]]
         }
 
         self.dialogue = {
@@ -612,6 +678,10 @@ class Cantor(Character):
             '3': ['The Infinite is quite nifty! When you enter here with a bunch of stuff, you are not at risk of losing it, only items you found in here will disappear.',
                   'And if you die, you only lose half of what you have collected!',
                   'You could always come back to the lobby from any of the floors and save it all, but if you were a true madlad you would keep going until you die.',
+                  'If you make it past floor 30, you will have earned my respect. How good is that, the respect of a guy you\'ve never met before!',
+                  f'The furthest you have made it through The Infinite is to Floor {self.game.infiniteFloorMax}.'],
+                  
+            '4': ['You did it, woo! My respect is now yours!',
                   f'The furthest you have made it through The Infinite is to Floor {self.game.infiniteFloorMax}.']}
 
     def conversationAction(self, key):
@@ -657,7 +727,8 @@ class Melatos(Character):
             '4': ['YESSS!! This is absolutely delicious oh my god. Fairy Bread, Echidnas AND Kangaroos! :O'],
             
             '5': ['Also...',
-                  'I heard rumors of a huge number of guests arriving soon, apparently each with an infinitely long, unique name. I\'m not really sure why this matters but ever since this anouncement, Hilbert has been all up in arms.']}
+                  'I heard rumors of a huge number of guests arriving soon, apparently each with an infinitely long, unique name. I\'m not really sure why this matters but ever since this anouncement, Hilbert has been all up in arms.',
+                  'You have earned my respect, mate. My fairy bread and I will be with you \'til the end.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.
@@ -713,7 +784,8 @@ class Webster(Character):
             
             '4': ['I\'m not sure why, but Hilbert has hired you to kill all of his security AND his guests.',
                   'There isn\'t anyone attacking this Hotel at all!',
-                  'I don\'t know what he\'s planning, but you\'re in too deep now, you musn\'t tell him anything! Play along for now or he will kill every living thing in here, I know he has the power to do so.']}
+                  'I don\'t know what he\'s planning, but you\'re in too deep now, you musn\'t tell him anything! Play along for now or he will kill every living thing in here, I know he has the power to do so.',
+                  'When the time comes, I will stand with you.']}
 
     def conversationAction(self, key):
         #Runs when dialogue matching key is said for thr first time.

@@ -17,8 +17,10 @@ def load_image(path, dim = False):
     return img
 
 
-def load_images(path, dim = False):
+def load_images(path, dim = False, reverse = False):
     images = [load_image(path + '/' + img_name, dim) for img_name in sorted(os.listdir(BASE_PATH + path))]
+    if reverse:
+        images.reverse()
     return images
 
 
@@ -51,15 +53,25 @@ def initialiseGameParams(game):
     game.caveDarkness = True
     game.minPauseDarkness = 150
     game.currencyEntities = []
+    game.bossFrequency = 5
 
     game.currentTextList = []
     game.maxCharactersLine = 55
     game.talkingTo = ''
+    game.tempHeartsBought = 0
+    game.tempHeartsForPlanck = 25
+    game.heavenHell = ''
 
+    #Remove these later / debug
     game.previousLevel = 'lobby'
     game.currentLevel = 'lobby'
     game.nextLevel = 'lobby'
     game.levelType = 'lobby'
+
+    game.levelType = 'lobby'
+    game.levelStyle = 'lobby'
+    game.levelNext = 'lobby'
+
     game.infiniteModeActive = False
     game.infiniteFloorMax = 1
     game.floors = {
@@ -69,7 +81,8 @@ def initialiseGameParams(game):
         'rubiks': 1,
         'aussie': 1,
         'space': 1,
-        'infinite': 1
+        'heavenHell': 1,
+        'infinite': 1,
         }
     
     #Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
@@ -110,6 +123,20 @@ def initialiseGameParams(game):
                                 ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
                                 ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
                                 ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+
+        'heaven': {'decorationMod': 5,
+                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
+                                ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
+                                ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
+                                ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+
+        'hell': {'decorationMod': 5,
+                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
+                                ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
+                                ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
+                                ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
         }
 
     game.availableEnemyVariants = {
@@ -124,7 +151,11 @@ def initialiseGameParams(game):
         'aussie': [3],
         'aussieWeights': [1],
         'space': [3, 22],
-        'spaceWeights': [1, 1]
+        'spaceWeights': [1, 1],
+        'heaven': [3],
+        'heavenWeights': [1],
+        'hell': [3],
+        'hellWeights': [1],
     }
 
     game.entityInfo = {
@@ -166,6 +197,7 @@ def initialiseGameParams(game):
         28: {'type': 'boss', 'object': GrassBoss, 'size': (20,20)},
         30: {'type': 'boss', 'object': SpaceBoss, 'size': (26,8)},
         33: {'type': 'boss', 'object': RubiksBoss, 'size': (32,32)},
+        35: {'type': 'boss', 'object': AussieBoss, 'size': (20,20)},
     }
 
     game.assetInfo = {
@@ -193,15 +225,16 @@ def initialiseGameParams(game):
             'spawnPoint/': [['idle', 5, True], ['active', 5, True]],
             'torch/': [['idle', 4, True]],
             'gravestone/': [['idle', 4, True]],
-            'flyghost/': [['idle', 4, True]],
+            'flyghost/': [['idle', 6, True]],
             },
 
         'entities/.bosses/': {
             'normalboss/': [['idle', 45, True], ['activating', 16, False], ['flying', 6, True], ['attacking', 16, False], ['dying', 30, False]],
             'grassboss/': [['idle', 45, True], ['activating', 10, False], ['run', 6, True], ['attacking', 6, True], ['dying', 30, False]],
             'spaceboss/': [['idle', 45, True], ['activating', 10, True], ['flying', 6, True], ['attacking', 30, False], ['dying', 30, False]],
-            'spookyboss/': [['idle', 20, False], ['flying', 6, True], ['teleporting', 6, True], ['dying', 30, False]],
+            'spookyboss/': [['idle', 30, True], ['flying', 6, True], ['teleporting', 6, True], ['dying', 25, False]],
             'rubiksboss/': [['idle', 60, True], ['blue', 60, True], ['green', 60, True], ['orange', 60, True], ['red', 60, True], ['white', 60, True], ['yellow', 60, True], ['dying', 6, True]],
+            'aussieboss/': [['idle', 30, True], ['prep', 45, False], ['active', 6, True], ['jumping', 6, True], ['dying', 25, False]],
         }
     }
 
@@ -213,7 +246,8 @@ def initialiseGameParams(game):
         4: 'rubiks',
         5: 'infinite',
         6: 'aussie',
-        7: 'space'
+        7: 'space',
+        8: 'heavenHell',
     }
 
     #Screen and display
@@ -287,7 +321,15 @@ def initialiseGameParams(game):
                 '4available': False,
                 '4said': False,
                 '5available': False,
-                '5said': False},
+                '5said': False,
+                '6available': False,
+                '6said': False,
+                '7available': False,
+                '7said': False,
+                '8available': False,
+                '8said': False,
+                '9available': False,
+                '9said': False},
 
         'Curie': {'0available': True,
                 '0said': False,
@@ -298,7 +340,11 @@ def initialiseGameParams(game):
                 '3available': False,
                 '3said': False,
                 '4available': False,
-                '4said': False},
+                '4said': False,
+                '5available': False,
+                '5said': False,
+                '6available': False,
+                '6said': False},
 
         'Planck': {'0available': True,
                 '0said': False,
@@ -353,7 +399,9 @@ def initialiseGameParams(game):
                 '1available': False,
                 '1said': False,
                 '2available': False,
-                '2said': False},
+                '2said': False,
+                '3available': False,
+                '3said': False},
 
         'Cantor': {'0available': True,
                 '0said': False,
@@ -362,7 +410,9 @@ def initialiseGameParams(game):
                 '2available': False,
                 '2said': False,
                 '3available': False,
-                '3said': False},
+                '3said': False,
+                '4available': False,
+                '4said': False},
 
         'Melatos': {'0available': True,
                 '0said': False,
@@ -424,7 +474,8 @@ def initialiseGameParams(game):
         'rubiks': True,
         'aussie': True,
         'space': True,
-        'infinite': True
+        'infinite': True,
+        'heavenHell': True,
     }
 
     game.encountersCheck = {

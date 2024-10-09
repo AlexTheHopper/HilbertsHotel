@@ -61,7 +61,7 @@ class ExpandingArc:
         #Check for boss collision (Rubiks)
         for boss in game.bosses.copy():
             if self.checkCollision(boss.rect()) and self.colorStr == boss.action and self.canDamageBoss:
-                if boss.damageSelf(1):
+                if boss.damageSelf():
                     boss.set_action('dying')
                     boss.gravityAffected = True
 

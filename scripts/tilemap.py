@@ -11,8 +11,8 @@ import numpy as np
 #Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1,2) for y in range(-1,2)]
 NEIGHBOR_OFFSETS_EXTRA = [(x, y) for x in range(-2,3) for y in range(-2,3)]
-PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
-AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'cracked'}
+PHYSICS_TILES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'heaven', 'hell', 'cracked'}
+AUTOTILE_TYPES = {'grass', 'stone', 'normal', 'spooky', 'rubiks', 'aussie', 'space', 'heaven', 'hell', 'cracked'}
 
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
@@ -117,13 +117,22 @@ class tileMap:
         return potentialTiles
     
 
-    def load_random_tilemap(self, size, enemyCountMax = 5, levelType = 'normal'):
+    def load_random_tilemap(self, size, enemyCountMax = 5, levelType = 'normal', levelStyle = ''):
+
+        print(f'loading random tilemap type {levelType} style {levelStyle}')
+        
+        if levelType != 'heavenHell':
+            levelStyle = levelType
+
         if levelType == 'infinite':
-            levelType = self.game.getRandomLevel()
+            levelStyle = self.game.getRandomLevel()
+            print(f'changing style to {levelStyle}')
+
         self.game.levelType = levelType
 
-        self.tilemap = self.generateTiles(size, levelType)
-        self.offgrid_tiles = self.populateMap(size, enemyCountMax, levelType)
+        print(f'loading random tilemap type {levelType} style {levelStyle}')
+        self.tilemap = self.generateTiles(size, levelStyle)
+        self.offgrid_tiles = self.populateMap(size, enemyCountMax, levelType, levelStyle)
         self.autotile()
 
 
@@ -198,7 +207,7 @@ class tileMap:
         return tilemap
     
 
-    def populateMap(self, size, enemyCountMax, levelType):
+    def populateMap(self, size, enemyCountMax, levelType, levelStyle):
         offgrid_tiles = []
         buffer = 18
 
@@ -273,7 +282,7 @@ class tileMap:
                            
                     #Add enemies:
                     else:
-                        variant = random.choices(self.game.availableEnemyVariants[levelType], self.game.availableEnemyVariants[levelType + 'Weights'], k = 1)[0]
+                        variant = random.choices(self.game.availableEnemyVariants[levelStyle], self.game.availableEnemyVariants[levelStyle + 'Weights'], k = 1)[0]
                         self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
                         enemyCount += 1
 
@@ -281,8 +290,8 @@ class tileMap:
         decoNum = 0
         glowwormCount = 0
         glowwwormMax = 15
-        decoNumMax = math.ceil(size / 5 * self.game.floorSpecifics[levelType]['decorationMod'])
-        decorationList = self.game.floorSpecifics[levelType]['decorations']
+        decoNumMax = math.ceil(size / 5 * self.game.floorSpecifics[levelStyle]['decorationMod'])
+        decorationList = self.game.floorSpecifics[levelStyle]['decorations']
         weights = [deco[2] for deco in decorationList]
         attemptCounter = 0
 
@@ -358,24 +367,31 @@ class tileMap:
         f.close()
     
 
-    def load_tilemap(self, name = '', size = 50, enemyCountMax = 5):
+    def load_tilemap(self, name = ''):
         #Floors levels:
+        self.game.heavenHell = ''
         if name in self.game.floors.keys():
+            specificName = name
+            if name == 'heavenHell':
+                specificName = 'hell' if self.game.floors[name] % 2 == 0 else 'heaven'
+                self.game.heavenHell = specificName
+
+            #Boss levels:
+            actualFloor = (self.game.floors[name] + (1 if name == 'infinite' else 0))
+            if actualFloor % self.game.bossFrequency == 0 and actualFloor != 5:
+                filepath = 'data/maps/' + str(specificName) + 'Boss.json'
+
             #Normal levels:
-            if (self.game.floors[name] + (1 if name == 'infinite' else 0)) % 10 != 0:
+            else:
                 #All levels scale with floor:
                 enemyCountMax = int(self.game.floors[name])
                 size = int(5 * np.log(enemyCountMax ** 2) + 13 + enemyCountMax / 4)
                 if name == 'infinite':
                     enemyCountMax *= 2
                     size += 5
-                    
-                self.load_random_tilemap(size, enemyCountMax, levelType = name)
-                return()
 
-            #Boss levels:
-            else:
-                filepath = 'data/maps/' + str(name) + 'Boss.json'
+                self.load_random_tilemap(size, enemyCountMax, levelType = name, levelStyle = specificName)
+                return()
        
         #Only for level editor
         elif name == 'editor':
@@ -399,6 +415,36 @@ class tileMap:
         self.tilemap = map_data['tilemap']
         self.tilesize = map_data['tile_size']
         self.offgrid_tiles = map_data['offgrid']
+
+        if filepath.endswith('infiniteBoss.json'):
+            #Decide which boss spawners to keep:
+
+            typeToSpawner = {
+                'normal': 27,
+                'grass': 28,
+                'spooky': 31,
+                'rubiks': 33,
+                'aussie': 35,
+                'space': 30,
+                'heaven': 36,
+                'hell': 37,
+
+                'bait': 29,
+            }
+            keep = [typeToSpawner[self.game.getRandomLevel()] for _ in range(2)]
+            keepMeteorBaits = 30 in keep
+
+            #remove the rest:
+            for spawner in self.extract('spawners', keep = True):
+                #spawner type must be of boss types.
+                if spawner['variant'] in typeToSpawner.values():
+
+                    if spawner['variant'] in keep:
+                        keep[keep.index(spawner['variant'])] = ''
+                    elif spawner['variant'] == 29 and keepMeteorBaits:
+                        pass
+                    else:
+                        del self.tilemap[str(int(spawner['pos'][0] // self.tile_size)) + ';' + str(int(spawner['pos'][1] // self.tile_size))]
 
 
     def solid_check(self, pos, returnValue = ''):
@@ -458,6 +504,7 @@ class tileMap:
                     elif tile['type'] == 'spooky' and random.random() < 0.005:
                         self.offgrid_tiles.append({'type': 'spawners', 'variant': 24, 'pos': [tile['pos'][0] * self.tilesize, tile['pos'][1] * self.tilesize]})
                         tile['variant'] = random.choice(range(13, len(self.game.assets[tile['type']])))
+                        print('adding eye')
 
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]

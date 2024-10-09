@@ -27,6 +27,7 @@ class Editor:
             'stone': load_images('tiles/stone'),
             'spooky': load_images('tiles/spooky'),
             'rubiks': load_images('tiles/rubiks'),
+            'aussie': load_images('tiles/aussie'),
             'space': load_images('tiles/space'),
             'potplants': load_images('tiles/potplants'),
             'normal': load_images('tiles/normal'),
