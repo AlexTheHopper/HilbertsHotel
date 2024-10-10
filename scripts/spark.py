@@ -25,7 +25,7 @@ class Spark:
         pygame.draw.polygon(surface, self.color, render_points)
 
 class ExpandingArc:
-    def __init__(self, pos, maxRadius, angleA, angleB, speed, color = (255, 255, 255), colorStr = 'white', canDamageBoss = False, width = 1, damage = 1, type = 'default'):
+    def __init__(self, pos, maxRadius, angleA, angleB, speed, color = (255, 255, 255), color_str = 'white', can_damage_boss = False, width = 1, damage = 1, type = 'default'):
         self.pos = list(pos)
         self.maxRadius = maxRadius
         self.radius = 0
@@ -33,8 +33,8 @@ class ExpandingArc:
         self.angleB = angleB
         self.speed = speed
         self.color = color
-        self.colorStr = colorStr
-        self.canDamageBoss = canDamageBoss
+        self.color_str = color_str
+        self.can_damage_boss = can_damage_boss
         self.width = width
         self.displayWidth = width
         self.type = type
@@ -60,10 +60,10 @@ class ExpandingArc:
 
         #Check for boss collision (Rubiks)
         for boss in game.bosses.copy():
-            if self.checkCollision(boss.rect()) and self.colorStr == boss.action and self.canDamageBoss:
-                if boss.damageSelf():
+            if self.checkCollision(boss.rect()) and self.color_str == boss.action and self.can_damage_boss:
+                if boss.damage_self():
                     boss.set_action('dying')
-                    boss.gravityAffected = True
+                    boss.gravity_affected = True
 
 
     def render(self, surface, offset = (0, 0)):

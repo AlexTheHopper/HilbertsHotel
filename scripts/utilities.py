@@ -1,79 +1,118 @@
-import pygame
+"""
+Utilities module for Hilbert's Hotel.
+Includes animation management, entity information loading.
+"""
+
 import os
 import numpy as np
 import math
-from scripts.entities import *
-from scripts.characters import *
+import pygame
+if __name__ != '__main__':
+    import scripts.entities as _entities
+    import scripts.characters as _characters
 
 BASE_PATH = 'data/images/'
 
-def load_image(path, dim = False):
+def load_image(path, dim=False):
+    """Load in an image from file ignoring (0, 0, 0) pixels.
+
+    Args:
+        path: the path to the image.
+        dim: resize image.
+    Returns:
+        pygame surface of image
+
+    """
     if not dim:
         img = pygame.image.load(BASE_PATH + path).convert()
         img.set_colorkey((0, 0, 0))
     else:
-        img = pygame.transform.scale(pygame.image.load(BASE_PATH + path).convert(), dim)
+        img = pygame.transform.scale(
+            pygame.image.load(BASE_PATH + path).convert(), dim)
         img.set_colorkey((0, 0, 0))
     return img
 
+def load_images(path, dim=False, reverse=False):
+    """Load a set of images from folder ignoring (0, 0, 0) pixels.
 
-def load_images(path, dim = False, reverse = False):
-    images = [load_image(path + '/' + img_name, dim) for img_name in sorted(os.listdir(BASE_PATH + path))]
+    Args:
+        path: the path to the folder containing the image(s).
+        dim: resize image.
+        reverse: reverse order of returned list.
+    Returns:
+        list of pygame surfaces of the images.
+
+    """
+    images = [load_image(path + '/' + img_name, dim)
+              for img_name in sorted(os.listdir(BASE_PATH + path))]
     if reverse:
         images.reverse()
     return images
 
+def initialise_main_screen(game):
+    """Set game parameters for the pygame screen to function.
 
-def initialiseMainScreen(game):
+    Args:
+        game: game object.
+    Returns:
+        none
+
+    """
     game.screen_width = 1080
     game.screen_height = 720
-    game.screen = pygame.display.set_mode((game.screen_width,game.screen_height))
-    game.HUDdisplay = pygame.Surface((game.screen_width, game.screen_height))
-    game.HUDdisplay.set_colorkey((0, 0, 0))
-    game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2), game.text_font, (86, 31, 126), (0, 0), scale = 1.5, mode = 'center') 
-    game.screen.blit(game.HUDdisplay, (0, 0))
+    game.screen = pygame.display.set_mode(
+        (game.screen_width, game.screen_height))
+    game.hud_display = pygame.Surface((game.screen_width, game.screen_height))
+    game.hud_display.set_colorkey((0, 0, 0))
+    game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2),
+                   game.text_font, (86, 31, 126), (0, 0), scale=1.5, mode='center')
+    game.screen.blit(game.hud_display, (0, 0))
     pygame.display.update()
 
+def initialise_game_params(game):
+    """Set game parameters for all entity info.
 
-def initialiseGameParams(game):
+    Args:
+        game: game object.
+    Returns:
+        none
+
+    """
     game.game_running = True
     game.fps = 60
-    game.displayFPS = game.fps
-    game.initialisingGame = True
+    game.display_fps = game.fps
+    game.initialising_game = True
 
     game.movement = [False, False, False, False]
     game.paused = False
     game.talking = False
     game.dead = False
-    game.deathCount = 0
-    game.interractionFrameZ = False
-    game.interractionFrameS = False
-    game.interractionFrameV = False
-    game.caveDarknessRange = (50,250)
-    game.caveDarkness = True
-    game.minPauseDarkness = 150
-    game.currencyEntities = []
-    game.bossFrequency = 5
+    game.death_count = 0
+    game.interraction_frame_z = False
+    game.interraction_frame_s = False
+    game.interraction_frame_v = False
+    game.cave_darkness_range = (50, 250)
+    game.cave_darkness = True
+    game.min_pause_darkness = 150
+    game.currency_entities = []
+    game.boss_frequency = 5
 
-    game.currentTextList = []
-    game.maxCharactersLine = 55
-    game.talkingTo = ''
-    game.tempHeartsBought = 0
-    game.tempHeartsForPlanck = 25
-    game.heavenHell = ''
+    game.current_text_list = []
+    game.max_characters_line = 55
+    game.talking_to = ''
+    game.temp_hearts_bought = 0
+    game.temp_hearts_for_planck = 25
+    game.heaven_hell = ''
 
-    #Remove these later / debug
-    game.previousLevel = 'lobby'
-    game.currentLevel = 'lobby'
-    game.nextLevel = 'lobby'
-    game.levelType = 'lobby'
+    # Remove these later / debug
+    game.previous_level = 'lobby'
+    game.current_level = 'lobby'
+    game.next_level = 'lobby'
 
-    game.levelType = 'lobby'
-    game.levelStyle = 'lobby'
-    game.levelNext = 'lobby'
+    game.level_style = 'lobby'
 
-    game.infiniteModeActive = False
-    game.infiniteFloorMax = 1
+    game.infinite_mode_active = False
+    game.infinite_floor_max = 1
     game.floors = {
         'normal': 1,
         'grass': 1,
@@ -81,65 +120,84 @@ def initialiseGameParams(game):
         'rubiks': 1,
         'aussie': 1,
         'space': 1,
-        'heavenHell': 1,
+        'heaven_hell': 1,
         'infinite': 1,
-        }
-    
-    #Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
-    game.floorSpecifics = {
+    }
+
+    # Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
+    game.floor_specifics = {
         'normal': {'decorationMod': 2,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['decor', [7], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]]]},
+                                   ['potplants', range(0, 4), 1, [[0, 0]], [
+                                       'all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['spawners', [18], 0.03, [[0, 0]],
+                                       ['all', [0, 1]], [[0], [0]]],
+                                   ['decor', [7], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]]]},
 
         'grass': {'decorationMod': 10,
-                  'decorations': [['decor', range(0,2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                ['spawners', [18], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['decor', [8], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7,13)]],
-                                ['decor', [9], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]]]},
+                  'decorations': [['decor', range(0, 2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                  ['spawners', [18], 0.01, [[0, 0]],
+                                      ['all', [0, 1]], [[0], [0]]],
+                                  ['decor', [8], 1, [[0, 0], [1, 0]], [
+                                      'all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
+                                  ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]]]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['spawners', [12], 1, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]]]},
+                                   ['spawners', [18], 0.05, [[0, 0]],
+                                       ['all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [12], 1, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]]]},
 
         'rubiks': {'decorationMod': 1,
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['decor', [16], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
+                                   ['decor', [16], 0.01, [[0, 0]], [
+                                       'all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
         'aussie': {'decorationMod': 1,
                    'decorations': [['decor', [4], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['decor', [5], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
-                                   ['decor', [6], 1, [[x,y] for x in range(0,2) for y in range(0,3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3,8)]],
-                                   ['decor', [17], 0.1, [[0, 0]], ['all', [0, 1]], [range(-2, 3), [0]]],
-                                   ['decor', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 4), [0]]],
-                                ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],]},
+                                   ['decor', [5], 1, [[0, 0], [1, 0]], [
+                                       'all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
+                                   ['decor', [6], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], [
+                                       'all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
+                                   ['decor', [17], 0.1, [[0, 0]], [
+                                       'all', [0, 1]], [range(-2, 3), [0]]],
+                                   ['decor', [18], 0.1, [[0, 0]], [
+                                       'all', [0, 1]], [range(-3, 4), [0]]],
+                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],]},
 
         'space': {'decorationMod': 5,
-                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
-                                ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
-                                ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
-                                ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+                  'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                  ['decor', [10], 0.01, [[0, 0], [0, 1]],
+                                      ['all', [0, 2]], [[1], [0]]],
+                                  ['decor', [11], 1, [[0, 0]], [
+                                      'all', [0, 1]], [range(0, 3), [0]]],
+                                  ['decor', [12], 1, [[0, 0]], [
+                                      'all', [0, 1]], [range(0, 5), [0]]],
+                                  ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
 
         'heaven': {'decorationMod': 5,
                    'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
-                                ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
-                                ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
-                                ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+                                   ['decor', [10], 0.01, [[0, 0], [0, 1]],
+                                       ['all', [0, 2]], [[1], [0]]],
+                                   ['decor', [11], 1, [[0, 0]], [
+                                       'all', [0, 1]], [range(0, 3), [0]]],
+                                   ['decor', [12], 1, [[0, 0]], [
+                                       'all', [0, 1]], [range(0, 5), [0]]],
+                                   ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
 
         'hell': {'decorationMod': 5,
-                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
-                                ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
-                                ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
-                                ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
-        }
+                 'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                 ['spawners', [36], 0.5, [[0, 0]], [
+                                     'all', [0, 1]], [range(-3, 3), [0]]],
+                                 ['decor', [11], 1, [[0, 0]], [
+                                     'all', [0, 1]], [range(0, 3), [0]]],
+                                 ['decor', [12], 1, [[0, 0]], [
+                                     'all', [0, 1]], [range(0, 5), [0]]],
+                                 ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+    }
 
-    game.availableEnemyVariants = {
+    game.available_enemy_variants = {
         'normal': [3],
         'normalWeights': [2],
         'grass': [3, 9],
@@ -158,49 +216,50 @@ def initialiseGameParams(game):
         'hellWeights': [1],
     }
 
-    game.entityInfo = {
-        1: {'type': 'character', 'object': Hilbert, 'name': 'Hilbert'},
-        6: {'type': 'character', 'object': Noether, 'name': 'Noether'},
-        7: {'type': 'character', 'object': Curie, 'name': 'Curie'},
-        8: {'type': 'character', 'object': Planck, 'name': 'Planck'},
-        2: {'type': 'character', 'object': Faraday, 'name': 'Faraday'},
-        11: {'type': 'character', 'object': Lorenz, 'name': 'Lorenz'},
-        14: {'type': 'character', 'object': Franklin, 'name': 'Franklin'},
-        16: {'type': 'character', 'object': Rubik, 'name': 'Rubik'},
-        17: {'type': 'character', 'object': Cantor, 'name': 'Cantor'},
-        21: {'type': 'character', 'object': Melatos, 'name': 'Melatos'},
-        23: {'type': 'character', 'object': Webster, 'name': 'Webster'},
-        26: {'type': 'character', 'object': Watson, 'name': 'Watson'},
+    game.entity_info = {
+        1: {'type': 'character', 'object': _characters.Hilbert, 'name': 'Hilbert'},
+        6: {'type': 'character', 'object': _characters.Noether, 'name': 'Noether'},
+        7: {'type': 'character', 'object': _characters.Curie, 'name': 'Curie'},
+        8: {'type': 'character', 'object': _characters.Planck, 'name': 'Planck'},
+        2: {'type': 'character', 'object': _characters.Faraday, 'name': 'Faraday'},
+        11: {'type': 'character', 'object': _characters.Lorenz, 'name': 'Lorenz'},
+        14: {'type': 'character', 'object': _characters.Franklin, 'name': 'Franklin'},
+        16: {'type': 'character', 'object': _characters.Rubik, 'name': 'Rubik'},
+        17: {'type': 'character', 'object': _characters.Cantor, 'name': 'Cantor'},
+        21: {'type': 'character', 'object': _characters.Melatos, 'name': 'Melatos'},
+        23: {'type': 'character', 'object': _characters.Webster, 'name': 'Webster'},
+        26: {'type': 'character', 'object': _characters.Watson, 'name': 'Watson'},
 
-        5: {'type': 'extraEntity', 'object': Glowworm, 'size': (5,5)},
-        12: {'type': 'extraEntity', 'object': Torch, 'size': (16,16)},
-        18: {'type': 'extraEntity', 'object': HeartAltar, 'size': (16,16)},
-        24: {'type': 'extraEntity', 'object': CreepyEyes, 'size': (16,16)},
-        29: {'type': 'extraEntity', 'object': MeteorBait, 'size': (16,16)},
-        31: {'type': 'extraEntity', 'object': Gravestone, 'size': (32,32)},
-        32: {'type': 'extraEntity', 'object': FlyGhost, 'size': (12,12)},
-        34: {'type': 'extraEntity', 'object': RubiksCubeThrow, 'size': (16,16)},
+        5: {'type': 'extra_entity', 'object': _entities.Glowworm, 'size': (5, 5)},
+        12: {'type': 'extra_entity', 'object': _entities.Torch, 'size': (16, 16)},
+        18: {'type': 'extra_entity', 'object': _entities.HeartAltar, 'size': (16, 16)},
+        24: {'type': 'extra_entity', 'object': _entities.CreepyEyes, 'size': (16, 16)},
+        29: {'type': 'extra_entity', 'object': _entities.MeteorBait, 'size': (16, 16)},
+        31: {'type': 'extra_entity', 'object': _entities.Gravestone, 'size': (32, 32)},
+        32: {'type': 'extra_entity', 'object': _entities.FlyGhost, 'size': (12, 12)},
+        34: {'type': 'extra_entity', 'object': _entities.RubiksCubeThrow, 'size': (16, 16)},
+        36: {'type': 'extra_entity', 'object': _entities.Candle, 'size': (16, 16)},
 
-        10: {'type': 'spawnPoint', 'object': SpawnPoint, 'size': (16,16)},
+        10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
-        3: {'type': 'enemy', 'object': GunGuy, 'size': (8,15)},
-        4: {'type': 'enemy', 'object': Bat, 'size': (6,6)},
-        9: {'type': 'enemy', 'object': RolyPoly, 'size': (12,12)},
-        13: {'type': 'enemy', 'object': Spider, 'size': (10,10)},
-        15: {'type': 'enemy', 'object': RubiksCube, 'size': (16,16)},
-        19: {'type': 'enemy', 'object': Kangaroo, 'size': (14,11)},
-        20: {'type': 'enemy', 'object': Echidna, 'size': (14,9)},
-        22: {'type': 'enemy', 'object': AlienShip, 'size': (12,8)},
+        3: {'type': 'enemy', 'object': _entities.GunGuy, 'size': (8, 15)},
+        4: {'type': 'enemy', 'object': _entities.Bat, 'size': (6, 6)},
+        9: {'type': 'enemy', 'object': _entities.RolyPoly, 'size': (12, 12)},
+        13: {'type': 'enemy', 'object': _entities.Spider, 'size': (10, 10)},
+        15: {'type': 'enemy', 'object': _entities.RubiksCube, 'size': (16, 16)},
+        19: {'type': 'enemy', 'object': _entities.Kangaroo, 'size': (14, 11)},
+        20: {'type': 'enemy', 'object': _entities.Echidna, 'size': (14, 9)},
+        22: {'type': 'enemy', 'object': _entities.AlienShip, 'size': (12, 8)},
 
-        25: {'type': 'boss', 'object': SpookyBoss, 'size': (14,28)},
-        27: {'type': 'boss', 'object': NormalBoss, 'size': (26,8)},
-        28: {'type': 'boss', 'object': GrassBoss, 'size': (20,20)},
-        30: {'type': 'boss', 'object': SpaceBoss, 'size': (26,8)},
-        33: {'type': 'boss', 'object': RubiksBoss, 'size': (32,32)},
-        35: {'type': 'boss', 'object': AussieBoss, 'size': (20,20)},
+        25: {'type': 'boss', 'object': _entities.SpookyBoss, 'size': (14, 28)},
+        27: {'type': 'boss', 'object': _entities.NormalBoss, 'size': (26, 8)},
+        28: {'type': 'boss', 'object': _entities.GrassBoss, 'size': (20, 20)},
+        30: {'type': 'boss', 'object': _entities.SpaceBoss, 'size': (26, 8)},
+        33: {'type': 'boss', 'object': _entities.RubiksBoss, 'size': (32, 32)},
+        35: {'type': 'boss', 'object': _entities.AussieBoss, 'size': (20, 20)},
     }
 
-    game.assetInfo = {
+    game.asset_info = {
         'entities/.enemies/': {
             'alienship/': [['idle', 10, True], ['flying', 10, True]],
             'bat/': [['idle', 10, True], ['grace', 10, True], ['charging', 20, False], ['attacking', 10, True]],
@@ -213,7 +272,7 @@ def initialiseGameParams(game):
             'rolypoly/': [['idle', 10, True], ['run', 4, True]],
             'rubiksCube/': [['idle', 60, True], ['blue', 60, True], ['green', 60, True], ['orange', 60, True], ['red', 60, True], ['white', 60, True], ['yellow', 60, True]],
             'spider/': [['idle', 10, True], ['grace', 5, True], ['run', 4, True]],
-            },
+        },
 
         'entities/': {
             'player/': [['idle', 10, True], ['jump', 5, True], ['run', 4, True], ['wall_slide', 5, True]],
@@ -222,11 +281,12 @@ def initialiseGameParams(game):
             'heartAltar/': [['idle', 10, True], ['active', 10, True]],
             'meteor/': [['idle', 10, False], ['kaboom', 5, False]],
             'meteorbait/': [['idle', 6, True]],
-            'spawnPoint/': [['idle', 5, True], ['active', 5, True]],
+            'spawn_point/': [['idle', 5, True], ['active', 5, True]],
             'torch/': [['idle', 4, True]],
             'gravestone/': [['idle', 4, True]],
             'flyghost/': [['idle', 6, True]],
-            },
+            'candle/': [['idle', 8, True], ['preparing', 8, True], ['active', 8, True]],
+        },
 
         'entities/.bosses/': {
             'normalboss/': [['idle', 45, True], ['activating', 16, False], ['flying', 6, True], ['attacking', 16, False], ['dying', 30, False]],
@@ -238,7 +298,7 @@ def initialiseGameParams(game):
         }
     }
 
-    game.portalInfo = {
+    game.portal_info = {
         0: 'lobby',
         1: 'normal',
         2: 'grass',
@@ -247,30 +307,33 @@ def initialiseGameParams(game):
         5: 'infinite',
         6: 'aussie',
         7: 'space',
-        8: 'heavenHell',
+        8: 'heaven_hell',
     }
 
-    #Screen and display
+    # Screen and display
     game.scroll = [game.screen_width / 2, game.screen_height / 2]
     game.render_scroll = (int(game.scroll[0]), int(game.scroll[1]))
-    
-    #overlay displays
-    game.display_outline = pygame.Surface((game.screen_width / 2, game.screen_height / 2), pygame.SRCALPHA)
-    game.display = pygame.Surface((game.screen_width / 2, game.screen_height / 2))
-    game.darkness_surface = pygame.Surface(game.display_outline.get_size(), pygame.SRCALPHA)
 
-    #VALUES THAT SAVE
-    game.maxHealth = 1
-    game.health = game.maxHealth
-    game.powerLevel = 1
+    # overlay displays
+    game.display_outline = pygame.Surface(
+        (game.screen_width / 2, game.screen_height / 2), pygame.SRCALPHA)
+    game.display = pygame.Surface(
+        (game.screen_width / 2, game.screen_height / 2))
+    game.darkness_surface = pygame.Surface(
+        game.display_outline.get_size(), pygame.SRCALPHA)
+
+    # VALUES THAT SAVE
+    game.max_health = 1
+    game.health = game.max_health
+    game.power_level = 1
     game.difficulty = 1
-    game.temporaryHealth = 0
-    game.enemyCountMax = 1
-    game.currentLevelSize = 15
-    game.notLostOnDeath = ['hammers']
-    game.spawnPoint = False
-    game.screenshakeOn = True
-    game.volumeOn = True
+    game.temporary_health = 0
+    game.enemy_count_max = 1
+    game.current_level_size = 15
+    game.not_lost_on_death = ['hammers']
+    game.spawn_point = False
+    game.screenshake_on = True
+    game.volume_on = True
 
     game.wallet = {
         'cogs': 0,
@@ -287,171 +350,171 @@ def initialiseGameParams(game):
         'credits': 0
     }
 
-    #Prep dialogue management.
-    game.dialogueHistory = {
+    # Prep dialogue management.
+    game.dialogue_history = {
         'Hilbert': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False,
-                '5available': False,
-                '5said': False,
-                '6available': False,
-                '6said': False,
-                '7available': False,
-                '7said': False,
-                '8available': False,
-                '8said': False,
-                '9available': False,
-                '9said': False},
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False,
+                    '4available': False,
+                    '4said': False,
+                    '5available': False,
+                    '5said': False,
+                    '6available': False,
+                    '6said': False,
+                    '7available': False,
+                    '7said': False,
+                    '8available': False,
+                    '8said': False,
+                    '9available': False,
+                    '9said': False},
 
         'Noether': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False,
-                '5available': False,
-                '5said': False,
-                '6available': False,
-                '6said': False,
-                '7available': False,
-                '7said': False,
-                '8available': False,
-                '8said': False,
-                '9available': False,
-                '9said': False},
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False,
+                    '4available': False,
+                    '4said': False,
+                    '5available': False,
+                    '5said': False,
+                    '6available': False,
+                    '6said': False,
+                    '7available': False,
+                    '7said': False,
+                    '8available': False,
+                    '8said': False,
+                    '9available': False,
+                    '9said': False},
 
         'Curie': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False,
-                '5available': False,
-                '5said': False,
-                '6available': False,
-                '6said': False},
+                  '0said': False,
+                  '1available': False,
+                  '1said': False,
+                  '2available': False,
+                  '2said': False,
+                  '3available': False,
+                  '3said': False,
+                  '4available': False,
+                  '4said': False,
+                  '5available': False,
+                  '5said': False,
+                  '6available': False,
+                  '6said': False},
 
         'Planck': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False},
+                   '0said': False,
+                   '1available': False,
+                   '1said': False,
+                   '2available': False,
+                   '2said': False},
 
         'Faraday': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False},
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False},
 
         'Lorenz': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False,
-                '5available': False,
-                '5said': False,
-                '6available': False,
-                '6said': False,
-                '7available': False,
-                '7said': False,
-                '8available': False,
-                '8said': False,
-                '9available': False,
-                '9said': False},
+                   '0said': False,
+                   '1available': False,
+                   '1said': False,
+                   '2available': False,
+                   '2said': False,
+                   '3available': False,
+                   '3said': False,
+                   '4available': False,
+                   '4said': False,
+                   '5available': False,
+                   '5said': False,
+                   '6available': False,
+                   '6said': False,
+                   '7available': False,
+                   '7said': False,
+                   '8available': False,
+                   '8said': False,
+                   '9available': False,
+                   '9said': False},
 
         'Franklin': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False},
+                     '0said': False,
+                     '1available': False,
+                     '1said': False,
+                     '2available': False,
+                     '2said': False,
+                     '3available': False,
+                     '3said': False,
+                     '4available': False,
+                     '4said': False},
 
         'Rubik': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False},
+                  '0said': False,
+                  '1available': False,
+                  '1said': False,
+                  '2available': False,
+                  '2said': False,
+                  '3available': False,
+                  '3said': False},
 
         'Cantor': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False},
+                   '0said': False,
+                   '1available': False,
+                   '1said': False,
+                   '2available': False,
+                   '2said': False,
+                   '3available': False,
+                   '3said': False,
+                   '4available': False,
+                   '4said': False},
 
         'Melatos': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False,
-                '5available': False,
-                '5said': False},
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False,
+                    '4available': False,
+                    '4said': False,
+                    '5available': False,
+                    '5said': False},
 
         'Webster': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False},
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False,
+                    '4available': False,
+                    '4said': False},
 
         'Watson': {'0available': True,
-                '0said': False,
-                '1available': False,
-                '1said': False,
-                '2available': False,
-                '2said': False,
-                '3available': False,
-                '3said': False,
-                '4available': False,
-                '4said': False},
+                   '0said': False,
+                   '1available': False,
+                   '1said': False,
+                   '2available': False,
+                   '2said': False,
+                   '3available': False,
+                   '3said': False,
+                   '4available': False,
+                   '4said': False},
 
     }
 
-    game.charactersMet = {
+    game.characters_met = {
         'Hilbert': True,
         'Noether': False,
         'Curie': False,
@@ -466,7 +529,7 @@ def initialiseGameParams(game):
         'Watson': True
     }
 
-    game.portalsMet = {
+    game.portals_met = {
         'lobby': True,
         'normal': True,
         'grass': False,
@@ -475,11 +538,11 @@ def initialiseGameParams(game):
         'aussie': True,
         'space': True,
         'infinite': True,
-        'heavenHell': True,
+        'heaven_hell': True,
     }
 
-    game.encountersCheck = {
-        'spawnPoints': False,
+    game.encounters_check = {
+        'spawn_points': False,
         'heartAltars': False,
         'cogs': False,
         'redCogs': False,
@@ -495,8 +558,8 @@ def initialiseGameParams(game):
         'credits': False
     }
 
-    game.encountersCheckText = {
-        'spawnPoints': ['Spawn Point: Activate to change your spawn point in the lobby!'],
+    game.encounters_check_text = {
+        'spawn_points': ['Spawn Point: Activate to change your spawn point in the lobby!'],
         'heartAltars': ['Heart Altar: Gives you a handy lil heart back! Only if you have an empty one though.'],
         'cogs': ['Cogs: Handy little machinery parts. Can be used to fix things. Found commonly everywhere.'],
         'redCogs': ['Red Cogs: Just like a normal cog, but fancier! And Red!'],
@@ -513,7 +576,7 @@ def initialiseGameParams(game):
         'error': ['OOPS! Something went wrong here and I couldnt find the text for you, soz.']
     }
 
-    game.tunnelsBroken = {
+    game.tunnels_broken = {
         'tunnel1': False,
         'tunnel2': False,
         'tunnel3': False,
@@ -523,20 +586,20 @@ def initialiseGameParams(game):
         'tunnel7': False,
     }
 
-    game.tunnelPositions = {
-        'tunnel1': [[x, y] for x in range(36, 54) for y in range(-1,1)],
-        'tunnel2': [[x, y] for x in range(-17, 1) for y in range(-1,1)],
-        'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24,-16)],
-        'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33,-30)],
-        'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33,-30)],
-        'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51,-44)],
+    game.tunnel_positions = {
+        'tunnel1': [[x, y] for x in range(36, 54) for y in range(-1, 1)],
+        'tunnel2': [[x, y] for x in range(-17, 1) for y in range(-1, 1)],
+        'tunnel3': [[x, y] for x in range(17, 20) for y in range(-24, -16)],
+        'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33, -30)],
+        'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33, -30)],
+        'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51, -44)],
         'tunnel7': [[18, y] for y in range(12, 16)],
     }
 
-    #Death message stuff
-    game.damagedBy = 'default'
-    game.deathMessage = ''
-    game.enemyNames = {
+    # Death message stuff
+    game.damaged_by = 'default'
+    game.death_message = ''
+    game.enemy_names = {
         'default': 'Nothing',
         'gunguy': 'Gun Guy',
         'gunguyOrange': 'Orange Gun Guy',
@@ -559,6 +622,7 @@ def initialiseGameParams(game):
         'meteor': 'Meteor',
         'alienship': 'Alien Spaceship',
         'flyghost': 'Lil\' Ghost',
+        'candle': 'Hot Candle',
 
         'normalboss': 'Big Bat',
         'grassboss': 'Big Roly Poly',
@@ -567,13 +631,13 @@ def initialiseGameParams(game):
         'aussieboss': 'PUT THIS IN LATER',
         'spaceboss': 'Big Alien Spaceship',
     }
-    game.deathVerbs = ['killed', 
-                       'vanquished', 
-                       'taken down', 
-                       'eliminated', 
-                       'slain', 
-                       'obliterated', 
-                       'bested', 
+    game.death_verbs = ['killed',
+                       'vanquished',
+                       'taken down',
+                       'eliminated',
+                       'slain',
+                       'obliterated',
+                       'bested',
                        'removed from this world',
                        'nibbled to death',
                        'chewed up',
@@ -581,24 +645,30 @@ def initialiseGameParams(game):
                        'bamboozled',
                        'yoinked',
                        'pwned',
-                       'tickled a little too hard', 
+                       'tickled a little too hard',
                        'just slightly harmed']
 
+def is_prime(num):
+    """Determine if an integer is a prime number.
 
-def isPrime(num):
+    Args:
+        num: integer.
+    Returns:
+        bool
+
+    """
     if num < 2:
         return False
-    elif num == 2:
+    if num == 2:
         return True
-    
+
     for n in range(2, math.ceil(np.sqrt(num)) + 1):
         if num % n == 0:
             return False
     return True
 
-
 class Animation:
-    def __init__(self, images, img_dur = 5, loop = True):
+    def __init__(self, images, img_dur=5, loop=True):
         self.images = images
         self.img_duration = img_dur
         self.loop = loop
@@ -606,17 +676,42 @@ class Animation:
         self.frame = 0
 
     def copy(self):
+        """Copy Animation object.
+
+        Args:
+            none
+        Returns:
+            Animation object.
+
+        """
         return Animation(self.images, self.img_duration, self.loop)
-    
+
     def update(self):
-        
+        """Update Animation object's frame.
+
+        Args:
+            none
+        Returns:
+            none
+
+        """
         if self.loop:
-            self.frame = (self.frame + 1) % (self.img_duration * len(self.images))
+            self.frame = (
+                self.frame + 1) % (self.img_duration * len(self.images))
 
         else:
-            self.frame = min(self.frame + 1, self.img_duration * len(self.images) - 1)
+            self.frame = min(
+                self.frame + 1, self.img_duration * len(self.images) - 1)
             if self.frame >= self.img_duration * len(self.images) - 1:
                 self.done = True
 
     def img(self):
+        """Get current frame of Animation object.
+
+        Args:
+            none
+        Returns:
+            Pygame surface of current Animation frame.
+
+        """
         return self.images[int(self.frame / self.img_duration)]

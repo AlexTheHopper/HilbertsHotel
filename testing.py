@@ -1,13 +1,11 @@
-print(str(False))
+"""
+Module docstring
+"""
 
-self.currentLevel
-self.nextLevel
-self.previousLevel
-self.levelType
-
-#things to ensure still work:
-        #floor scaling
-        #inifnite floor scaling
-
-        #correct floor loading
-        #Correct style of floor loading
+def test_func(a, b):
+    """
+    Bing bong
+    """
+    if a % 2 == 0:
+        return a
+    return b

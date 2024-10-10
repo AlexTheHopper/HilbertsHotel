@@ -36,7 +36,7 @@ class Editor:
             'spawnersPortal': load_images('tiles/spawnersPortal')
         }
 
-        self.charactersMet = {
+        self.characters_met = {
         'Hilbert': True,
         'Noether': False,
         'Curie': False,
@@ -49,7 +49,7 @@ class Editor:
         'normal': 100,
         'grass': 100}
 
-        self.availableEnemyVariants = {
+        self.available_enemy_variants = {
         'normal': [3],
         'normalWeights': [2],
         'grass': [3, 9],
@@ -59,7 +59,7 @@ class Editor:
         
         self.movement = [False, False, False, False]
 
-        self.tilemap = tileMap(self, tile_size = 16)
+        self.tilemap = Tilemap(self, tile_size = 16)
 
         try:
             self.tilemap.load_tilemap(name = 'editor')

@@ -34,22 +34,22 @@ def process_image(image_path, save_path):
     # Save the modified image
     rgb_image.save(save_path)
 
-def process_directory(input_directory, output_directory):
-    # Ensure the output directory exists
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
+def process_direct_ory(input_direct_ory, output_direct_ory):
+    # Ensure the output direct_ory exists
+    if not os.path.exists(output_direct_ory):
+        os.makedirs(output_direct_ory)
 
-    # Process each image in the directory
-    for filename in os.listdir(input_directory):
+    # Process each image in the direct_ory
+    for filename in os.listdir(input_direct_ory):
         if filename.endswith(('.png', '.jpg', '.jpeg')):
-            image_path = os.path.join(input_directory, filename)
-            save_path = os.path.join(output_directory, filename)
+            image_path = os.path.join(input_direct_ory, filename)
+            save_path = os.path.join(output_direct_ory, filename)
             process_image(image_path, save_path)
             print(f"Processed {filename}")
 
-# Define the input and output directories
-input_directory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
-output_directory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
+# Define the input and output direct_ories
+input_direct_ory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
+output_direct_ory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
 
-# Process all images in the directory
-process_directory(input_directory, output_directory)
+# Process all images in the direct_ory
+process_direct_ory(input_direct_ory, output_direct_ory)
