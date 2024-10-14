@@ -28,14 +28,20 @@ for filename in os.listdir(direct_ory):
         # Loop through each pixel in the image data
         for item in data:
             # Change all black (also checking for transparency) pixels to white
-            if item[:3] == (155, 155, 155):
-                new_data.append((91, 129, 150)) 
-            elif item[:3] == (178, 178, 178):
-                new_data.append((111, 158, 183)) 
-            elif item[:3] == (198, 198, 198):
-                new_data.append((121, 171, 199)) 
-            elif item[:3] == (226, 226, 226):
-                new_data.append((136, 192, 224)) 
+            if item[:3] == (255, 127, 0):
+                new_data.append((255, 61, 74) if random.random() < 0.5 else (153, 248, 255)) 
+            # elif item[:3] == (130, 238, 255):
+            #     new_data.append((255, 71, 30)) 
+
+            # elif item[:3] == (153, 101, 0):
+            #     new_data.append((84, 20, 28)) 
+            # elif item[:3] == (109, 73, 0):
+            #     new_data.append((63, 15, 21)) 
+
+            # elif item[:3] == (20, 16, 32):
+            #     new_data.append((114, 27, 39)) 
+            # elif item[:3] == (255, 136, 45):
+            #     new_data.append((84, 20, 28)) 
 
             else:
                 new_data.append(item)

@@ -25,6 +25,8 @@ class Editor:
             'decor': load_images('tiles/decor'),
             'grass': load_images('tiles/grass'),
             'stone': load_images('tiles/stone'),
+            'hell': load_images('tiles/hell'),
+            'heaven': load_images('tiles/heaven'),
             'spooky': load_images('tiles/spooky'),
             'rubiks': load_images('tiles/rubiks'),
             'aussie': load_images('tiles/aussie'),

@@ -11,6 +11,7 @@ import random
 import math
 import numpy as np
 import pygame
+import scripts.clouds as _clouds
 
 # Nine neighbor tiles:
 NEIGHBOR_OFFSETS = [(x, y) for x in range(-1, 2) for y in range(-1, 2)]
@@ -37,9 +38,9 @@ AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, -1)])): 6,
     tuple(sorted([(1, 0), (0, -1), (0, 1)])): 7,
     tuple(sorted([(0, 1), (0, -1)])): 8,
-    tuple(sorted([(0, -1)])): 8,
     tuple(sorted([(0, 1)])): 9,
-    tuple(sorted([])): 9
+    tuple(sorted([(0, -1)])): 10,
+    tuple(sorted([])): 11,
 }
 
 class Tilemap:
@@ -49,6 +50,7 @@ class Tilemap:
         self.offgrid_tiles = []
         self.map_size = 80
         self.game = game
+        self.autotile_count = len(set(AUTOTILE_MAP.values()))
 
     def render(self, surface, offset=(0, 0)):
         # Render non-grid assets
@@ -136,8 +138,7 @@ class Tilemap:
         self.game.level_type = level_type
 
         self.tilemap = self.generate_tiles(size, level_style)
-        self.offgrid_tiles = self.populate_map(
-            size, enemy_count_max, level_type, level_style)
+        self.offgrid_tiles = self.populate_map(size, enemy_count_max, level_type, level_style)
         self.autotile()
 
     def generate_tiles(self, size, level_type):
@@ -299,10 +300,8 @@ class Tilemap:
 
                     # Add enemies:
                     else:
-                        variant = random.choices(
-                            self.game.available_enemy_variants[level_style], self.game.available_enemy_variants[level_style + 'Weights'], k=1)[0]
-                        self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [
-                            x, y]}
+                        variant = random.choices(self.game.available_enemy_variants[level_style], self.game.available_enemy_variants[level_style + 'Weights'], k=1)[0]
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': int(variant), 'pos': [x, y]}
                         enemy_count += 1
 
         # Decorations
@@ -390,7 +389,7 @@ class Tilemap:
     def load_tilemap(self, name=''):
         # Floors levels:
         self.game.heaven_hell = ''
-        if name in self.game.floors.keys():
+        if name in self.game.floors.keys() and name != 'final':
             specific_name = name
             if name == 'heaven_hell':
                 specific_name = 'hell' if self.game.floors[name] % 2 == 0 else 'heaven'
@@ -408,8 +407,7 @@ class Tilemap:
             else:
                 # All levels scale with floor:
                 enemy_count_max = int(self.game.floors[name])
-                size = int(5 * np.log(enemy_count_max ** 2) +
-                           13 + enemy_count_max / 4)
+                size = int(5 * np.log(enemy_count_max ** 2) + 13 + enemy_count_max / 4)
                 if name == 'infinite':
                     enemy_count_max *= 2
                     size += 5
@@ -452,14 +450,16 @@ class Tilemap:
                 'rubiks': 33,
                 'aussie': 35,
                 'space': 30,
-                'heaven': 36,
-                'hell': 37,
+                'hell': 40,
+                'heaven': 41,
 
                 'bait': 29,
             }
-            keep = [type_to_spawner[self.game.get_random_level()]
-                    for _ in range(2)]
+            keep = [type_to_spawner[self.game.get_random_level()] for _ in range(2)]
             keep_meteor_baits = 30 in keep
+            if keep[0] == keep[1] and keep[0] in ['heaven', 'hell']:
+                keep[1] = 'heaven' if keep[0] == 'hell' else 'hell'
+            print(keep)
 
             # remove the rest:
             for spawner in self.extract('spawners', keep=True):
@@ -503,8 +503,7 @@ class Tilemap:
             if tile['type'] == 'cracked':
                 tile['variant'] = 4
                 for int, shift in enumerate([(0, 1), (0, -1), (1, 0), (-1, 0)]):
-                    check_loc = str(tile['pos'][0] + shift[0]) + \
-                        ';' + str(tile['pos'][1] + shift[1])
+                    check_loc = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
                     if check_loc not in self.tilemap:
                         tile['variant'] = int
                         continue
@@ -512,8 +511,7 @@ class Tilemap:
 
             neighbours = set()
             for shift in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-                check_loc = str(tile['pos'][0] + shift[0]) + \
-                    ';' + str(tile['pos'][1] + shift[1])
+                check_loc = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
                 if check_loc in self.tilemap:
 
                     if self.tilemap[check_loc]['type'] in AUTOTILE_TYPES:
@@ -524,19 +522,15 @@ class Tilemap:
             if (tile['type'] in AUTOTILE_TYPES) and (neighbours in AUTOTILE_MAP):
                 if AUTOTILE_MAP[neighbours] == 5 and windows == True:
 
-                    window_choice = random.choice(
-                        range(10, len(self.game.assets[tile['type']])))
+                    window_choice = random.choice(range(self.autotile_count, len(self.game.assets[tile['type']])))
                     tile['variant'] = window_choice if random.random() < 0.01 else 5
 
                     if tile['type'] in ['space', 'heaven'] and random.random() < 0.1:
-                        tile['variant'] = random.choice(
-                            range(13, len(self.game.assets[tile['type']])))
+                        tile['variant'] = random.choice(range(self.autotile_count + 2, len(self.game.assets[tile['type']])))
 
                     elif tile['type'] == 'spooky' and random.random() < 0.005:
-                        self.offgrid_tiles.append({'type': 'spawners', 'variant': 24, 'pos': [
-                                                  tile['pos'][0] * self.tilesize, tile['pos'][1] * self.tilesize]})
-                        tile['variant'] = random.choice(
-                            range(13, len(self.game.assets[tile['type']])))
+                        self.offgrid_tiles.append({'type': 'spawners', 'variant': 24, 'pos': [tile['pos'][0] * self.tilesize, tile['pos'][1] * self.tilesize]})
+                        tile['variant'] = random.choice(range(self.autotile_count + 2, len(self.game.assets[tile['type']])))
 
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]

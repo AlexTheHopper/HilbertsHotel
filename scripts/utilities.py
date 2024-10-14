@@ -98,7 +98,7 @@ def initialise_game_params(game):
     game.boss_frequency = 5
 
     game.current_text_list = []
-    game.max_characters_line = 55
+    game.max_characters_line = 45
     game.talking_to = ''
     game.temp_hearts_bought = 0
     game.temp_hearts_for_planck = 25
@@ -122,79 +122,57 @@ def initialise_game_params(game):
         'space': 1,
         'heaven_hell': 1,
         'infinite': 1,
+        'final': 'The Penthouse'
     }
 
     # Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
     game.floor_specifics = {
         'normal': {'decorationMod': 2,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['potplants', range(0, 4), 1, [[0, 0]], [
-                                       'all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['spawners', [18], 0.03, [[0, 0]],
-                                       ['all', [0, 1]], [[0], [0]]],
+                                   ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['decor', [7], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]]]},
 
         'grass': {'decorationMod': 10,
                   'decorations': [['decor', range(0, 2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                  ['spawners', [18], 0.01, [[0, 0]],
-                                      ['all', [0, 1]], [[0], [0]]],
-                                  ['decor', [8], 1, [[0, 0], [1, 0]], [
-                                      'all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
+                                  ['spawners', [18], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                  ['decor', [8], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]]]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['spawners', [18], 0.05, [[0, 0]],
-                                       ['all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [12], 1, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]]]},
 
         'rubiks': {'decorationMod': 1,
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['decor', [16], 0.01, [[0, 0]], [
-                                       'all', [0, 1]], [[0], [0]]],
+                                   ['decor', [16], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
         'aussie': {'decorationMod': 1,
                    'decorations': [['decor', [4], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['decor', [5], 1, [[0, 0], [1, 0]], [
-                                       'all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
-                                   ['decor', [6], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], [
-                                       'all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
-                                   ['decor', [17], 0.1, [[0, 0]], [
-                                       'all', [0, 1]], [range(-2, 3), [0]]],
-                                   ['decor', [18], 0.1, [[0, 0]], [
-                                       'all', [0, 1]], [range(-3, 4), [0]]],
+                                   ['decor', [5], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
+                                   ['decor', [6], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
+                                   ['decor', [17], 0.1, [[0, 0]], ['all', [0, 1]], [range(-2, 3), [0]]],
+                                   ['decor', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 4), [0]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],]},
 
-        'space': {'decorationMod': 5,
+        'space': {'decorationMod': 3,
                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                  ['decor', [10], 0.01, [[0, 0], [0, 1]],
-                                      ['all', [0, 2]], [[1], [0]]],
-                                  ['decor', [11], 1, [[0, 0]], [
-                                      'all', [0, 1]], [range(0, 3), [0]]],
-                                  ['decor', [12], 1, [[0, 0]], [
-                                      'all', [0, 1]], [range(0, 5), [0]]],
+                                  ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
+                                  ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
+                                  ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
                                   ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
 
         'heaven': {'decorationMod': 5,
                    'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                   ['decor', [10], 0.01, [[0, 0], [0, 1]],
-                                       ['all', [0, 2]], [[1], [0]]],
-                                   ['decor', [11], 1, [[0, 0]], [
-                                       'all', [0, 1]], [range(0, 3), [0]]],
-                                   ['decor', [12], 1, [[0, 0]], [
-                                       'all', [0, 1]], [range(0, 5), [0]]],
-                                   ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+                                   ['decor', [19], 1, [[0, 0]], ['all', [0, 1]], [range(0, 11), range(1, 8)]],]},
 
         'hell': {'decorationMod': 5,
                  'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                 ['spawners', [36], 0.5, [[0, 0]], [
-                                     'all', [0, 1]], [range(-3, 3), [0]]],
-                                 ['decor', [11], 1, [[0, 0]], [
-                                     'all', [0, 1]], [range(0, 3), [0]]],
-                                 ['decor', [12], 1, [[0, 0]], [
-                                     'all', [0, 1]], [range(0, 5), [0]]],
-                                 ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+                                 ['spawners', [36], 0.8, [[0, 0]], ['all', [0, 1]], [range(-3, 3), [0]]],
+                                 ['decor', [20], 1, [[0, 0]], ['all', [0, -1]], [range(0, 5), [0]]],
+                                 ['decor', [21], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],]},
     }
 
     game.available_enemy_variants = {
@@ -210,10 +188,10 @@ def initialise_game_params(game):
         'aussieWeights': [1],
         'space': [3, 22],
         'spaceWeights': [1, 1],
-        'heaven': [3],
-        'heavenWeights': [1],
-        'hell': [3],
-        'hellWeights': [1],
+        'heaven': [3, 22, 37],
+        'heavenWeights': [1, 1, 2],
+        'hell': [3, 4, 13, 39],
+        'hellWeights': [1, 1, 1, 2],
     }
 
     game.entity_info = {
@@ -229,6 +207,7 @@ def initialise_game_params(game):
         21: {'type': 'character', 'object': _characters.Melatos, 'name': 'Melatos'},
         23: {'type': 'character', 'object': _characters.Webster, 'name': 'Webster'},
         26: {'type': 'character', 'object': _characters.Watson, 'name': 'Watson'},
+        42: {'type': 'character', 'object': _characters.Barad, 'name': 'Barad'},
 
         5: {'type': 'extra_entity', 'object': _entities.Glowworm, 'size': (5, 5)},
         12: {'type': 'extra_entity', 'object': _entities.Torch, 'size': (16, 16)},
@@ -238,7 +217,10 @@ def initialise_game_params(game):
         31: {'type': 'extra_entity', 'object': _entities.Gravestone, 'size': (32, 32)},
         32: {'type': 'extra_entity', 'object': _entities.FlyGhost, 'size': (12, 12)},
         34: {'type': 'extra_entity', 'object': _entities.RubiksCubeThrow, 'size': (16, 16)},
-        36: {'type': 'extra_entity', 'object': _entities.Candle, 'size': (16, 16)},
+        36: {'type': 'extra_entity', 'object': _entities.Candle, 'size': (10, 6)},
+        38: {'type': 'extra_entity', 'object': _entities.Orb, 'size': (4, 4)},
+        43: {'type': 'extra_entity', 'object': _entities.PenthouseLock, 'size': (16, 16)},
+        44: {'type': 'extra_entity', 'object': _entities.Helper, 'size': (8, 15)},
 
         10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
@@ -250,6 +232,8 @@ def initialise_game_params(game):
         19: {'type': 'enemy', 'object': _entities.Kangaroo, 'size': (14, 11)},
         20: {'type': 'enemy', 'object': _entities.Echidna, 'size': (14, 9)},
         22: {'type': 'enemy', 'object': _entities.AlienShip, 'size': (12, 8)},
+        37: {'type': 'enemy', 'object': _entities.Cherub, 'size': (8, 15)},
+        39: {'type': 'enemy', 'object': _entities.Imp, 'size': (8, 15)},
 
         25: {'type': 'boss', 'object': _entities.SpookyBoss, 'size': (14, 28)},
         27: {'type': 'boss', 'object': _entities.NormalBoss, 'size': (26, 8)},
@@ -257,6 +241,8 @@ def initialise_game_params(game):
         30: {'type': 'boss', 'object': _entities.SpaceBoss, 'size': (26, 8)},
         33: {'type': 'boss', 'object': _entities.RubiksBoss, 'size': (32, 32)},
         35: {'type': 'boss', 'object': _entities.AussieBoss, 'size': (20, 20)},
+        40: {'type': 'boss', 'object': _entities.HeavenBoss, 'size': (11, 30)},
+        41: {'type': 'boss', 'object': _entities.HellBoss, 'size': (11, 30)},
     }
 
     game.asset_info = {
@@ -272,20 +258,26 @@ def initialise_game_params(game):
             'rolypoly/': [['idle', 10, True], ['run', 4, True]],
             'rubiksCube/': [['idle', 60, True], ['blue', 60, True], ['green', 60, True], ['orange', 60, True], ['red', 60, True], ['white', 60, True], ['yellow', 60, True]],
             'spider/': [['idle', 10, True], ['grace', 5, True], ['run', 4, True]],
+            'cherub/': [['idle', 10, True], ['flying', 6, True], ['run', 4, True], ['jump', 10, True]],
+            'imp/': [['idle', 10, True], ['flying', 6, True], ['run', 4, True], ['jump', 10, True]],
         },
 
         'entities/': {
             'player/': [['idle', 10, True], ['jump', 5, True], ['run', 4, True], ['wall_slide', 5, True]],
-            'creepyeyes/': [['idle', 15, True]],
+            'creepy_eyes/': [['idle', 15, True]],
             'glowworm/': [['idle', 15, True]],
-            'heartAltar/': [['idle', 10, True], ['active', 10, True]],
+            'heart_altar/': [['idle', 10, True], ['active', 10, True]],
             'meteor/': [['idle', 10, False], ['kaboom', 5, False]],
-            'meteorbait/': [['idle', 6, True]],
+            'meteor_bait/': [['idle', 6, True]],
             'spawn_point/': [['idle', 5, True], ['active', 5, True]],
             'torch/': [['idle', 4, True]],
             'gravestone/': [['idle', 4, True]],
-            'flyghost/': [['idle', 6, True]],
+            'fly_ghost/': [['idle', 6, True]],
             'candle/': [['idle', 8, True], ['preparing', 8, True], ['active', 8, True]],
+            'orb_cherub/': [['idle', 6, True]],
+            'orb_imp/': [['idle', 6, True]],
+            'penthouse_lock/': [['idle', 6, True]],
+            'helper/': [['idle', 5, True], ['grace', 5, True]],
         },
 
         'entities/.bosses/': {
@@ -295,6 +287,8 @@ def initialise_game_params(game):
             'spookyboss/': [['idle', 30, True], ['flying', 6, True], ['teleporting', 6, True], ['dying', 25, False]],
             'rubiksboss/': [['idle', 60, True], ['blue', 60, True], ['green', 60, True], ['orange', 60, True], ['red', 60, True], ['white', 60, True], ['yellow', 60, True], ['dying', 6, True]],
             'aussieboss/': [['idle', 30, True], ['prep', 45, False], ['active', 6, True], ['jumping', 6, True], ['dying', 25, False]],
+            'heavenboss/': [['idle', 30, True], ['flying', 6, True], ['dying', 25, False]],
+            'hellboss/': [['idle', 30, True], ['flying', 6, True], ['dying', 25, False]],
         }
     }
 
@@ -308,6 +302,7 @@ def initialise_game_params(game):
         6: 'aussie',
         7: 'space',
         8: 'heaven_hell',
+        9: 'final',
     }
 
     # Screen and display
@@ -328,9 +323,7 @@ def initialise_game_params(game):
     game.power_level = 1
     game.difficulty = 1
     game.temporary_health = 0
-    game.enemy_count_max = 1
-    game.current_level_size = 15
-    game.not_lost_on_death = ['hammers']
+    game.not_lost_on_death = ['hammers', 'penthouseKeys']
     game.spawn_point = False
     game.screenshake_on = True
     game.volume_on = True
@@ -346,8 +339,11 @@ def initialise_game_params(game):
         'chitins': 0,
         'fairyBreads': 0,
         'boxingGloves': 0,
+        'yellowOrbs': 0,
+        'redOrbs': 0,
         'hammers': 0,
-        'credits': 0
+        'penthouseKeys': 0,
+        'credits': 0,
     }
 
     # Prep dialogue management.
@@ -371,7 +367,13 @@ def initialise_game_params(game):
                     '8available': False,
                     '8said': False,
                     '9available': False,
-                    '9said': False},
+                    '9said': False,
+                    '10available': False,
+                    '10said': False,
+                    '11available': False,
+                    '11said': False,
+                    '12available': False,
+                    '12said': False,},
 
         'Noether': {'0available': True,
                     '0said': False,
@@ -501,6 +503,17 @@ def initialise_game_params(game):
                     '4available': False,
                     '4said': False},
 
+        'Barad': {'0available': True,
+                    '0said': False,
+                    '1available': False,
+                    '1said': False,
+                    '2available': False,
+                    '2said': False,
+                    '3available': False,
+                    '3said': False,
+                    '4available': False,
+                    '4said': False},
+
         'Watson': {'0available': True,
                    '0said': False,
                    '1available': False,
@@ -526,6 +539,7 @@ def initialise_game_params(game):
         'Cantor': False,
         'Melatos': False,
         'Webster': True,
+        'Barad': True,
         'Watson': True
     }
 
@@ -539,11 +553,12 @@ def initialise_game_params(game):
         'space': True,
         'infinite': True,
         'heaven_hell': True,
+        'final': False,
     }
 
     game.encounters_check = {
         'spawn_points': False,
-        'heartAltars': False,
+        'heart_altars': False,
         'cogs': False,
         'redCogs': False,
         'blueCogs': False,
@@ -554,13 +569,16 @@ def initialise_game_params(game):
         'chitins': False,
         'fairyBreads': False,
         'boxingGloves': False,
+        'yellowOrbs': False,
+        'redOrbs': False,
         'hammers': False,
+        'penthouseKeys': False,
         'credits': False
     }
 
     game.encounters_check_text = {
         'spawn_points': ['Spawn Point: Activate to change your spawn point in the lobby!'],
-        'heartAltars': ['Heart Altar: Gives you a handy lil heart back! Only if you have an empty one though.'],
+        'heart_altars': ['Heart Altar: Gives you a handy lil heart back! Only if you have an empty one though.'],
         'cogs': ['Cogs: Handy little machinery parts. Can be used to fix things. Found commonly everywhere.'],
         'redCogs': ['Red Cogs: Just like a normal cog, but fancier! And Red!'],
         'blueCogs': ['Blue Cogs: Just like a normal cog, but fancier! And Blue!'],
@@ -571,7 +589,10 @@ def initialise_game_params(game):
         'chitins': ['Chitin: What the hell is this thing? Apparently some strong stuff in insects, this could probably increase the power of your smacks.'],
         'fairyBreads': ['Fairy Bread: Only the most delicious snack that has ever existed.'],
         'boxingGloves': ['Boxing Gloves: For some reason kangaroos got \'em. Punchy punch!'],
+        'yellowOrbs': ['Heavenly Orbs: They glow with the power of one million beers.'],
+        'redOrbs': ['Satanic Orbs: They glow with the power of one million Jägermeisters.'],
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.'],
+        'penthouseKeys': ['Penthouse Key: Grants acess to the penthouse.'],
         'credits': ['Credit: Ooh, interesting little thingy, can be used to give credit where credit it due. Of this game. Not DNA.'],
         'error': ['OOPS! Something went wrong here and I couldnt find the text for you, soz.']
     }
@@ -584,6 +605,7 @@ def initialise_game_params(game):
         'tunnel5': False,
         'tunnel6': False,
         'tunnel7': False,
+        'tunnel8': False,
     }
 
     game.tunnel_positions = {
@@ -594,6 +616,7 @@ def initialise_game_params(game):
         'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33, -30)],
         'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51, -44)],
         'tunnel7': [[18, y] for y in range(12, 16)],
+        'tunnel8': [[x, y] for x in range(2, 35) for y in range(-78, -63)],
     }
 
     # Death message stuff
@@ -621,15 +644,20 @@ def initialise_game_params(game):
         'echidna': 'Echidna',
         'meteor': 'Meteor',
         'alienship': 'Alien Spaceship',
-        'flyghost': 'Lil\' Ghost',
+        'fly_ghost': 'Lil\' Ghost',
         'candle': 'Hot Candle',
+        'cherub': 'Cherub',
+        'orb_cherub': 'Magical Yellow Orb',
+        'orb_imp': 'Magical Red Orb',
 
         'normalboss': 'Big Bat',
         'grassboss': 'Big Roly Poly',
         'spookyboss': 'Ghost',
         'rubiksboss': 'Big Rubik\'s Cube',
-        'aussieboss': 'PUT THIS IN LATER',
+        'aussieboss': 'Big Ol\' Roo',
         'spaceboss': 'Big Alien Spaceship',
+        'heavenboss': 'God',
+        'hellboss': 'Demon',
     }
     game.death_verbs = ['killed',
                        'vanquished',

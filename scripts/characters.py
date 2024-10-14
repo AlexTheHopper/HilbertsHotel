@@ -63,12 +63,8 @@ class Character(_entities.PhysicsEntity):
             except KeyError:
                 requirement_num = 0
 
-            xpos = 2 * \
-                (self.pos[0] - self.game.render_scroll[0] +
-                 self.anim_offset[0] + 7)
-            ypos = 2 * \
-                int(self.pos[1] - self.game.render_scroll[1] +
-                    self.anim_offset[1]) - 30
+            xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
+            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 30
             offset_length = 80
 
             if requirement_num > 0:
@@ -131,12 +127,15 @@ class Hilbert(Character):
             6: [['purchase', 'cogs', 150]],
             7: [['purchase', 'eyes', 30]],
             8: [['purchase', 'redCogs', 5]],
-            9: [['purchase', 'blueCogs', 5], ['purchase', 'purpleCogs', 5]]
+            9: [['purchase', 'blueCogs', 5], ['purchase', 'purpleCogs', 5]],
+            10: [['purchase', 'fairyBreads', 20], ['purchase', 'boxingGloves', 20], ['floor', 'aussie', 15]],
+            11: [['purchase', 'purpleCogs', 10], ['floor', 'space', 20]],
+            12: [['purchase', 'yellowOrbs', 20], ['purchase', 'redOrbs', 20], ['floor', 'heaven_hell', 25]],
         }
 
         self.dialogue = {
             '0': ['Welcome...To my (Hilbert\'s) Hotel!',
-                  'Where it\'s not only bigger, but INFINITE on the inside!'
+                  'Where it\'s not only bigger, but INFINITE on the inside!',
                   'I sure am glad I hired you, it\'s been attacked and the whole thing is full of intruders!',
                   'Would you be able to help me take back control, and find my friends somewhere in the hotel?',
                   'Oh! You can dash attack with your x key?',
@@ -173,7 +172,19 @@ class Hilbert(Character):
             '8': ['Ooooooh, I love these cogs! We\'re getting close now, soon my super secret weapon will be ready! It will be able to remove ALL of the intruders from the Hotel, finally allowing the guests to stay in peace!',
                   'You got any more kinds of these here cogs?'],
 
-            '9': ['Hehe spiffo! Thanks bud!']}
+            '9': ['Hehe spiffo! Thanks bud!',
+                  'This one is going to be a strange request, but I need you to delve deep into the heart of Australia and fetch a couple things for the machine.'],
+                  
+            '10': ['Beautiful and amazing you are! Soon my Hotel will be rid of all these intruders and I will be able to house as many customers as I like!',
+                   'Now I need you to go and defeat some of these pesky spaceships flying around somewhere in here, they\'re really messing with the vibe.'],
+
+            '11': ['Finally, I think the machine is ready. I only need a power source now.',
+                   'I only know of one thing with the gusto needed for this to work.',
+                   'I need you to defeat devils and gods, and bring me back their power sources.',
+                   'Tall ask, I know, but you got this chief!'],
+
+            '12': ['This is it. The machine is ready. Meet me at the penthouse.']
+            }
 
     def conversation_action(self, key):
         # Runs when dialogue matching key is said for thr first time.
@@ -182,44 +193,43 @@ class Hilbert(Character):
             self.game.dialogue_history[self.name]['1available'] = True
 
         elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 5
-            self.game.current_level_size = 20
             self.game.wallet['cogs'] -= 5
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 10
-            self.game.current_level_size = 28
             self.game.wallet['cogs'] -= 50
 
             self.game.available_enemy_variants['normal'].append(4)
             self.game.available_enemy_variants['normalWeights'].append(1)
 
         elif key == 5 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 20
-            self.game.current_level_size = 35
             self.game.wallet['cogs'] -= 100
 
         elif key == 6 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 25
-            self.game.current_level_size = 40
             self.game.wallet['cogs'] -= 150
 
         elif key == 7 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 30
-            self.game.current_level_size = 45
             self.game.wallet['eyes'] -= 30
             self.game.difficulty += 1
 
         elif key == 8 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 35
-            self.game.current_level_size = 50
             self.game.wallet['redCogs'] -= 5
 
         elif key == 9 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.enemy_count_max = 40
-            self.game.current_level_size = 55
             self.game.wallet['purpleCogs'] -= 5
             self.game.wallet['blueCogs'] -= 5
+
+        elif key == 10 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.wallet['fairyBreads'] -= 20
+            self.game.wallet['boxingGloves'] -= 20
+
+        elif key == 11 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.wallet['purpleCogs'] -= 10
+
+        elif key == 12 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.currency_entities.append(
+                _entities.Currency(self.game, 'penthouseKey', self.game.player.pos))
+            self.game.wallet['yellowOrbs'] -= 20
+            self.game.wallet['redOrbs'] -= 20
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
 
@@ -338,13 +348,13 @@ class Curie(Character):
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you winged boots! They let you jump more in the air!',
-                  'I just need a few bat wings! Bring me 20 and the extra jump is yours!'],
+                  'I just need a few bat wings! Bring me 25 and the extra jump is yours!'],
 
             '2': ['You\'ve got two jumps! Woo! Isn\'t this such a novel mechanic?',
-                  'I\'ll give ya another for 25 wings.'],
+                  'I\'ll give ya another for 50 wings.'],
 
             '3': ['You\'ve got three jumps! Woo! We\'re really pushing this double jump idea.',
-                  'I\'ll give ya another for 40 wings.'],
+                  'I\'ll give ya another for 75 wings.'],
 
             '4': ['You\'ve got four jumps! Woo! How many is too many?',
                   'Now, this next deal I got for ya is very lucrative. Not even Hilbert knows about this tech. I heard that you can do a lil dash in the air right?',
@@ -366,17 +376,17 @@ class Curie(Character):
         elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 20
+            self.game.wallet['wings'] -= 25
 
         elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 25
+            self.game.wallet['wings'] -= 50
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
-            self.game.wallet['wings'] -= 40
+            self.game.wallet['wings'] -= 75
 
         elif key == 5 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_dashes += 1
@@ -391,7 +401,7 @@ class Curie(Character):
 
             self.game.wallet['wings'] -= 50
             self.game.wallet['cogs'] -= 100
-            self.game.wallet['redCogs'] -= 50
+            self.game.wallet['blueCogs'] -= 50
             self.game.wallet['chitins'] -= 50
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
@@ -487,8 +497,8 @@ class Lorenz(Character):
             1: [],
             2: [],
             3: [['prime', 'cogs', 'P']],
-            4: [['primePurchase', 'cogs', 'P>50', 50]],
-            5: [['primePurchase', 'cogs', 'P>200', 200]],
+            4: [['primePurchase', 'cogs', 'P>200', 200]],
+            5: [['primePurchase', 'cogs', 'P>200', 200], ['primePurchase', 'wings', 'P>50', 50]],
             6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
             7: [['floor', 'normal', 25]],
             8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'infinite', 'P']],
@@ -512,11 +522,11 @@ class Lorenz(Character):
                   'Bring me EXACTLY a prime number of cogs and a hammer is yours!'],
 
             '3': ['Hammer go smash!',
-                  'Oh and also, youll never lose hammers on death! WOO!',
-                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 50!'],
+                  'Oh and also, youll never lose hammers on death! WOO! Go give it a go!',
+                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!'],
 
             '4': ['Hammer go smash!',
-                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!',
+                  'I got more too! But this time you gotta bring me a prime number of cogs over 200 and a prime number of wings over 50!',
                   'Also, have you noticed those cracks on the middle of the roof? Suuuuuper weird...'],
 
             '5': ['Hammer go smash!',
@@ -586,9 +596,11 @@ class Franklin(Character):
                   'I\'ll give ya another for 50 more chitin and some real smackeroonie gloves!'],
 
             '3': ['Yay woo! Your power level is now 3!',
+                  'And just in time! I\'ve just detected that some of those guys have become stronger!'
                   'I\'ll give ya another for 50 more chitin and a few little goodies.'],
 
             '4': ['Yay woo! Your power level is OVER 3!',
+                  'Wow, just in time again, what a coinkidink! Some of those guys shooting at you just got even stronger!'
                   'I would love to see this power in action! When you take on your biggest challenge, I\'ll be there!']}
 
     def conversation_action(self, key):
@@ -603,12 +615,14 @@ class Franklin(Character):
 
         elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.power_level += 1
+            self.game.difficulty += 1
 
             self.game.wallet['chitins'] -= 50
             self.game.wallet['boxingGloves'] -= 50
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.power_level += 1
+            self.game.difficulty += 1
 
             self.game.wallet['chitins'] -= 50
             self.game.wallet['cogs'] -= 50
@@ -801,7 +815,6 @@ class Webster(Character):
         # Runs when dialogue matching key is said for thr first time.
         if key == 0 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.characters_met['Webster'] = True
-            self.game.difficulty += 1
 
         elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['purpleCogs'] -= 5
@@ -811,6 +824,56 @@ class Webster(Character):
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['purpleCogs'] -= 15
+
+        self.game.dialogue_history[self.name][str(key) + 'said'] = True
+
+
+class Barad(Character):
+    def __init__(self, game, pos, size):
+        super().__init__(game, pos, size, 'Barad')
+
+        self.currency_requirements = {
+            0: [],
+            1: [],
+            2: [['purchase', 'redOrbs', 10], ['floor', 'heaven_hell', 10]],
+            3: [['purchase', 'yellowOrbs', 10], ['floor', 'heaven_hell', 15]],
+            4: [['purchase', 'yellowOrbs', 25], ['purchase', 'redOrbs', 25], ['purchase', 'purpleCogs', 25]],
+        }
+
+        self.dialogue = {
+            '0': ['Hello stranger! Welcome to the most powerful slice in the Hotel.'],
+
+            '1': ['I believe this is where Hilbert wants to draw power from to create his weapon. Inside exists the power of the gods.',
+                  'But what he wants to do is truly evil and we must not let him complete it.',
+                  'Please do not bring him the real power of the Orbs, bring fake ones or something idk.',
+                  'But if you bring me some, I will be able to fight him with you, armed with this true power.'],
+
+            '2': ['Mmmm yes. I can feel the power of the devils in these.',
+                  'You have defeated a devil, incredible work!',
+                  'I will also need the power of a god too.'],
+
+            '3': ['Mmmm yes muy bien. These are brilliant thank you.',
+                  'You have defeated a god, you can truly do anythng.',
+                  'I only need a few more and then I will fight him with you.'],
+
+            '4': ['Brilliant work! I am ready to fight. He will be at his weakest near his weapon. We can use it against him.',
+                  'But you musn\'t let him know. Ease him into a false sense of security, and then BAM! We give him the biggest smackaroo of his life!'],}
+
+    def conversation_action(self, key):
+        # Runs when dialogue matching key is said for thr first time.
+        if key == 0 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.characters_met['Barad'] = True
+
+        elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.wallet['redOrbs'] -= 10
+
+        elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.wallet['yellowOrbs'] -= 10
+
+        elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.wallet['yellowOrbs'] -= 25
+            self.game.wallet['redOrbs'] -= 25
+            self.game.wallet['purpleCogs'] -= 25
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
 
@@ -853,7 +916,6 @@ class Watson(Character):
         # Runs when dialogue matching key is said for thr first time.
         if key == 0 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.characters_met['Webster'] = True
-            self.game.difficulty += 1
 
         elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['purpleCogs'] -= 5
