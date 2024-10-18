@@ -212,7 +212,7 @@ class Editor:
                     if event.key == pygame.K_g:
                         self.ongrid = not self.ongrid
                     if event.key == pygame.K_t:
-                        self.tilemap.autotile(windows = False)
+                        self.tilemap.autotile(windows = True)
                     if event.key == pygame.K_r:
                         self.tilemap.load_random_tilemap(20)
                     if event.key == pygame.K_o:

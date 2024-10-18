@@ -85,7 +85,7 @@ class PhysicsEntity:
             # Check for collision with physics tiles
             self.pos[1] += self.frame_movement[1]
             entity_rect = self.rect()
-            for rect in tilemap.physics_rects_around(self.pos, is_boss=self.is_boss):
+            for rect in tilemap.physics_rects_around(self.rect().center, is_boss=self.is_boss):
                 if entity_rect.colliderect(rect):
 
                     # Collision moving down
@@ -106,7 +106,7 @@ class PhysicsEntity:
 
             self.pos[0] += self.frame_movement[0]
             entity_rect = self.rect()
-            for rect in tilemap.physics_rects_around(self.pos, is_boss=self.is_boss):
+            for rect in tilemap.physics_rects_around(self.rect().center, is_boss=self.is_boss):
                 if entity_rect.colliderect(rect):
 
                     # Collision moving right
@@ -141,6 +141,7 @@ class PhysicsEntity:
             self.velocity[1] = 0
 
         self.animation.update()
+        self.display_darkness_circle()
 
     def render(self, surface, offset=(0, 0), rotation=0, transparency=255):
         # Only update/render at close distances
@@ -155,12 +156,12 @@ class PhysicsEntity:
         image.set_alpha(transparency)
 
         if rotation != 0:
-            image = pygame.transform.rotate(image, rotation * 180 / math.pi)
-            surface.blit(pygame.transform.flip(
-                image, self.flip_x, False), (posx, posy))
+            rot_image = pygame.transform.rotate(image, rotation * 180 / math.pi)
+            new_rect = rot_image.get_rect(center=image.get_rect(topleft=(posx, posy)).center)
+
+            surface.blit(pygame.transform.flip(rot_image, self.flip_x, False), new_rect.topleft)
         else:
-            surface.blit(pygame.transform.flip(image, self.flip_x,
-                         False), (math.floor(posx), math.floor(posy)))
+            surface.blit(pygame.transform.flip(image, self.flip_x, False), (math.floor(posx), math.floor(posy)))
 
     def damage(self, intensity=10):
         self.game.screenshake = max(intensity, self.game.screenshake)
@@ -200,7 +201,7 @@ class PhysicsEntity:
                     self.game.currency_entities.append(Currency(self.game, currency, spawn_loc))
 
     def display_darkness_circle(self):
-        if self.game.cave_darkness and self.game.transition <= 0:
+        if self.game.cave_darkness and self.game.transition <= 0 and self.light_size > 0:
             self.game.darkness_circle(0, self.light_size, (self.rect(
             ).centerx - self.game.render_scroll[0], self.rect().centery - self.game.render_scroll[1]))
 
@@ -625,8 +626,6 @@ class GunGuy(PhysicsEntity):
     def render(self, surface, offset=(0, 0)):
         super().render(surface, offset=offset)
 
-        self.display_darkness_circle()
-
         if self.action != 'grace':
             y_offset = (4 if self.weapon == 'staff' else 0) + \
                 (3 if (self.weapon == 'staff' and self.shoot_countdown) else 0)
@@ -710,8 +709,6 @@ class Portal(PhysicsEntity):
 
     def render(self, surface, offset=(0, 0)):
         super().render(surface, offset=offset)
-
-        self.display_darkness_circle()
 
 class Player(PhysicsEntity):
     def __init__(self, game, pos, size):
@@ -882,8 +879,6 @@ class Player(PhysicsEntity):
         if abs(self.dashing) <= 50 and self.game.transition < 1:
             super().render(surface, offset=offset)
 
-        self.display_darkness_circle()
-
     def jump(self):
         if self.wall_slide:
             self.velocity[1] = -2.3
@@ -1029,10 +1024,6 @@ class Currency(PhysicsEntity):
             self.game.sfx['coin'].play()
             return True
 
-    def render(self, surface, offset=(0, 0)):
-        super().render(surface, offset=offset)
-        self.display_darkness_circle()
-
 class Glowworm(PhysicsEntity):
     def __init__(self, game, pos, size=(5, 5)):
         super().__init__(game, 'glowworm', pos, size)
@@ -1118,10 +1109,6 @@ class Glowworm(PhysicsEntity):
 
         super().update(tilemap, movement=movement)
 
-    def render(self, surface, offset=(0, 0)):
-        super().render(surface, offset=offset)
-        self.display_darkness_circle()
-
 class Bullet():
     def __init__(self, game, pos, speed, origin, type='projectile'):
         self.attack_power = 1
@@ -1147,7 +1134,7 @@ class Bullet():
         # Check to destroy
         if self.game.tilemap.solid_check(self.pos):
             if self.type == 'projectile':
-                velocity_angle = math.atan(self.speed[1] / (self.speed[0] if self.speed[0] != 0 else 0.01))
+                velocity_angle = math.atan2(self.speed[1], (self.speed[0] if self.speed[0] != 0 else 0.01))
                 for _ in range(4):
                     self.game.sparks.append(_spark.Spark(self.pos, random.random() - 0.5 + velocity_angle, 2 + random.random()))
             return True
@@ -1313,7 +1300,6 @@ class Torch(PhysicsEntity):
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
 
-        self.display_darkness_circle()
         if random.random() < 0.05:
             self.game.sparks.append(_spark.Spark([self.rect().x + (4 if self.flip_x else 12), self.pos[1]], random.random(
             ) * math.pi + math.pi, random.random() + 1, color=random.choice([(229, 0, 0), (229, 82, 13)])))
@@ -1663,10 +1649,6 @@ class Meteor(PhysicsEntity):
             if self.animation.done:
                 return True
 
-    def render(self, surface, offset=(0, 0)):
-        super().render(surface, offset=offset, rotation=self.angle)
-        self.display_darkness_circle()
-
 class AlienShip(PhysicsEntity):
     def __init__(self, game, pos, size, grace_done=False, velocity=[0, 0]):
         super().__init__(game, 'alienship', pos, size)
@@ -1824,8 +1806,6 @@ class Candle(PhysicsEntity):
                 self.game.sparks.append(_spark.Spark(self.rect().center, random.random(
                 ) * math.pi + math.pi, random.random() + 1, color=random.choice([(229, 0, 0), (229, 82, 13)])))
 
-            self.display_darkness_circle()
-
         elif self.action == 'active':
             self.light_size = min(self.light_size + random.random(), 25)
 
@@ -1840,7 +1820,6 @@ class Candle(PhysicsEntity):
                 self.light_size = 0
                 self.timer = random.randint(400, 800)
 
-            self.display_darkness_circle()
 
 class Orb(PhysicsEntity):
     def __init__(self, game, pos, size, velocity, origin, colour):
@@ -2023,9 +2002,282 @@ class PenthouseLock(PhysicsEntity):
                     #spawn final boss portal with effects
                     self.game.portals.append(Portal(self.game, [tilemap.tilesize * 18, tilemap.tilesize * -82], (tilemap.tilesize, tilemap.tilesize), 'final'))
                 self.game.run_text(self.text, talk_type = 'entity')
+
+class Machine(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'machine', pos, size)
+
+        self.gravity_affected = False
+        self.collide_wall_check = False
+        self.pos = list(pos)
+        self.anim_offset = (0, 0)
+        self.light_size = 0
+
+    def activate_machine(self):
+        self.set_action('active')
+        print('Activating Machine. Congrats everyone is dead.')
+
+    def destroy_machine(self):
+        self.set_action('destroyed')
+        self.game.begin_final_boss_hilbert()
+        self.game.bosses.append(HilbertBoss(self.game, [self.rect().centerx + 48, self.rect().centery - (25 * self.game.tilemap.tilesize)], self.game.entity_info[46]['size']))
+        print('Destroying Machine')
+
+    def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
+
+        dist_player = np.linalg.norm(self.vector_to(self.game.player))
+
+        if dist_player < 25 and self.action == 'idle':
+            xpos = 2 * (self.rect().centerx - self.game.render_scroll[0] + self.anim_offset[0])
+            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 25
+
+            self.game.draw_text('Destroy Machine (z)', (xpos, ypos),
+                                self.game.text_font, (255, 255, 255), (0, 0), mode='center', scale=0.75)
+            self.game.draw_text('Activate Machine (a)', (xpos, ypos - 20),
+                                self.game.text_font, (255, 255, 255), (0, 0), mode='center', scale=0.75)
+
+            if self.game.interraction_frame_z and not self.game.dead:
+                self.destroy_machine()
+            elif self.game.interraction_frame_a and not self.game.dead:
+                self.activate_machine()
+
+class HilbertOrb(PhysicsEntity):
+    def __init__(self, game, pos, size, velocity):
+        super().__init__(game, 'hilbert_orb', pos, size)
+        self.pos = list(pos)
+        self.size = size
+        self.velocity = list(velocity)
+        self.gravity_affected = False
+        self.max_speed = random.uniform(1.2, 1.6)
+        self.target_mult = random.uniform(0.02, 0.06)
+        self.targeted = False
+        self.colour = (255, 0, 255)
+        self.angle = random.uniform(0, math.pi * 2)
+
+        self.is_boss = True
+
+        self.boid_radius = 25
+        self.boid_sepraration_strength = 0.001
+
+        self.anim_offset = (-3, -3)
+
+    def boidsify(self):
+        #find close boids:
+        #only doing separation here because since theyre folloring the player its fine to not bunch up.
+        close_boids = []
+        for boid in [e for e in self.game.extra_entities if (e.type == 'hilbert_orb' and e is not self)]:
+            if np.linalg.norm(self.vector_to(boid)) < self.boid_radius:
+                close_boids.append(boid)
+
+        if len(close_boids) == 0:
+            return [0, 0]
+
+        separation_extra = [0, 0]
+
+        for boid in close_boids:
+            #separation
+            separation_extra[0] += self.pos[0] - boid.pos[0]
+            separation_extra[1] += self.pos[1] - boid.pos[1]
+            
+        return [separation_extra[0] * self.boid_sepraration_strength, separation_extra[1] * self.boid_sepraration_strength]
+            
+
+    def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
+
+        self.angle += 0.05
+
+        toPlayer = self.vector_to(self.game.player)
+        norm = np.linalg.norm(toPlayer)
+
+        self.velocity[0] += self.target_mult * toPlayer[0] / norm
+        self.velocity[1] += self.target_mult * toPlayer[1] / norm
+
+        vel_norm = np.linalg.norm(self.velocity)
+        if vel_norm > self.max_speed:
+            self.velocity[0] /= vel_norm
+            self.velocity[1] /= vel_norm
+
+        boid_vel = self.boidsify()
+        self.velocity[0] += boid_vel[0]
+        self.velocity[1] += boid_vel[1]
+
+        if any(self.collisions.values()) or self.rect().colliderect(self.game.player.rect()) and abs(self.game.player.dashing) <= 50:
+            self.circular_attack(25, self.rect().center, color=self.colour, color_str='purple')
+            return True
         
+    def render(self, surface, offset=(0, 0)):
+        super().render(surface, offset=offset, rotation=self.angle)
+        
+class HelperOrb(PhysicsEntity):
+    def __init__(self, game, pos, size, velocity):
+        super().__init__(game, 'helper_orb', pos, size)
+        self.pos = list(pos)
+        self.size = size
+        self.velocity = list(velocity)
+        self.gravity_affected = False
+        self.max_speed = 5
+        self.target_mult = 1
+        self.target_exists = True
+        self.colour = (0, 255, 0)
+        self.light_size = 20
 
+        self.is_boss = True
 
+        self.anim_offset = (-2, -2)
+
+        self.target = random.choice([e for e in self.game.extra_entities if (e.type == 'hilbert_orb' and e.targeted == False)])
+        self.target.targeted = True
+
+    def create_sparks(self):
+        velocity_angle = math.atan2(self.velocity[1], self.velocity[0])
+        for _ in range(10):
+            self.game.sparks.append(_spark.Spark(self.rect().center, velocity_angle + random.uniform(-1, 1), 1.5))
+
+    def does_target_exist(self):
+        if self.target in self.game.extra_entities:
+            self.target_exists = True
+            return True
+        self.target_exists = False
+        return False
+
+    def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
+
+        if self.does_target_exist():
+            toTarget = self.vector_to(self.target)
+            norm = np.linalg.norm(toTarget)
+            if norm == 0:
+                norm = 0.01
+
+            self.velocity[0] += self.target_mult * toTarget[0] / norm
+            self.velocity[1] += self.target_mult * toTarget[1] / norm
+
+            vel_norm = np.linalg.norm(self.velocity)
+            if vel_norm > self.max_speed:
+                self.velocity[0] /= vel_norm
+                self.velocity[1] /= vel_norm
+
+        if any(self.collisions.values()):
+            self.create_sparks()
+            self.target.targeted = False
+            return True
+        
+        elif self.rect().colliderect(self.target.rect()) and self.target_exists:
+            self.create_sparks()
+            self.game.extra_entities.remove(self.target)
+            return True
+
+class Helper(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'helper', pos, size)
+
+        self.timer = random.randint(120,180)
+        self.gravity_affected = False
+        self.can_attack = False
+        self.attacking = 'Hilbert'
+        self.is_boss = True
+        self.time_since_orb = 0
+        self.help_frequency = 150
+        self.light_size = 25
+        self.set_action('grace')
+
+    def activate(self, character):
+        self.type = character
+        self.gravity_affected = True
+        self.set_action('idle')
+
+    def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
+
+        self.time_since_orb += 1
+
+        if self.action =='grace':
+            pass
+
+        elif self.action == 'idle':
+            self.timer = max(self.timer - 1, 0)
+
+            if not self.timer and self.collisions['down']:
+                self.set_action('run')
+                self.velocity = [random.choice([-0.5, 0.5]), 0]
+                self.flip_reset()
+                self.can_attack = True
+
+        elif self.action == 'jump':
+            if self.collisions['down'] and tilemap.solid_check((self.rect().centerx, self.rect().centery + 16)):
+                self.set_action('run')
+
+        elif self.action == 'run':
+            # Check jump condition, tilemap in_front and above:
+            in_front = tilemap.solid_check(
+                (self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery))
+            in_front_down = tilemap.solid_check(
+                (self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 16))
+            in_front_down_down = tilemap.solid_check(
+                (self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 32))
+            above = tilemap.solid_check(
+                (self.rect().centerx, self.rect().centery - 16))
+
+            if in_front and not above and self.collisions['down']:
+                above_side = tilemap.solid_check(
+                    (self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 16))
+                above_above_side = tilemap.solid_check(
+                    (self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 32))
+
+                # Check jump 2 space:
+                above_above = tilemap.solid_check(
+                    (self.rect().centerx, self.rect().centery - 32))
+                if not above and not above_above and not above_above_side and above_side:
+                    self.set_action('jump')
+                    self.velocity[1] = -3
+
+                # Jump one space
+                elif not above_side:
+                    self.set_action('jump')
+                    self.velocity[1] = -2
+            
+            #Turn around if two block drop:
+            elif not in_front and not in_front_down and not in_front_down_down:
+                self.flip_x = not self.flip_x
+                self.velocity[0] *= -1
+
+            # Turn around if bump into a wall
+            elif (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
+                self.flip_x = not self.flip_x
+                self.velocity[0] *= -1
+
+            if random.random() < 0.1 and self.time_since_orb > self.help_frequency:
+                if len([e for e in self.game.extra_entities if (e.type == 'hilbert_orb' and e.targeted == False)]) > 0:
+                    self.game.extra_entities.append(HelperOrb(self.game, self.rect().center, self.game.entity_info[48]['size'], [0, -2]))
+                    self.time_since_orb = 0
+
+class HilbertOrbSpawner(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'hilbert_orb_spawner', pos, size)
+
+        self.gravity_affected = False
+        self.collide_wall_check = False
+        self.pos = list(pos)
+        self.anim_offset = (0, 0)
+        self.light_size = 0
+        self.angle = 0
+        self.angle_speed = random.uniform(2 * math.pi / 65, 2 * math.pi / 55)
+        self.transparency = 0
+
+    def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
+
+        if self.action != 'idle':
+            self.angle += self.angle_speed
+            self.transparency += 1
+
+        if self.action == 'activating' and self.transparency >= 255:
+            self.set_action('active')
+
+    def render(self, surface, offset=(0, 0)):
+        super().render(surface, offset=offset, rotation=self.angle, transparency = self.transparency)
 
 
 class Boss(PhysicsEntity):
@@ -2034,7 +2286,10 @@ class Boss(PhysicsEntity):
 
         self.is_boss = True
         self.glowworm_follow = True
-        self.difficulty = round(self.game.floors[self.game.current_level] / self.game.boss_frequency) - 1
+        if self.game.current_level != 'final':
+            self.difficulty = round(self.game.floors[self.game.current_level] / self.game.boss_frequency) - 1
+        else:
+            self.difficulty = 1
         if self.game.current_level == 'infinite':
             self.difficulty = round(self.game.floors['infinite'] / self.game.boss_frequency) - 1
         self.death_intensity = 50
@@ -2369,7 +2624,7 @@ class SpaceBoss(Boss):
         self.shoot_count_max = self.difficulty
         self.shoot_count = self.shoot_count_max
         self.speed = self.difficulty / 2
-        self.light_size = 25
+        self.light_size = 0
 
         self.invincible_states = ['idle', 'activating',
                                  'attacking', 'flying', 'dying']
@@ -2411,6 +2666,7 @@ class SpaceBoss(Boss):
         elif self.action == 'activating':
             if any(self.collisions.values()):
                 self.set_action('flying')
+                self.light_size = 25
                 self.gravity_affected = False
 
                 self.velocity[0] = self.speed * to_player[0] / norm
@@ -2423,9 +2679,10 @@ class SpaceBoss(Boss):
                 for _ in range(3):
                     self.game.sparks.append(_spark.Spark(self.rect().midbottom, random.uniform(
                         0, math.pi), random.uniform(1.5, 2), color=random.choice([(0, 255, 0), (200, 0, 200)])))
+                    
+                self.light_size = random.choice([0, 25])
 
         elif self.action == 'flying':
-            self.display_darkness_circle()
             if self.health <= self.max_health / 2 and norm > 100 and random.random() < 0.01:
                 self.set_action('attacking')
                 self.timer = 0
@@ -2447,7 +2704,6 @@ class SpaceBoss(Boss):
                 self.velocity[1] *= random.uniform(-1.2, -0.9)
 
         elif self.action == 'attacking':
-            self.display_darkness_circle()
             self.timer += 1
 
             self.wall_rebound()
@@ -2995,74 +3251,106 @@ class HellBoss(HeavenBoss):
         self.currency_drops['yellowOrb'] = 0
         self.currency_drops['redOrb'] = random.randint(2, 5) * self.difficulty
 
-
-class Helper(PhysicsEntity):
+class HilbertBoss(Boss):
     def __init__(self, game, pos, size):
-        super().__init__(game, 'helper', pos, size)
+        super().__init__(game, 'hilbertboss', pos, size)
 
-        self.timer = random.randint(120,180)
+        self.attack_radius = int(100 * math.atan(self.difficulty / 5))
+
+        self.health = 10
+        self.max_health = self.health
+
         self.gravity_affected = True
-        self.can_attack = False
-        self.set_action('grace')
+        self.gravity = 0.05
 
-    def activate(self, character):
-        self.type = character
-        self.set_action('idle')
+        self.anim_offset = (0, 0)
+
+        self.invincible_states = ['idle', 'dying']
+        self.passive_states = ['idle', 'dying']
+
+        self.shoot_count_max = 3
+        self.shoot_num = 0
+        self.shoot_count = 0
+        self.shoot_countdown = 300
+
+        self.can_shoot = False
+        self.preparing_to_shoot = False
+        self.preparing = 0
+        self.preparing_time = 60
+
+    def activate(self):
+        self.set_action('active')
+
+    def set_preparing_to_shoot(self):
+        self.preparing_to_shoot = True
+        self.preparing = 0
+
+    def begin_shooting(self):
+        self.can_shoot = True
+        self.shoot_countdown = 0
+        self.preparing_to_shoot = False
+        self.shoot_num = random.randint(5, 7)
+
+    def stop_shooting(self):
+        self.shoot_countdown = random.randint(250,300)
+        self.shoot_count = 0
+        self.can_shoot = False
+        self.preparing_to_shoot = False
 
     def update(self, tilemap, movement=(0, 0)):
-        super().update(tilemap, movement=movement)
+        if super().update(tilemap, movement=movement):
+            return True
+        
+        toPlayer = self.vector_to(self.game.player)
+        
+        if self.action == 'idle':
+            self.pos[1] += 1
 
-        if self.action =='grace':
-            pass
-
-        elif self.action == 'idle':
-            self.timer = max(self.timer - 1, 0)
-
-            if not self.timer:
-                self.set_action('run')
-                self.velocity = [random.choice([-0.5, 0.5]), 0]
-                self.flip_reset()
-                self.can_attack = True
-
-        elif self.action == 'jump':
-            if self.collisions['down'] and tilemap.solid_check((self.rect().centerx, self.rect().centery + 16)):
-                self.set_action('run')
-
-        elif self.action == 'run':
-            # Check jump condition, tilemap in_front and above:
-            in_front = tilemap.solid_check(
-                (self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery))
-            in_front_down = tilemap.solid_check(
-                (self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 16))
-            in_front_down_down = tilemap.solid_check(
-                (self.rect().centerx + (-4 if self.flip_x else 4), self.rect().centery + 32))
-            above = tilemap.solid_check(
-                (self.rect().centerx, self.rect().centery - 16))
-
-            if in_front and not above and self.collisions['down']:
-                above_side = tilemap.solid_check(
-                    (self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 16))
-                above_above_side = tilemap.solid_check(
-                    (self.rect().centerx + (-10 if self.flip_x else 10), self.rect().centery - 32))
-
-                # Check jump 2 space:
-                above_above = tilemap.solid_check(
-                    (self.rect().centerx, self.rect().centery - 32))
-                if not above and not above_above and not above_above_side and above_side:
-                    self.set_action('jump')
-                    self.velocity[1] = -3
-
-                # Jump one space
-                elif not above_side:
-                    self.set_action('jump')
-                    self.velocity[1] = -2
             
-            #Turn around if two block drop:
-            elif not in_front and not in_front_down and not in_front_down_down:
-                self.flip_x = not self.flip_x
-                self.velocity[0] *= -1
+            if np.linalg.norm(toPlayer) < 50 or any(self.collisions.values()):
+                self.activate()
 
-            # Turn around if bump into a wall
-            elif (self.collisions['left'] or self.collisions['right']) and self.action != 'jump':
-                self.flip_x = not self.flip_x
-                self.velocity[0] *= -1
+        elif self.action == 'active':
+            self.shoot_countdown = max(self.shoot_countdown - 1, 0)
+
+            if np.linalg.norm(toPlayer) < 35 and not self.can_shoot and not self.preparing_to_shoot:
+                self.set_preparing_to_shoot()
+
+            if random.random() < 0.05:
+                x_addition = 0.5 if self.vector_to(self.game.player)[0] > 0 else -0.5
+                y_addition = 0 if self.vector_to(self.game.player)[1] > -4 else 2
+
+                self.velocity = [random.random() - 0.5 + x_addition, -(random.random() + y_addition)]
+                self.flip_reset()
+
+                if random.random() < 0.5 and len([e for e in self.game.extra_entities if e.type == 'hilbert_orb']) < 20:
+                    spawn_portal = random.choice([e for e in self.game.extra_entities if e.type == 'hilbert_orb_spawner'])
+                    orb_spawn_loc = spawn_portal.rect().center
+                    self.game.extra_entities.append(HilbertOrb(self.game, orb_spawn_loc, self.game.entity_info[47]['size'], [random.uniform(-2,2), 0]))
+                    spawn_portal.set_action('activating')
+
+            elif not self.shoot_countdown and not self.can_shoot and not self.preparing_to_shoot and random.random() < 0.01:
+                self.set_preparing_to_shoot()
+
+            elif self.preparing_to_shoot:
+                if random.random() < (self.preparing / self.preparing_time):
+                    spark_angle = random.uniform(0, 2 * math.pi)
+                    spark_location = [self.rect().centerx + 35 * math.cos(spark_angle), self.rect().centery + 35 * math.sin(spark_angle)]
+                    self.game.sparks.append(_spark.Spark(spark_location, spark_angle, 2, color = (255, 0, 255)))
+                self.preparing += 1
+
+                if self.preparing > self.preparing_time:
+                    self.begin_shooting()
+
+            elif not self.shoot_countdown and self.can_shoot:
+                self.shoot_count += 1
+                speed = random.uniform(1, 1.5)
+                self.circular_attack(40, self.rect().center, color = (200, 0, 200), color_str = 'purple')
+                for angle in np.linspace(-math.pi / 2, math.pi * (3/2), self.shoot_num)[:-1]:
+                    orb_velocity = [speed * math.cos(angle), speed * math.sin(angle)]
+                    self.game.extra_entities.append(Orb(self.game, self.rect().center, self.game.entity_info[38]['size'], orb_velocity, 'imp', colour = (124, 29, 42)))
+
+                if self.shoot_count > self.shoot_count_max:
+                    self.stop_shooting()
+                else:
+                    self.shoot_countdown = random.randint(30, 40)

@@ -502,7 +502,8 @@ class Lorenz(Character):
             6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
             7: [['floor', 'normal', 25]],
             8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'infinite', 'P']],
-            9: [['floor', 'infinite', 20]]
+            9: [['floor', 'infinite', 20]],
+            10: [['floor', 'infinite', 30]],
         }
 
         self.dialogue = {
@@ -540,10 +541,13 @@ class Lorenz(Character):
                   'Now for this next hammer, can you clea up to a prime floor on each of these areas please?'],
 
             '8': ['Hammer go SMASH!',
-                  'For the FINAL hammer, can you clear floor 20 on this infinite thing please?',
+                  'For another hammer, can you clear floor 20 on this infinite thing please?',
                   'Doesn\'t seem like this special thing is where the bats are so maybe it\'s somewhere else!'],
 
-            '9': ['Hammer go SMASH!!',
+            '9': ['Hammer go SMASH!',
+                  'Grrr where is this special thing?! It must be somewhere, please keep looking...'],
+
+            '10': ['Hammer go SMASH!!',
                   'Please forgive me, I don\'t have anymore hammers :(',
                   'But if you find it and need me, I\'ll be there for you!']}
 
@@ -564,7 +568,7 @@ class Lorenz(Character):
             self.game.wallet['wings'] = 0
             self.game.wallet['heartFragments'] = 0
 
-        if key in [7, 8, 9] and not self.game.dialogue_history[self.name][str(key) + 'said']:
+        if key in [7, 8, 9, 10] and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.currency_entities.append(
                 _entities.Currency(self.game, 'hammer', self.game.player.pos))
 

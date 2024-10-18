@@ -56,7 +56,8 @@ class ExpandingArc:
 
         #Check for player collision:
         if self.checkCollision(game.player.rect()):
-            game.player.damage(self.damage, self.type)
+            if len(game.enemies) + len(game.bosses) > 0:
+                game.player.damage(self.damage, self.type)
 
         #Check for boss collision (Rubiks)
         for boss in game.bosses.copy():

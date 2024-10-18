@@ -527,6 +527,7 @@ class Tilemap:
 
                     if tile['type'] in ['space', 'heaven'] and random.random() < 0.1:
                         tile['variant'] = random.choice(range(self.autotile_count + 2, len(self.game.assets[tile['type']])))
+                        print(f'autotileCount = {self.autotile_count}, total length = {len(self.game.assets[tile['type']])}')
 
                     elif tile['type'] == 'spooky' and random.random() < 0.005:
                         self.offgrid_tiles.append({'type': 'spawners', 'variant': 24, 'pos': [tile['pos'][0] * self.tilesize, tile['pos'][1] * self.tilesize]})

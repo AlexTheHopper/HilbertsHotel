@@ -89,6 +89,7 @@ def initialise_game_params(game):
     game.dead = False
     game.death_count = 0
     game.interraction_frame_z = False
+    game.interraction_frame_a = False
     game.interraction_frame_s = False
     game.interraction_frame_v = False
     game.cave_darkness_range = (50, 250)
@@ -221,6 +222,10 @@ def initialise_game_params(game):
         38: {'type': 'extra_entity', 'object': _entities.Orb, 'size': (4, 4)},
         43: {'type': 'extra_entity', 'object': _entities.PenthouseLock, 'size': (16, 16)},
         44: {'type': 'extra_entity', 'object': _entities.Helper, 'size': (8, 15)},
+        45: {'type': 'extra_entity', 'object': _entities.Machine, 'size': (48, 32)},
+        47: {'type': 'extra_entity', 'object': _entities.HilbertOrb, 'size': (8, 8)},
+        48: {'type': 'extra_entity', 'object': _entities.HelperOrb, 'size': (2, 2)},
+        49: {'type': 'extra_entity', 'object': _entities.HilbertOrbSpawner, 'size': (16, 16)},
 
         10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
@@ -243,6 +248,7 @@ def initialise_game_params(game):
         35: {'type': 'boss', 'object': _entities.AussieBoss, 'size': (20, 20)},
         40: {'type': 'boss', 'object': _entities.HeavenBoss, 'size': (11, 30)},
         41: {'type': 'boss', 'object': _entities.HellBoss, 'size': (11, 30)},
+        46: {'type': 'boss', 'object': _entities.HilbertBoss, 'size': (32, 48)},
     }
 
     game.asset_info = {
@@ -278,6 +284,10 @@ def initialise_game_params(game):
             'orb_imp/': [['idle', 6, True]],
             'penthouse_lock/': [['idle', 6, True]],
             'helper/': [['idle', 5, True], ['grace', 5, True]],
+            'machine/': [['idle', 5, True], ['active', 5, True], ['destroyed', 5, True]],
+            'hilbert_orb/': [['idle', 6, True]],
+            'helper_orb/': [['idle', 6, True]],
+            'hilbert_orb_spawner/': [['idle', 1, False], ['activating', 6, True], ['active', 6, True]],
         },
 
         'entities/.bosses/': {
@@ -289,6 +299,7 @@ def initialise_game_params(game):
             'aussieboss/': [['idle', 30, True], ['prep', 45, False], ['active', 6, True], ['jumping', 6, True], ['dying', 25, False]],
             'heavenboss/': [['idle', 30, True], ['flying', 6, True], ['dying', 25, False]],
             'hellboss/': [['idle', 30, True], ['flying', 6, True], ['dying', 25, False]],
+            'hilbertboss/': [['idle', 30, True], ['active', 6, True], ['dying', 25, False]],
         }
     }
 
@@ -446,7 +457,9 @@ def initialise_game_params(game):
                    '8available': False,
                    '8said': False,
                    '9available': False,
-                   '9said': False},
+                   '9said': False,
+                   '10available': False,
+                   '10said': False},
 
         'Franklin': {'0available': True,
                      '0said': False,
@@ -649,6 +662,7 @@ def initialise_game_params(game):
         'cherub': 'Cherub',
         'orb_cherub': 'Magical Yellow Orb',
         'orb_imp': 'Magical Red Orb',
+        'hilbert_orb': 'Hilbert Ball',
 
         'normalboss': 'Big Bat',
         'grassboss': 'Big Roly Poly',
@@ -658,6 +672,7 @@ def initialise_game_params(game):
         'spaceboss': 'Big Alien Spaceship',
         'heavenboss': 'God',
         'hellboss': 'Demon',
+        'hilbertboss': 'Hilbert',
     }
     game.death_verbs = ['killed',
                        'vanquished',

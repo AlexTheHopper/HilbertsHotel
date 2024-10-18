@@ -25,9 +25,9 @@ class Game:
 
         # Pygame specific parameters and initialisation
         pygame.init()
-        game_version = '0.4.5'
+        game_version = '0.5.0'
         pygame.display.set_caption(f'Hilbert\'s Hotel v{game_version}')
-        self.text_font = pygame.font.SysFont('Comic Sans MS', 30, bold=True)
+        self.text_font = pygame.font.SysFont('Comic Sans MS', 32, bold=True)
         self.clock = pygame.time.Clock()
 
         # Define all general game parameters and load in assets
@@ -194,8 +194,7 @@ class Game:
 
             if not self.dead:
                 if not self.paused:
-                    self.player.update(
-                        self.tilemap, (self.movement[1] - self.movement[0], 0))
+                    self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
                 self.player.render(self.display_outline, offset=self.render_scroll)
 
             for projectile in self.projectiles.copy():
@@ -259,8 +258,9 @@ class Game:
             elif self.transition < 31 and self.transition != 0:
                 self.transition += 1
 
-            # Remove interaction frame
+            # Remove interaction frames
             self.interraction_frame_z = False
+            self.interraction_frame_a = False
             self.interraction_frame_s = False
             self.interraction_frame_v = False
 
@@ -296,6 +296,8 @@ class Game:
                             self.player.dash()
                     if event.key == pygame.K_z:
                         self.interraction_frame_z = True
+                    if event.key == pygame.K_a:
+                        self.interraction_frame_a = True
                     if event.key == pygame.K_s:
                         self.interraction_frame_s = True
                     if event.key == pygame.K_v:
@@ -688,6 +690,8 @@ class Game:
             self.cave_darkness = random.randint(self.cave_darkness_range[1]-50, self.cave_darkness_range[1])
         elif self.level_style in ['rubiks']:
             self.cave_darkness = 100
+        elif self.level_style in ['final']:
+            self.cave_darkness = 200
 
         # Gravity:
         self.player.gravity = 0.12
@@ -1052,14 +1056,15 @@ class Game:
         available_floors = []
 
         for level in self.floors.keys():
-            if self.floors[level] > 1 and level not in ['infinite', 'heaven_hell', 'final']:
-                available_floors.append(level)
+            if level != 'final':
+                if self.floors[level] > 1 and level not in ['infinite', 'heaven_hell', 'final']:
+                    available_floors.append(level)
 
-            elif self.floors[level] > 1 and level == 'heaven_hell':
-                available_floors.append('heaven')
+                elif self.floors[level] > 1 and level == 'heaven_hell':
+                    available_floors.append('heaven')
 
-                if self.floors[level] > 2:
-                    available_floors.append('hell')
+                    if self.floors[level] > 2:
+                        available_floors.append('hell')
         try:
             return random.choice(available_floors)
         except IndexError:
@@ -1121,6 +1126,10 @@ class Game:
             helper.activate(character.lower())
 
             helper_objects.remove(helper)
+
+        #Remove other helpers:
+        for helper in helper_objects:
+            self.extra_entities.remove(helper)
 
     def delete_save(self, save_slot):
         """Deleted selected save file.
@@ -1233,11 +1242,16 @@ class Game:
 
         for tunnel in self.tunnels_broken.keys():
             if tunnel not in data['tunnels_broken']:
-                data['tunnels_broken'][tunnel] = False
+                data['tunnels_broken'][tunnel] = self.tunnels_broken[tunnel]
 
         for floor in self.floors.keys():
             if floor not in data['floors']:
                 data['floors'][floor] = 1
+
+        for type in self.floor_specifics.keys():
+            if type not in data['available_enemy_variants']:
+                data['available_enemy_variants'][type] = self.available_enemy_variants[type]
+                data['available_enemy_variants'][type + 'Weights'] = self.available_enemy_variants[type + 'Weights']
 
         for portal in self.portals_met.keys():
             if portal not in data['portals_met']:
