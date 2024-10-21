@@ -58,14 +58,22 @@ def initialise_main_screen(game):
         none
 
     """
+
+    game.default_width = 1080
+    game.default_height = 720
     game.screen_width = 1080
     game.screen_height = 720
-    game.screen = pygame.display.set_mode(
-        (game.screen_width, game.screen_height))
+
+    if game.is_fullscreen:
+        game.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    else:
+        game.screen = pygame.display.set_mode((game.default_width, game.default_height))
+
+    
     game.hud_display = pygame.Surface((game.screen_width, game.screen_height))
     game.hud_display.set_colorkey((0, 0, 0))
     game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2),
-                   game.text_font, (86, 31, 126), (0, 0), scale=1.5, mode='center')
+                   game.text_font, (86, 31, 126), scale=1.5, mode='center')
     game.screen.blit(game.hud_display, (0, 0))
     pygame.display.update()
 
@@ -78,7 +86,9 @@ def initialise_game_params(game):
         none
 
     """
-    game.game_running = True
+    game.game_running = False
+    game.in_menu = True
+    game.game_ending = False
     game.fps = 60
     game.display_fps = game.fps
     game.initialising_game = True
@@ -89,6 +99,7 @@ def initialise_game_params(game):
     game.dead = False
     game.death_count = 0
     game.interraction_frame_z = False
+    game.interraction_frame_f = False
     game.interraction_frame_a = False
     game.interraction_frame_s = False
     game.interraction_frame_v = False
@@ -222,10 +233,11 @@ def initialise_game_params(game):
         38: {'type': 'extra_entity', 'object': _entities.Orb, 'size': (4, 4)},
         43: {'type': 'extra_entity', 'object': _entities.PenthouseLock, 'size': (16, 16)},
         44: {'type': 'extra_entity', 'object': _entities.Helper, 'size': (8, 15)},
-        45: {'type': 'extra_entity', 'object': _entities.Machine, 'size': (48, 32)},
+        45: {'type': 'extra_entity', 'object': _entities.Machine, 'size': (48, 48)},
         47: {'type': 'extra_entity', 'object': _entities.HilbertOrb, 'size': (8, 8)},
         48: {'type': 'extra_entity', 'object': _entities.HelperOrb, 'size': (2, 2)},
         49: {'type': 'extra_entity', 'object': _entities.HilbertOrbSpawner, 'size': (16, 16)},
+        50: {'type': 'extra_entity', 'object': _entities.Chandelier, 'size': (32, 128)},
 
         10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
@@ -284,10 +296,11 @@ def initialise_game_params(game):
             'orb_imp/': [['idle', 6, True]],
             'penthouse_lock/': [['idle', 6, True]],
             'helper/': [['idle', 5, True], ['grace', 5, True]],
-            'machine/': [['idle', 5, True], ['active', 5, True], ['destroyed', 5, True]],
+            'machine/': [['idle', 10, True], ['active', 5, True], ['destroyed', 5, True]],
             'hilbert_orb/': [['idle', 6, True]],
             'helper_orb/': [['idle', 6, True]],
             'hilbert_orb_spawner/': [['idle', 1, False], ['activating', 6, True], ['active', 6, True]],
+            'chandelier/': [['idle', 4, True]],
         },
 
         'entities/.bosses/': {
@@ -690,6 +703,32 @@ def initialise_game_params(game):
                        'pwned',
                        'tickled a little too hard',
                        'just slightly harmed']
+    
+    game.end_type = 0
+    game.ending_texts = {
+                0: ['Yeah this shouldn\'t come up, this is a bug.'],
+
+                1: ['Hilbert has been slain.',
+                   'Hundreds of guests arrive to the hotel.',
+                   'Soon it is millions, shortly after, trillions.',
+                   'The number of guests rapidly grows uncountably, each with their own unique infinitely long name.',
+                   'Without the proper infrastructure, and the lack of rooms for everyone, the hotel collapses...',
+                   '...killing everyone in it.',
+                   'The End.'],
+
+                2: ['The machine has been activated.',
+                   'It rips through every single slice of the hotel, destroying everything in it\'s path.',
+                   'The guests.',
+                   'The security.',
+                   'The concierge.',
+                   'Even Hilbert.',
+                   'And then even You.',
+                   'Everyone dies.',
+                   'However...',
+                   'The machine worked. In the wake of destruction, a new hotel is formed.',
+                   'And even with an influx of uncountably infinite guests, each with an infinitely long unique name, the new hotel has a room for all.',
+                   'The End.']
+    }
 
 def is_prime(num):
     """Determine if an integer is a prime number.

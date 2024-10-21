@@ -76,16 +76,16 @@ class Character(_entities.PhysicsEntity):
                     colour = (0, 150, 0) if self.current_trade_ability[i] else (
                         150, 0, 0)
                     self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirement_num * offset_length) / 2 + offset_n *
-                                        offset_length + 10, ypos - 2), self.game.text_font, colour, (0, 0), mode='left', scale=0.75)
+                                        offset_length + 10, ypos - 2), self.game.text_font, colour, mode='left', scale=0.75)
                     offset_n += 1
 
             elif distto_player >= 15 and self.new_dialogue:
                 self.game.draw_text('(!)', (xpos, ypos - (15 if requirement_num else -15)),
-                                    self.game.text_font, (255, 255, 255), (0, 0), mode='center', scale=0.75)
+                                    self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
 
             if distto_player < 15:
                 self.game.draw_text('(z)', (xpos, ypos - (15 if requirement_num else -15)),
-                                    self.game.text_font, (255, 255, 255), (0, 0), mode='center', scale=0.75)
+                                    self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
                 if self.game.interraction_frame_z and not self.game.dead:
                     self.game.run_text(self)
 
@@ -136,14 +136,16 @@ class Hilbert(Character):
         self.dialogue = {
             '0': ['Welcome...To my (Hilbert\'s) Hotel!',
                   'Where it\'s not only bigger, but INFINITE on the inside!',
-                  'I sure am glad I hired you, it\'s been attacked and the whole thing is full of intruders!',
-                  'Would you be able to help me take back control, and find my friends somewhere in the hotel?',
+                  'So you want to join my Concierge Team? Hmm I don\'t know, what skills do you bring?',
                   'Oh! You can dash attack with your x key?',
                   'How original...'],
 
-            '1': ['Anyway, we\'ll need a few things to build a super secret weapon to fight back. Some of them are slightly odd, but trust in the process!',
-                  'You can travel up the hotel through my portal elevator!',
-                  'Please bring me back the cogs that were stolen! I\'m gonna need about 5 to start this.'],
+            '1': ['Well if you\'re that insistent. I do have a little problem, help me out with it and the job is yours!',
+                  'Recently my hotel has come under attack and the rest of the concierge team have hidden themselves in the hotel.',
+                  'If you bring me some things to build my super secret weapon so I can remove the intruders I would appreciate it.',
+                  'Oh and bring back the concierge team.',
+                  'You can head through my portal elevator just down there to bring me what I need, some of them are slightly odd, but trust in the process!',
+                  'I\'m gonna need about 5 cogs to start this.'],
 
             '2': ['Thanks for getting some cogs woow!',
                   'I just realised I actually need another 50 though.',
@@ -849,6 +851,7 @@ class Barad(Character):
 
             '1': ['I believe this is where Hilbert wants to draw power from to create his weapon. Inside exists the power of the gods.',
                   'But what he wants to do is truly evil and we must not let him complete it.',
+                  'He believes that with this weapon, he can destroy the hotel and in it\'s place create a bigger one, that could truly house inifiite guests. However this would kill us all.',
                   'Please do not bring him the real power of the Orbs, bring fake ones or something idk.',
                   'But if you bring me some, I will be able to fight him with you, armed with this true power.'],
 
