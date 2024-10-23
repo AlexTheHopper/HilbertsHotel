@@ -1,15 +1,37 @@
 import os
 from PIL import Image
-import random
 
-# Define the direct_ory containing the .png files
-direct_ory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
+# Define the directory containing the .png files
+directory = 'C:/Users/alexe/Documents/GitHub/HilbertsHotel/scripts/imagesForChange'
 count = 0
-colours = [(255, 255, 255), (255, 255, 0), (255, 0, 0), (255, 153, 0), (0, 0, 255), (0, 204, 0)]
-# Loop through all files in the direct_ory
-for filename in os.listdir(direct_ory):
+
+# Function to convert Hex to RGB
+def hex_to_rgb(hex_value):
+    hex_value = hex_value.lstrip('#')
+    return tuple(int(hex_value[i:i+2], 16) for i in (0, 2, 4))
+
+# Define a dictionary for RGB-to-Hex mappings for color replacement
+# RGB keys and hex values for replacements
+color_replacements = {
+    (68, 68, 68): '#007700',        # Hat top
+    (48, 48, 48): '#0000CC',        # Hat brim
+
+    (175, 168, 151): '#afa897',     # Skin
+    (2, 2, 2): '#020202',           # Eye
+    (137, 132, 119): '#898477',     # Eye - blink
+
+    (114, 49, 206): '#020202',      # Tie
+    (76, 33, 137): '#020202',       # Belt - main
+    (57, 26, 104): '#020202',       # Belt - trim
+
+    (38, 36, 58): '#331400',        # Body - light
+    (20, 16, 32): '#260F00'         # Body - dark
+}
+
+# Loop through all files in the directory
+for filename in os.listdir(directory):
     if filename.endswith('.png'):
-        file_path = os.path.join(direct_ory, filename)
+        file_path = os.path.join(directory, filename)
         count += 1
         
         # Open the image
@@ -27,22 +49,13 @@ for filename in os.listdir(direct_ory):
         
         # Loop through each pixel in the image data
         for item in data:
-            # Change all black (also checking for transparency) pixels to white
-            if item[:3] == (255, 127, 0):
-                new_data.append((255, 61, 74) if random.random() < 0.5 else (153, 248, 255)) 
-            # elif item[:3] == (130, 238, 255):
-            #     new_data.append((255, 71, 30)) 
-
-            # elif item[:3] == (153, 101, 0):
-            #     new_data.append((84, 20, 28)) 
-            # elif item[:3] == (109, 73, 0):
-            #     new_data.append((63, 15, 21)) 
-
-            # elif item[:3] == (20, 16, 32):
-            #     new_data.append((114, 27, 39)) 
-            # elif item[:3] == (255, 136, 45):
-            #     new_data.append((84, 20, 28)) 
-
+            rgb_value = item[:3]  # Extract the RGB value
+            
+            if rgb_value in color_replacements:
+                # Convert hex to RGB for replacement
+                new_rgb = hex_to_rgb(color_replacements[rgb_value])
+                #print(f"Replacing {rgb_value} with {color_replacements[rgb_value]}")
+                new_data.append(new_rgb + (item[3],))  # Append the new RGB and keep the alpha value
             else:
                 new_data.append(item)
         
@@ -52,4 +65,4 @@ for filename in os.listdir(direct_ory):
         # Save the modified image back to the same file
         img.save(file_path)
 
-print("All pixels have been changed in all",count ,".png files in the 'imagesForChange' folder.")
+print(f"All pixels have been changed in all {count} .png files in the 'imagesForChange' folder.")

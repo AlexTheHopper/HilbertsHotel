@@ -18,6 +18,7 @@ class Character(_entities.PhysicsEntity):
         self.can_talk = True
         self.new_dialogue = False
         self.gravity_affected = True
+        self.anim_offset = (-3, -4)
 
         self.current_dialogue_index = 0
 
@@ -71,21 +72,18 @@ class Character(_entities.PhysicsEntity):
                 offset_n = 0
                 for i, requirement in enumerate(self.currency_requirements[self.current_dialogue_index + 1]):
                     # Display requirements above character:
-                    self.game.hud_display.blit(self.game.display_icons[requirement[1]], (
-                        xpos - (requirement_num * offset_length) / 2 + offset_n * offset_length + 10, ypos))
-                    colour = (0, 150, 0) if self.current_trade_ability[i] else (
-                        150, 0, 0)
+                    self.game.hud_display.blit(self.game.display_icons[requirement[1]], (xpos - (requirement_num * offset_length) / 2 + offset_n * offset_length + 10, ypos))
+                    colour = (0, 150, 0) if self.current_trade_ability[i] else (150, 0, 0)
                     self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirement_num * offset_length) / 2 + offset_n *
                                         offset_length + 10, ypos - 2), self.game.text_font, colour, mode='left', scale=0.75)
                     offset_n += 1
 
-            elif distto_player >= 15 and self.new_dialogue:
-                self.game.draw_text('(!)', (xpos, ypos - (15 if requirement_num else -15)),
-                                    self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
+            if distto_player >= 15 and self.new_dialogue:
+                self.game.hud_display.blit(self.game.assets['exclamation'], (xpos - 4, ypos - (25 if requirement_num else 5)))
 
-            if distto_player < 15:
-                self.game.draw_text('(z)', (xpos, ypos - (15 if requirement_num else -15)),
-                                    self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
+            elif distto_player < 15:
+                self.game.hud_display.blit(self.game.assets['z_sign'], (xpos - 14, ypos - (25 if requirement_num else 5)))
+
                 if self.game.interraction_frame_z and not self.game.dead:
                     self.game.run_text(self)
 
@@ -140,7 +138,7 @@ class Hilbert(Character):
                   'Oh! You can dash attack with your x key?',
                   'How original...'],
 
-            '1': ['Well if you\'re that insistent. I do have a little problem, help me out with it and the job is yours!',
+            '1': ['Well if you\'re that insistent. I do have a little problem, help me out with it then the job and Tophat(!) are yours!',
                   'Recently my hotel has come under attack and the rest of the concierge team have hidden themselves in the hotel.',
                   'If you bring me some things to build my super secret weapon so I can remove the intruders I would appreciate it.',
                   'Oh and bring back the concierge team.',
@@ -337,9 +335,9 @@ class Curie(Character):
         self.currency_requirements = {
             0: [],
             1: [],
-            2: [['purchase', 'wings', 20]],
-            3: [['purchase', 'wings', 25]],
-            4: [['purchase', 'wings', 40]],
+            2: [['purchase', 'wings', 25]],
+            3: [['purchase', 'wings', 50]],
+            4: [['purchase', 'wings', 75]],
             5: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 25], ['purchase', 'chitins', 25]],
             6: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'chitins', 50]]
         }
@@ -473,8 +471,8 @@ class Faraday(Character):
                   'The hotel is much bigger than you think. There are infinite slices stacked side by side and some of them get... weird.',
                   'Bring me 100 cogs and I\'ll show you one.'],
 
-            '2': ['Amazing, I\'ll build another elevator for you! It will be ready next time you come back to the lobby.',
-                  'I\'ll hide it here so Hilbert wont see it! Give me a jiffy and it\'ll be ready!'],
+            '2': ['Amazing, here it is!',
+                  'Go take a peek, explore the hotel and discover the truth!'],
 
             '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to most of them! They\'ve all been sealed off but I managed to scrape this portal together.',
                   'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.',
@@ -486,6 +484,8 @@ class Faraday(Character):
         if key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['cogs'] -= 100
             self.game.portals_met['grass'] = True
+            tile_size = self.game.tilemap.tilesize
+            self.game.portals.append(_entities.Portal(self.game, [tile_size * 63, tile_size * -3], (tile_size, tile_size), 'grass'))
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
 

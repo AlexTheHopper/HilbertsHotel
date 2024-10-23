@@ -711,11 +711,10 @@ class Portal(PhysicsEntity):
                 self.set_action('closing')
 
             else:
-                xpos = 2 * (self.rect().centerx - self.game.render_scroll[0])
-                ypos = 2 * (self.rect().centery -
-                            self.game.render_scroll[1]) - 30
-                self.game.draw_text('(z)', (xpos, ypos), self.game.text_font,
-                                    (255, 255, 255), mode='center', scale=0.75)
+                xpos = 2 * (self.rect().centerx - self.game.render_scroll[0]) - 14
+                ypos = 2 * (self.rect().centery -self.game.render_scroll[1]) - 44
+
+                self.game.hud_display.blit(self.game.assets['z_sign'], (xpos, ypos))
 
     def render(self, surface, offset=(0, 0)):
         super().render(surface, offset=offset)
@@ -740,14 +739,12 @@ class Player(PhysicsEntity):
         self.nearest_enemy = False
         self.damage_cooldown = 0
         self.light_size = 90
-        self.anim_offset = (-3, -6)
+        self.anim_offset = (-3, -7)
 
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
 
-        self.light_size = 90 + \
-            self.game.wallet['eyes'] if 90 + \
-            self.game.wallet['eyes'] < 250 else 500
+        self.light_size = 90 + self.game.wallet['eyes'] if 90 + self.game.wallet['eyes'] < 250 else 500
         self.air_time += 1
 
         if self.damage_cooldown:
@@ -962,8 +959,9 @@ class Player(PhysicsEntity):
                     ).center, angle, 2 + random.random(), color=(200, 0, 0)))
                     self.game.particles.append(_particle.Particle(self.game, 'particle' + str(self.game.power_level), self.game.player.rect().center, vel=[
                                                math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame=random.randint(0, 7)))
-                self.game.dead += 1
+                self.game.dead = True
                 self.game.death_count += 1
+                self.dashing = 0
 
                 name_vowel = True if self.game.enemy_names[type][0].lower() in [
                     'a', 'e', 'i', 'o', 'u'] else False
@@ -2074,11 +2072,10 @@ class PenthouseLock(PhysicsEntity):
         dist_player = np.linalg.norm(self.vector_to(self.game.player))
 
         if dist_player < 15:
-            xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
-            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 30
+            xpos = 2 * (self.rect().centerx - self.game.render_scroll[0]) - 14
+            ypos = 2 * (self.rect().centery -self.game.render_scroll[1]) - 44
 
-            self.game.draw_text('(z)', (xpos, ypos),
-                                self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
+            self.game.hud_display.blit(self.game.assets['z_sign'], (xpos, ypos))
 
             if self.game.interraction_frame_z and not self.game.dead:
                 if self.update_text():
@@ -2102,6 +2099,9 @@ class Machine(PhysicsEntity):
 
         self.guest_list = [4, 9, 13, 15, 19, 20, 22, 37, 39,
                            32, 44]
+        
+        tile_w = game.tilemap.tilesize
+        self.base = [f'{(self.rect().centerx + (n * tile_w)) // tile_w};{(self.rect().bottom + tile_w // 2) // tile_w}' for n in [-1,0,1]]
 
     def activate_machine(self):
         self.set_action('active')
@@ -2133,8 +2133,8 @@ class Machine(PhysicsEntity):
                 self.game.sparks.append(_spark.Spark((self.rect().centerx, self.rect().centery - 15), random.uniform(0, 2 * math.pi), 2, color=random.choice([(149, 33, 211), (129, 29, 183)])))
 
         elif self.action == 'active':
-            if random.random() < 0.08:
-                self.game.sparks.append(_spark.Spark((self.rect().centerx, self.rect().centery - 15), random.uniform(0, 2 * math.pi), 2, color=random.choice([(149, 33, 211), (129, 29, 183)])))
+            if random.random() < 0.1:
+                self.game.sparks.append(_spark.Spark((self.rect().centerx, self.rect().centery - 15), random.uniform(0, 2 * math.pi), 3.5, color=random.choice([(149, 33, 211), (129, 29, 183)])))
                 
             #Entities to go:
             entity_n = len(self.game.extra_entities)
@@ -2149,16 +2149,21 @@ class Machine(PhysicsEntity):
                 self.game.end_type = 2
                 self.game.game_running = False
             elif entity_n <= 1:
-                self.game.cave_darkness = min(self.game.cave_darkness + 0.1, 255)
+                self.game.cave_darkness = min(self.game.cave_darkness + 0.05, 255)
+
+            #Remove tiles:
+            for _ in range(2):
+                random_tile = random.choice(list(self.game.tilemap.tilemap.keys()))
+                if str(random_tile) not in self.base:
+                    del self.game.tilemap.tilemap[random_tile]
 
         if dist_player < 25 and self.action == 'idle':
-            xpos = 2 * (self.rect().centerx - self.game.render_scroll[0] + self.anim_offset[0])
-            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 25
+            xpos = 2 * (self.rect().centerx - self.game.render_scroll[0])
+            ypos = 2 * (self.rect().centery -self.game.render_scroll[1]) - 50
 
-            self.game.draw_text('Destroy Machine (z)', (xpos, ypos),
-                                self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
-            self.game.draw_text('Activate Machine (a)', (xpos, ypos - 30),
-                                self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
+            self.game.draw_text('Activate Machine       Destroy Machine', (xpos, ypos), self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
+            self.game.hud_display.blit(self.game.assets['a_sign'], (xpos-144, ypos + 25))
+            self.game.hud_display.blit(self.game.assets['z_sign'], (xpos+116, ypos + 25))
 
             if self.game.interraction_frame_z and not self.game.dead:
                 self.destroy_machine()
@@ -2238,6 +2243,8 @@ class HilbertOrb(PhysicsEntity):
 
         toPlayer = self.vector_to(self.game.player)
         norm = np.linalg.norm(toPlayer)
+        if abs(norm) < 0.01:
+            norm = 0.01
 
         self.velocity[0] += self.target_mult * toPlayer[0] / norm
         self.velocity[1] += self.target_mult * toPlayer[1] / norm
@@ -2465,6 +2472,7 @@ class Boss(PhysicsEntity):
             self.set_action('dying')
             if self.type not in ['spookyboss']:
                 self.gravity_affected = True
+                self.collide_wall = True
 
         if self.action == 'dying':
 
@@ -2685,7 +2693,7 @@ class GrassBoss(Boss):
 
                     self.time_since_turn = 5
 
-            if self.time_since_air > 60 and self.action != 'dying':
+            if self.time_since_air > 60:
                 self.pos[1] += 1
                 self.time_since_air = 0
 
@@ -2732,8 +2740,7 @@ class GrassBoss(Boss):
                 self.velocity = [0, 0]
                 self.gravity_affected = True
                 self.timer = 30
-                self.wall_side[0], self.wall_side[1] = - \
-                    self.wall_side[0], self.wall_side[1]
+                self.wall_side[0], self.wall_side[1] = -self.wall_side[0], self.wall_side[1]
 
         elif self.action == 'attacking':
             if self.timer:
@@ -2871,7 +2878,7 @@ class SpaceBoss(Boss):
                 self.shoot_count += 1
 
                 self.game.sfx['shoot'].play()
-                angleto_player = math.atan(to_player[1] / (to_player[0] if to_player[0] != 0 else 0.01))
+                angleto_player = math.atan2(to_player[1], (to_player[0] if to_player[0] != 0 else 0.01))
                 bullet_speed = 2 * math.atan(self.difficulty / 2)
 
                 for angle in np.linspace(angleto_player, angleto_player + math.pi * 2, 5 + 3 * self.difficulty):
@@ -2937,6 +2944,7 @@ class FlyGhost(PhysicsEntity):
 
         to_player = (self.game.player.rect().centerx - self.rect().centerx,
                     self.game.player.rect().centery - self.rect().centery)
+        self.friendly = friendly
         if friendly:
             to_player = [random.random() - 0.5, random.random() - 0.5]
         norm = np.linalg.norm(to_player)
@@ -2952,7 +2960,7 @@ class FlyGhost(PhysicsEntity):
                     self.game.player.rect().centery - self.rect().centery)
         norm = np.linalg.norm(to_player)
 
-        if norm > self.game.screen_width / 2.7 or len(self.game.bosses) == 0:
+        if norm > self.game.screen_width / 2.7 or (len(self.game.bosses) == 0 and not self.friendly):
             return True
 
         if random.random() < 0.1:
@@ -2966,7 +2974,7 @@ class FlyGhost(PhysicsEntity):
                 return True
 
         # Check for player collision
-        elif self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50:
+        elif self.game.player.rect().colliderect(self.rect()) and abs(self.game.player.dashing) < 50 and not self.friendly:
             if not self.game.dead:
                 self.game.player.damage(self.attack_power, self.type)
 
@@ -3414,8 +3422,8 @@ class HilbertBoss(Boss):
 
         self.attack_radius = int(100 * math.atan(self.difficulty / 5))
 
-        self.health = 2
-        self.stage_two_health = 1
+        self.health = 20
+        self.stage_two_health = 15
         self.max_health = self.health
 
         self.gravity_affected = True

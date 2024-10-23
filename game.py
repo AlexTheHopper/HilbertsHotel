@@ -81,30 +81,30 @@ class Game:
             display_slot = hover_slot % len(save_slots)
             self.draw_text('Hilbert\'s Hotel', (self.screen_width * (1/2), 45),
                            self.text_font, selected, scale=1.5, mode='center')
-            self.draw_text('Select: X', (self.screen_width * (2/4) - 75, 690),
+            self.draw_text('Select: X', (self.screen_width * (2/4) - 75, self.screen_height - 20),
                            self.text_font, not_selected, scale=0.5, mode='center')
-            self.draw_text('Delete: Z', (self.screen_width * (2/4) + 75, 690),
+            self.draw_text('Delete: Z', (self.screen_width * (2/4) + 75, self.screen_height - 20),
                            self.text_font, not_selected, scale=0.5, mode='center')
-            self.draw_text('Quit Game: Q', (self.screen_width * 0.9, 690),
+            self.draw_text('Quit Game: Q', (self.screen_width * 0.9, self.screen_height - 20),
                            self.text_font, not_selected, scale=0.5, mode='center')
             
             if deleting:
                 self.draw_text('Deleting save ' + str(hover_slot % len(save_slots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's',
-                               (self.screen_width * (2/4) + 160 * (hover_slot % len(save_slots) - 1), 610), self.text_font, (200, 0, 0), scale=0.5, mode='center')
+                               (self.screen_width * (2/4) + 160 * (hover_slot % len(save_slots) - 1), self.screen_height - 115), self.text_font, (200, 0, 0), scale=0.5, mode='center')
 
-            self.draw_text('Save 0', (self.screen_width * (2/4) - 160, 635), self.text_font,
+            self.draw_text('Save 0', (self.screen_width * (2/4) - 160, self.screen_height - 80), self.text_font,
                            selected if display_slot == 0 else not_selected, mode='center')
-            self.draw_text(str(saved_deaths[0]), (self.screen_width * (2/4) - 160, 660), self.text_font,
+            self.draw_text(str(saved_deaths[0]), (self.screen_width * (2/4) - 160, self.screen_height - 50), self.text_font,
                            selected if display_slot == 0 else not_selected, mode='center', scale=0.75)
 
-            self.draw_text('Save 1', (self.screen_width * (2/4), 635), self.text_font,
+            self.draw_text('Save 1', (self.screen_width * (2/4), self.screen_height - 80), self.text_font,
                            selected if display_slot == 1 else not_selected, mode='center')
-            self.draw_text(str(saved_deaths[1]), (self.screen_width * (2/4), 660), self.text_font,
+            self.draw_text(str(saved_deaths[1]), (self.screen_width * (2/4), self.screen_height - 50), self.text_font,
                            selected if display_slot == 1 else not_selected, mode='center', scale=0.75)
 
-            self.draw_text('Save 2', (self.screen_width * (2/4) + 160, 635), self.text_font,
+            self.draw_text('Save 2', (self.screen_width * (2/4) + 160, self.screen_height - 80), self.text_font,
                            selected if display_slot == 2 else not_selected, mode='center')
-            self.draw_text(str(saved_deaths[2]), (self.screen_width * (2/4) + 160, 660), self.text_font,
+            self.draw_text(str(saved_deaths[2]), (self.screen_width * (2/4) + 160, self.screen_height - 50), self.text_font,
                            selected if display_slot == 2 else not_selected, mode='center', scale=0.75)
 
             for event in pygame.event.get():
@@ -203,7 +203,8 @@ class Game:
                 character.render(self.display_outline, offset=self.render_scroll)
 
             for spawn_point in self.spawn_points:
-                spawn_point.update(self.tilemap)
+                if not self.paused:
+                    spawn_point.update(self.tilemap)
                 spawn_point.render(self.display_outline, offset=self.render_scroll)
 
             if not self.dead:
@@ -257,7 +258,8 @@ class Game:
                         self.particles.remove(particle)
 
             # Displaying HUD and text:
-            self.display_hud_text()
+            if self.display_hud:
+                self.display_hud_text()
 
             # Level transition
             if self.transition > 30:
@@ -319,6 +321,8 @@ class Game:
                         self.interraction_frame_v = True
                     if event.key == pygame.K_f:
                         self.interraction_frame_f = True
+                    if event.key == pygame.K_d:
+                        self.display_hud = not self.display_hud
                     if event.key == pygame.K_ESCAPE:
                         if not self.talking and not self.dead:
                             self.paused = not self.paused
@@ -768,8 +772,7 @@ class Game:
         y_adj = 0
 
         img = font.render(str(text), True, colour)
-        img = pygame.transform.scale(
-            img, (img.get_width() * scale, img.get_height() * scale))
+        img = pygame.transform.scale(img, (img.get_width() * scale, img.get_height() * scale))
         if mode == 'center':
             x_adj = img.get_width() / 2
             y_adj = img.get_height() / 2
@@ -898,6 +901,9 @@ class Game:
             'heartTemp': pygame.transform.scale(_utilities.load_image('misc/heartTemp.png'), (32, 32)),
             'bossHeart': pygame.transform.scale(_utilities.load_image('misc/bossHeart.png'), (32, 32)),
             'bossHeartEmpty': pygame.transform.scale(_utilities.load_image('misc/bossHeartEmpty.png'), (32, 32)),
+            'exclamation': pygame.transform.scale(_utilities.load_image('misc/exclamation.png'), (8, 26)),
+            'z_sign': pygame.transform.scale(_utilities.load_image('misc/z_sign.png'), (28, 26)),
+            'a_sign': pygame.transform.scale(_utilities.load_image('misc/a_sign.png'), (28, 26)),
             'particle/leaf': _utilities.Animation(_utilities.load_images('particles/leaf'), img_dur=20, loop=False),
         }
 
@@ -1186,7 +1192,6 @@ class Game:
     def toggle_fullscreen(self):
         if self.is_fullscreen:
             self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-            screen_info = pygame.display.Info()
             # self.screen_width = screen_info.current_w
             # self.screen_height = screen_info.current_h
         else:

@@ -59,10 +59,10 @@ def initialise_main_screen(game):
 
     """
 
-    game.default_width = 1080
-    game.default_height = 720
-    game.screen_width = 1080
-    game.screen_height = 720
+    game.default_width = 1280
+    game.default_height = 800
+    game.screen_width = 1280
+    game.screen_height = 800
 
     if game.is_fullscreen:
         game.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -74,7 +74,7 @@ def initialise_main_screen(game):
     game.hud_display.set_colorkey((0, 0, 0))
     game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2),
                    game.text_font, (86, 31, 126), scale=1.5, mode='center')
-    game.screen.blit(game.hud_display, (0, 0))
+    game.screen.blit(pygame.transform.scale(game.hud_display, game.screen.get_size()), (0, 0))
     pygame.display.update()
 
 def initialise_game_params(game):
@@ -92,6 +92,7 @@ def initialise_game_params(game):
     game.fps = 60
     game.display_fps = game.fps
     game.initialising_game = True
+    game.display_hud = True
 
     game.movement = [False, False, False, False]
     game.paused = False
