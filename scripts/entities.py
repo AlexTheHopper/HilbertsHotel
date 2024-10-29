@@ -380,7 +380,7 @@ class GunGuy(PhysicsEntity):
         self.bullet_speed = 1.5
         self.shoot_countdown = 0
         self.weapon_index = 0
-        self.light_size = 30
+        self.light_size = 0
         self.gravity_affected = True
         self.pos[1] += 1
 
@@ -430,11 +430,15 @@ class GunGuy(PhysicsEntity):
         if render_dist_to_player > self.render_distance:
             return False
 
+        self.display_darkness_circle()
         if not self.grace_done:
             self.grace = max(0, self.grace - 1)
-            if self.grace == 0:
+            if self.light_size <= 30 and not self.grace:
+                self.light_size += 1
+            elif self.light_size >= 30:
                 self.set_action('idle')
                 self.grace_done = True
+                
             self.animation.update()
 
         if not self.flying:
@@ -567,8 +571,7 @@ class GunGuy(PhysicsEntity):
                 elif self.witch and random.random() < 0.2 and up_empty:
                     self.gravity_affected = False
                     self.flying = random.randint(30, 90)
-                    self.velocity = [
-                        random.uniform(-left_empty, right_empty), random.uniform(-up_empty, down_empty)]
+                    self.velocity = [random.uniform(-left_empty, right_empty), random.uniform(-up_empty, down_empty)]
                     self.flip_reset()
                     self.set_action('run')
 
@@ -636,8 +639,7 @@ class GunGuy(PhysicsEntity):
         super().render(surface, offset=offset)
 
         if self.action != 'grace':
-            y_offset = (4 if self.weapon == 'staff' else 0) + \
-                (3 if (self.weapon == 'staff' and self.shoot_countdown) else 0)
+            y_offset = (4 if self.weapon == 'staff' else 0) + (3 if (self.weapon == 'staff' and self.shoot_countdown) else 0)
 
             if self.flip_x:
                 xpos = self.rect().centerx - 2 - \
@@ -998,8 +1000,8 @@ class Currency(PhysicsEntity):
         self.currency_type = currency_type
         self.size = list(size)
         self.gravity_affected = True
-        self.light_size = 5
-        self.old_enough = 30
+        self.light_size = self.value * 5
+        self.old_enough = 0 if self.currency_type == 'hammer' else 30
 
         self.anim_offset = (-1, random.choice([-1, -2]))
         self.animation.img_duration += (
@@ -1026,8 +1028,7 @@ class Currency(PhysicsEntity):
             if self.game.current_level == 'lobby':
                 self.game.wallet[str(self.currency_type) + 's'] += self.value
             else:
-                self.game.wallet_temp[str(
-                    self.currency_type) + 's'] += self.value
+                self.game.wallet_temp[str(self.currency_type) + 's'] += self.value
             self.game.check_encounter(self.currency_type + 's')
             self.game.sfx['coin'].play()
             return True
@@ -1160,7 +1161,7 @@ class RolyPoly(PhysicsEntity):
         self.attack_power = 1
 
         self.currency_drops['cog'] = random.randint(0, 3) if len(game.bosses) == 0 else random.randint(0, 1)
-        self.currency_drops['eye'] = random.randint(1, 5) if len(game.bosses) == 0 else random.randint(0, 1)
+        self.currency_drops['eye'] = random.randint(1, 2) if len(game.bosses) == 0 else random.randint(0, 1)
         self.currency_drops['heartFragment'] = random.randint(0, 1)
 
         self.death_intensity = 10
@@ -1756,7 +1757,8 @@ class CreepyEyes(PhysicsEntity):
 
         self.gravity_affected = False
         self.collide_wall_check = False
-        self.main_pos = list(pos)
+        self.main_pos = tuple(pos)
+        self.type = 'creepy_eyes'
 
         self.anim_offset = (0, 0)
 
@@ -1766,12 +1768,8 @@ class CreepyEyes(PhysicsEntity):
         to_player = self.vector_to(self.game.player)
         self.to_player_norm = to_player / np.linalg.norm(to_player)
 
-        self.pos[0] = self.main_pos[0] + \
-            round(self.to_player_norm[0] if abs(
-                self.to_player_norm[0]) > 0.38 else 0)
-        self.pos[1] = self.main_pos[1] + \
-            round(self.to_player_norm[1] if abs(
-                self.to_player_norm[1]) > 0.38 else 0)
+        self.pos[0] = self.main_pos[0] + round(self.to_player_norm[0] if abs(self.to_player_norm[0]) > 0.38 else 0)
+        self.pos[1] = self.main_pos[1] + round(self.to_player_norm[1] if abs(self.to_player_norm[1]) > 0.38 else 0)
 
 class MeteorBait(PhysicsEntity):
     def __init__(self, game, pos, size):
@@ -2105,18 +2103,34 @@ class Machine(PhysicsEntity):
 
     def activate_machine(self):
         self.set_action('active')
-        print('Activating Machine. Congrats everyone is dead.')
         self.game.begin_final_boss()
+        self.game.end_type = 2
+        self.game.screenshake = max(20, self.game.screenshake)
 
     def destroy_machine(self):
         self.game.begin_final_boss()
         self.game.bosses.append(HilbertBoss(self.game, [self.rect().centerx + 48, self.rect().centery - (15 * self.game.tilemap.tilesize)], self.game.entity_info[46]['size']))
         self.set_action('destroyed')
-        print('Destroying Machine')
+        self.game.end_type = 1
+        self.game.screenshake = max(30, self.game.screenshake)
+
+    def end_game(self, end_type = 1):
+        self.game.end_type = end_type
+        self.game.completed_wins[str(self.game.end_type)] += 1
+
+        for c in self.game.currency_entities.copy():
+            self.game.wallet_temp[str(c.currency_type) + 's'] += c.value
+            self.game.currency_entities.remove(c)
+
+        for currency in self.game.wallet_temp.keys():
+            self.game.wallet[currency] += self.game.wallet_temp[currency]
+            self.game.wallet_temp[currency] = 0
+
+        self.game.save_game(self.game.save_slot)
+        self.game.game_running = False
 
     def spawn_random_guest(self, pos):
         
-        # self.game.extra_entities.append(Helper(self.game, orb_spawn_loc, self.game.entity_info[44]['size'], post_boss=True))
         random_guest_id = random.choice(self.guest_list)
         random_guest_size = self.game.entity_info[random_guest_id]['size']
 
@@ -2145,9 +2159,10 @@ class Machine(PhysicsEntity):
                 self.game.extra_entities.remove(entity)
                 for _ in range(10):
                     self.game.sparks.append(_spark.Spark(entity_pos, random.uniform(0, 2 * math.pi), 2, color=random.choice([(149, 33, 211), (129, 29, 183)])))
+                self.game.screenshake = max(20, self.game.screenshake)
+
             elif entity_n <= 1 and self.game.cave_darkness >= 255:
-                self.game.end_type = 2
-                self.game.game_running = False
+                self.end_game(end_type = 2)
             elif entity_n <= 1:
                 self.game.cave_darkness = min(self.game.cave_darkness + 0.05, 255)
 
@@ -2185,8 +2200,7 @@ class Machine(PhysicsEntity):
                 self.spawn_random_guest(orb_spawn_loc)
 
             if len(self.game.extra_entities) > 50 and (self.game.display_fps < 45 or len(self.game.extra_entities) > 200):
-                self.game.end_type = 1
-                self.game.game_running = False
+                self.end_game(end_type = 1)
                 
 
 class HilbertOrb(PhysicsEntity):
@@ -2334,9 +2348,22 @@ class Helper(PhysicsEntity):
         self.attacking = 'Hilbert'
         self.is_boss = True
         self.time_since_orb = 0
-        self.help_frequency = 150
+        self.help_frequency = 200
         self.light_size = 0
         self.set_action('grace')
+
+        self.sad_messages = ['How could you...',
+                             'I trusted you...',
+                             'Aw man...',
+                             'This isn\'t like you!',
+                             'You\'re better than this.',
+                             'This hurts to find out...',
+                             'I\'m at such a loss...',
+                             'I\'m not angry, just disappointed.',
+                             'Why...']
+        self.is_sad = False
+        self.sad_timer = random.randint(60, 300)
+        self.sad_message = ''
 
         if post_boss or friendly:
             self.activate(random.choice(list(game.characters_met.keys())).lower())
@@ -2414,6 +2441,24 @@ class Helper(PhysicsEntity):
                 if len([e for e in self.game.extra_entities if (e.type == 'hilbert_orb' and e.targeted == False)]) > 0:
                     self.game.extra_entities.append(HelperOrb(self.game, self.rect().center, self.game.entity_info[48]['size'], [0, -2]))
                     self.time_since_orb = 0
+
+        if self.game.end_type == 2 and self.action != 'grace':
+            if not self.is_sad:
+                if not self.sad_timer:
+                    self.is_sad = True
+                    self.sad_timer = random.randint(180, 250)
+                    self.sad_message = random.choice(self.sad_messages)
+            
+            elif self.is_sad:
+                posx = self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0]
+                posy = self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]
+                self.game.draw_text(self.sad_message, (2*(posx + self.size[0]), 2*posy - 20), self.game.text_font, (255, 255, 255), scale=0.5, mode='center')
+
+                if not self.sad_timer:
+                    self.is_sad = False
+                    self.sad_timer = random.randint(180, 250)
+
+            self.sad_timer = max(self.sad_timer - 1, 0)
 
 class HilbertOrbSpawner(PhysicsEntity):
     def __init__(self, game, pos, size):
@@ -2525,7 +2570,7 @@ class NormalBoss(Boss):
     def __init__(self, game, pos, size):
         super().__init__(game, 'normalboss', pos, size)
 
-        self.currency_drops['wing'] = random.randint(4, 10) * self.difficulty
+        self.currency_drops['wing'] = random.randint(2, 4) * self.difficulty
 
         self.gravity_affected = False
         self.collide_wall_check = True
@@ -2612,7 +2657,7 @@ class NormalBoss(Boss):
 
                 batpos = (self.rect().center)
                 for _ in range(random.randint(1, self.difficulty + 1)):
-                    self.game.enemies.append(Bat(self.game, (batpos[0], batpos[1] - 4), self.game.entity_info[4]['size'], grace_done=True, velocity=[
+                    self.game.enemies.append(Bat(self.game, (batpos[0] - 3, batpos[1] - 1), self.game.entity_info[4]['size'], grace_done=True, velocity=[
                                              3 * to_player[0] / norm + random.random() / 4, 3 * to_player[1] / norm + random.random() / 4]))
 
                 self.velocity[0] = 0.5 + random.random()
@@ -2968,9 +3013,9 @@ class FlyGhost(PhysicsEntity):
                 self.rect().center, -self.angle + math.pi + random.uniform(-0.3, 0.3), 1.5))
 
         # Death Condition
-        elif abs(self.game.player.dashing) >= 50:
+        elif abs(self.game.player.dashing) >= 50 and not self.friendly:
             if self.rect().colliderect(self.game.player.rect()):
-                self.kill(credit_count=self.credit_count)
+                self.kill()
                 return True
 
         # Check for player collision
@@ -3000,6 +3045,7 @@ class SpookyBoss(Boss):
         self.transparency_inc = 3
         self.tele_coords = [0, 0]
         self.timer = 0
+        self.time_vulnerable = 0
 
         self.player_tele_dist = 100
         self.velocity[0] = random.uniform(-0.5, 0.5)
@@ -3018,14 +3064,16 @@ class SpookyBoss(Boss):
             self.transparency = min(self.transparency + 2, 255)
             if self.transparency >= 255:
                 self.set_action('flying')
+                self.time_vulnerable = 0
 
         elif self.action == 'flying':
+            self.time_vulnerable += 1
             to_player = (self.game.player.rect().centerx - self.rect().centerx,
                         self.game.player.rect().centery - self.rect().centery)
             norm = np.linalg.norm(to_player)
 
             # Teleport
-            if random.random() < 0.005 or norm > 250:
+            if (random.random() < 0.005 and self.time_vulnerable > 180) or norm > 250:
                 self.set_action('teleporting')
 
                 found_spot = False
@@ -3073,6 +3121,7 @@ class SpookyBoss(Boss):
 
                 if self.transparency >= 255:
                     self.set_action('flying')
+                    self.time_vulnerable = 0
 
         # Create attack ghost
         if random.random() < 0.01:
@@ -3234,6 +3283,7 @@ class AussieBoss(Boss):
         super().__init__(game, 'aussieboss', pos, size)
 
         self.currency_drops['fairyBread'] = random.randint(2, 5) * self.difficulty
+        self.currency_drops['boxingGlove'] = random.randint(2, 5) * self.difficulty
         self.currency_drops['chitin'] = random.randint(2, 5) * self.difficulty
         self.currency_drops['purpleCog'] = random.randint(0, 1) * self.difficulty
 
@@ -3288,10 +3338,8 @@ class AussieBoss(Boss):
                 if self.pos[1] > self.game.player.pos[1]:
                     player_above = True
 
-                self.velocity[0] = -(random.random() +
-                                     3.5) if self.flip_x else (random.random() + 3.5)
-                self.velocity[1] = - \
-                    (random.random() * 4 + 7 if player_above else 4)
+                self.velocity[0] = -(random.random() + 3.5) if self.flip_x else (random.random() + 3.5)
+                self.velocity[1] = -(random.random() * 4 + 7 if player_above else 4)
                 self.time_since_bounce = 0
 
         elif self.action == 'jumping':
@@ -3309,8 +3357,7 @@ class AussieBoss(Boss):
                 if tilemap.solid_check([pos_centre[0] - tilemap.tilesize / 2, pos_centre[1] + tilemap.tilesize], return_value='bool') or tilemap.solid_check([pos_centre[0] + tilemap.tilesize / 2, pos_centre[1] + tilemap.tilesize], return_value='bool'):
                     self.velocity = [0, 0]
 
-                    self.timer = random.randint(
-                        self.active_min_time, self.active_max_time)
+                    self.timer = random.randint(self.active_min_time, self.active_max_time)
                     self.set_action('active')
                     self.circular_attack(self.attack_radius,
                                         pos=self.rect().midbottom)
@@ -3318,11 +3365,10 @@ class AussieBoss(Boss):
                     # Sometimes spawn other lil guys:
                     spawn_pos = [self.rect().centerx - 8, self.rect().y]
 
-                    if random.random() < 0.134:
+                    if random.random() < 0.5:
                         self.game.enemies.append(
                             Kangaroo(self.game, spawn_pos, self.game.entity_info[19]['size']))
-
-                    elif random.random() < 0.134:
+                    else:
                         self.game.enemies.append(
                             Echidna(self.game, spawn_pos, self.game.entity_info[20]['size']))
                         
@@ -3422,8 +3468,10 @@ class HilbertBoss(Boss):
 
         self.attack_radius = int(100 * math.atan(self.difficulty / 5))
 
-        self.health = 20
-        self.stage_two_health = 15
+        self.currency_drops['purpleCog'] = 20
+
+        self.health = 2
+        self.stage_two_health = 1
         self.max_health = self.health
 
         self.gravity_affected = True
@@ -3443,6 +3491,7 @@ class HilbertBoss(Boss):
         self.preparing_to_shoot = False
         self.preparing = 0
         self.preparing_time = 60
+        self.flip_x = True
 
     def activate(self):
         self.set_action('active')
@@ -3484,16 +3533,23 @@ class HilbertBoss(Boss):
 
             if random.random() < 0.05:
                 x_addition = 0.5 if self.vector_to(self.game.player)[0] > 0 else -0.5
-                y_addition = -0.5 if self.vector_to(self.game.player)[1] > -4 else 2
+                y_addition = -0.5 if self.vector_to(self.game.player)[1] > 8 else 2
 
                 self.velocity = [random.random() - 0.5 + x_addition, -(random.random() + y_addition)]
                 self.flip_reset()
                 if self.health <= self.stage_two_health:
-                    if random.random() < 0.5 and len([e for e in self.game.extra_entities if e.type == 'hilbert_orb']) < 20:
+                    if random.random() < 0.75 and len([e for e in self.game.extra_entities if e.type == 'hilbert_orb']) < 20:
                         spawn_portal = random.choice([e for e in self.game.extra_entities if e.type == 'hilbert_orb_spawner'])
                         orb_spawn_loc = spawn_portal.rect().center
                         self.game.extra_entities.append(HilbertOrb(self.game, orb_spawn_loc, self.game.entity_info[47]['size'], [random.uniform(-2,2), 0]))
                         spawn_portal.set_action('activating')
+                #Jump sparks
+                for _ in range(5):
+                    angle = random.uniform(0, math.pi)
+                    speed = max(abs(self.velocity[1]), 2)
+
+                    self.game.sparks.append(_spark.Spark(
+                        (self.rect().centerx, self.rect().bottom), angle, speed, color=(190, 200, 220)))
 
             elif not self.shoot_countdown and not self.can_shoot and not self.preparing_to_shoot and random.random() < 0.01:
                 self.set_preparing_to_shoot()

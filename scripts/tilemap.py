@@ -157,7 +157,7 @@ class Tilemap:
             room_size *= 2
             room_count *= 2
 
-        buffer = 18
+        buffer = 22
         self.map_size = int(size + 2 * buffer)
 
         map = np.zeros((self.map_size, self.map_size))
@@ -281,7 +281,7 @@ class Tilemap:
                         self.tilemap[loc] = {
                             'type': 'spawners', 'variant': 11, 'pos': [x, y]}
                         lorenz_placed = True
-                    elif not self.game.characters_met['Franklin'] and self.game.floors[level_type] > 10 and level_type == 'spooky' and not franklin_placed:
+                    elif not self.game.characters_met['Franklin'] and self.game.floors[level_type] > 6 and level_type == 'spooky' and not franklin_placed:
                         self.tilemap[loc] = {
                             'type': 'spawners', 'variant': 14, 'pos': [x, y]}
                         franklin_placed = True
@@ -289,7 +289,7 @@ class Tilemap:
                         self.tilemap[loc] = {
                             'type': 'spawners', 'variant': 16, 'pos': [x, y]}
                         rubik_placed = True
-                    elif not self.game.characters_met['Melatos'] and self.game.floors[level_type] > 5 and level_type == 'aussie' and not melatos_placed:
+                    elif not self.game.characters_met['Melatos'] and self.game.floors[level_type] > 3 and level_type == 'aussie' and not melatos_placed:
                         self.tilemap[loc] = {
                             'type': 'spawners', 'variant': 21, 'pos': [x, y]}
                         melatos_placed = True
@@ -522,16 +522,16 @@ class Tilemap:
             if (tile['type'] in AUTOTILE_TYPES) and (neighbours in AUTOTILE_MAP):
                 if AUTOTILE_MAP[neighbours] == 5 and windows == True:
 
-                    window_choice = random.choice(range(self.autotile_count, len(self.game.assets[tile['type']])))
+                    window_choice = random.choice(range(self.autotile_count, self.autotile_count + 3))
                     tile['variant'] = window_choice if random.random() < 0.01 else 5
 
                     if tile['type'] in ['space', 'heaven'] and random.random() < 0.1:
-                        tile['variant'] = random.choice(range(self.autotile_count + 2, len(self.game.assets[tile['type']])))
-                        print(f'autotileCount = {self.autotile_count}, total length = {len(self.game.assets[tile['type']])}')
+                        tile['variant'] = random.choice(range(self.autotile_count + 3, len(self.game.assets[tile['type']])))
 
                     elif tile['type'] == 'spooky' and random.random() < 0.005:
                         self.offgrid_tiles.append({'type': 'spawners', 'variant': 24, 'pos': [tile['pos'][0] * self.tilesize, tile['pos'][1] * self.tilesize]})
-                        tile['variant'] = random.choice(range(self.autotile_count + 2, len(self.game.assets[tile['type']])))
+                        variant = random.choice(range(self.autotile_count + 3, len(self.game.assets[tile['type']])))
+                        tile['variant'] = variant
 
                 else:
                     tile['variant'] = AUTOTILE_MAP[neighbours]

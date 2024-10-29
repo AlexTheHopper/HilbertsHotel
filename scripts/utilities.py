@@ -192,9 +192,9 @@ def initialise_game_params(game):
         'normal': [3],
         'normalWeights': [2],
         'grass': [3, 9],
-        'grassWeights': [1, 0.5],
+        'grassWeights': [1, 2],
         'spooky': [3, 13],
-        'spookyWeights': [1, 1],
+        'spookyWeights': [2, 3],
         'rubiks': [3, 15],
         'rubiksWeights': [1, 1],
         'aussie': [3],
@@ -313,7 +313,7 @@ def initialise_game_params(game):
             'aussieboss/': [['idle', 30, True], ['prep', 45, False], ['active', 6, True], ['jumping', 6, True], ['dying', 25, False]],
             'heavenboss/': [['idle', 30, True], ['flying', 6, True], ['dying', 25, False]],
             'hellboss/': [['idle', 30, True], ['flying', 6, True], ['dying', 25, False]],
-            'hilbertboss/': [['idle', 30, True], ['active', 6, True], ['dying', 25, False]],
+            'hilbertboss/': [['idle', 30, True], ['active', 6, True], ['dying', 15, False]],
         }
     }
 
@@ -352,6 +352,10 @@ def initialise_game_params(game):
     game.spawn_point = False
     game.screenshake_on = True
     game.volume_on = True
+    game.completed_wins = {
+        '1': 0,
+        '2': 0
+    }
 
     game.wallet = {
         'cogs': 0,
@@ -610,11 +614,11 @@ def initialise_game_params(game):
         'redCogs': ['Red Cogs: Just like a normal cog, but fancier! And Red!'],
         'blueCogs': ['Blue Cogs: Just like a normal cog, but fancier! And Blue!'],
         'purpleCogs': ['Purple Cogs: Just like a normal cog, but fancier! And Purple!'],
-        'heartFragments': ['Heart Fragments: Gross little part of a heart. Can be used to increase your health. Rare drop from enemies but more common from wizards.'],
+        'heartFragments': ['Heart Fragments: Gross little part of a heart. Can be used to increase your health. Rare drop from anything alive, but magical things drop more.'],
         'wings': ['Wings: The poor bat. Can be used to increase amounts of jumps in the air. Common drop from flying enemies.'],
         'eyes': ['Eyes: Ew this is just getting disgusting. The more you have, the more you can see. Common drop from roly-poly eyeballs.'],
         'chitins': ['Chitin: What the hell is this thing? Apparently some strong stuff in insects, this could probably increase the power of your smacks.'],
-        'fairyBreads': ['Fairy Bread: Only the most delicious snack that has ever existed.'],
+        'fairyBreads': ['Fairy Bread: Only the most delicious snack that has ever existed. Hoarded by AUstralian critters.'],
         'boxingGloves': ['Boxing Gloves: For some reason kangaroos got \'em. Punchy punch!'],
         'yellowOrbs': ['Heavenly Orbs: They glow with the power of one million beers.'],
         'redOrbs': ['Satanic Orbs: They glow with the power of one million Jägermeisters.'],
@@ -749,6 +753,16 @@ def is_prime(num):
         if num % n == 0:
             return False
     return True
+
+def next_n_primes_str(current_check, n, min = 0):
+    found_primes = []
+    current_check = max(current_check, min)
+
+    while len(found_primes) < n:
+        if is_prime(current_check):
+            found_primes.append(str(current_check))
+        current_check += 1
+    return f"{', '.join(map(str, found_primes[:-1]))} and {found_primes[-1]}"
 
 class Animation:
     def __init__(self, images, img_dur=5, loop=True):

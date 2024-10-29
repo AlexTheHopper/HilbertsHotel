@@ -5,6 +5,7 @@ Includes all character information and behaviour including trades and dialogue.
 import random
 import math
 import scripts.entities as _entities
+import scripts.utilities as _utilities
 
 class Character(_entities.PhysicsEntity):
     def __init__(self, game, pos, size, name):
@@ -128,7 +129,7 @@ class Hilbert(Character):
             9: [['purchase', 'blueCogs', 5], ['purchase', 'purpleCogs', 5]],
             10: [['purchase', 'fairyBreads', 20], ['purchase', 'boxingGloves', 20], ['floor', 'aussie', 15]],
             11: [['purchase', 'purpleCogs', 10], ['floor', 'space', 20]],
-            12: [['purchase', 'yellowOrbs', 20], ['purchase', 'redOrbs', 20], ['floor', 'heaven_hell', 25]],
+            12: [['purchase', 'yellowOrbs', 20], ['purchase', 'redOrbs', 20], ['floor', 'heaven_hell', 15]],
         }
 
         self.dialogue = {
@@ -167,6 +168,7 @@ class Hilbert(Character):
                   'From now on, you\'ll have to pack a harder punch somehow. I\'m at a loss how to do that but I\'m sure theres a way!',
                   'Oh and yeah, DONT go into this portal until you\'re a bit stronger. Like seriously you just wont be able to kill them.',
                   'Seriously.',
+                  'And if you are in need of wings for some reason, I think bats have been appearing more around the hotel too.',
                   'But I do think these stronger enemies should drop a special kind of cog! Please bring me some to investigate!'],
 
             '8': ['Ooooooh, I love these cogs! We\'re getting close now, soon my super secret weapon will be ready! It will be able to remove ALL of the intruders from the Hotel, finally allowing the guests to stay in peace!',
@@ -210,6 +212,13 @@ class Hilbert(Character):
         elif key == 7 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['eyes'] -= 30
             self.game.difficulty += 1
+
+            #Add bats to grass and spooky to avoid being softlocked/having to kill yourself a bunch.
+            self.game.available_enemy_variants['grass'].append(4)
+            self.game.available_enemy_variants['grassWeights'].append(1)
+
+            self.game.available_enemy_variants['spooky'].append(4)
+            self.game.available_enemy_variants['spookyWeights'].append(1)
 
         elif key == 8 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['redCogs'] -= 5
@@ -335,9 +344,9 @@ class Curie(Character):
         self.currency_requirements = {
             0: [],
             1: [],
-            2: [['purchase', 'wings', 25]],
-            3: [['purchase', 'wings', 50]],
-            4: [['purchase', 'wings', 75]],
+            2: [['purchase', 'wings', 25], ['purchase', 'cogs', 50]],
+            3: [['purchase', 'wings', 50], ['purchase', 'cogs', 50]],
+            4: [['purchase', 'wings', 75], ['purchase', 'cogs', 50]],
             5: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 25], ['purchase', 'chitins', 25]],
             6: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'chitins', 50]]
         }
@@ -348,13 +357,13 @@ class Curie(Character):
 
             '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
                   'I can make you winged boots! They let you jump more in the air!',
-                  'I just need a few bat wings! Bring me 25 and the extra jump is yours!'],
+                  'I just need a few bat wings! Bring me 25 and a few lil\' coins and the extra jump is yours!'],
 
             '2': ['You\'ve got two jumps! Woo! Isn\'t this such a novel mechanic?',
-                  'I\'ll give ya another for 50 wings.'],
+                  'I\'ll give ya another for 50 wings plus coins.'],
 
             '3': ['You\'ve got three jumps! Woo! We\'re really pushing this double jump idea.',
-                  'I\'ll give ya another for 75 wings.'],
+                  'I\'ll give ya another for 75 wings plus the regular coin surcharge.'],
 
             '4': ['You\'ve got four jumps! Woo! How many is too many?',
                   'Now, this next deal I got for ya is very lucrative. Not even Hilbert knows about this tech. I heard that you can do a lil dash in the air right?',
@@ -377,16 +386,19 @@ class Curie(Character):
             self.game.player.total_jumps += 1
 
             self.game.wallet['wings'] -= 25
+            self.game.wallet['cogs'] -= 50
 
         elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
             self.game.wallet['wings'] -= 50
+            self.game.wallet['cogs'] -= 50
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_jumps += 1
 
             self.game.wallet['wings'] -= 75
+            self.game.wallet['cogs'] -= 50
 
         elif key == 5 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.player.total_dashes += 1
@@ -500,9 +512,9 @@ class Lorenz(Character):
             2: [],
             3: [['prime', 'cogs', 'P']],
             4: [['primePurchase', 'cogs', 'P>200', 200]],
-            5: [['primePurchase', 'cogs', 'P>200', 200], ['primePurchase', 'wings', 'P>50', 50]],
+            5: [['primePurchase', 'wings', 'P>50', 50], ['primePurchase', 'cogs', 'P>200', 200]],
             6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
-            7: [['floor', 'normal', 25]],
+            7: [['floor', 'infinite', 10]],
             8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'infinite', 'P']],
             9: [['floor', 'infinite', 20]],
             10: [['floor', 'infinite', 30]],
@@ -522,59 +534,107 @@ class Lorenz(Character):
 
             '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound. You can see those lil cracks just like on my right!',
                   'But I aint a fan of the normal \'pay this much for this hammer\' boring shenanigans, I only like prime numbers!',
-                  'Bring me EXACTLY a prime number of cogs and a hammer is yours!'],
+                  'Bring me EXACTLY a prime number of cogs and a hammer is yours!',
+                  '###NEXT PRIMES FOR COGS###'],
 
             '3': ['Hammer go smash!',
                   'Oh and also, youll never lose hammers on death! WOO! Go give it a go!',
-                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!'],
+                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!',
+                  '###NEXT PRIMES FOR COGS MIN 200###'],
 
             '4': ['Hammer go smash!',
                   'I got more too! But this time you gotta bring me a prime number of cogs over 200 and a prime number of wings over 50!',
-                  'Also, have you noticed those cracks on the middle of the roof? Suuuuuper weird...'],
+                  'Also, have you noticed those cracks on the middle of the roof? Suuuuuper weird...',
+                  '###NEXT PRIMES FOR WINGS MIN 50###',
+                  '###NEXT PRIMES FOR COGS MIN 200###'],
 
             '5': ['Hammer go smash!',
-                  'I have another hammer, but now I want a prime number of more things! :)'],
+                  'I have another hammer, but now I want a prime number of more things! :)',
+                  'These things are cogs, wings and heart fragments, but don\'t worry, no minimum this time!'
+                  '###NEXT PRIMES FOR COGS',
+                  'WINGS',
+                  'HEARTFRAGMENTS###'],
 
             '6': ['Hammer go smash!',
-                  'I have another hammer, but can you explore and clear up to floor 25 please!',
+                  'I have another hammer, but can you explore a bit of the infinite slice!',
                   'Some of the others keep talking about something special in there and I reeeeealy wanna know what it is!'],
 
             '7': ['Hammer go SMASH!',
-                  'Now for this next hammer, can you clea up to a prime floor on each of these areas please?'],
+                  'Now for this next hammer, can you clear up to a prime floor on each of these areas please?',
+                  '###NEXT PRIMES FOR NORMAL AND INFINITE###'],
 
             '8': ['Hammer go SMASH!',
                   'For another hammer, can you clear floor 20 on this infinite thing please?',
-                  'Doesn\'t seem like this special thing is where the bats are so maybe it\'s somewhere else!'],
+                  'Hmm really not sure where this special thing is, maybe its further up!'],
 
             '9': ['Hammer go SMASH!',
                   'Grrr where is this special thing?! It must be somewhere, please keep looking...'],
 
             '10': ['Hammer go SMASH!!',
                   'Please forgive me, I don\'t have anymore hammers :(',
-                  'But if you find it and need me, I\'ll be there for you!']}
+                  'But if you find the special thing and need me, I\'ll be there for you!']}
+        
+        self.update_texts()
+        
+    def update_texts(self):
+        #Updates the dialogue to inform the player of the next few prime numbers.
+        if self.current_dialogue_index in [0, 2]:
+            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10)
+
+            self.dialogue['2'][3] = f'The next ten prime numbers for your cogs are {cogs_primes}.'
+        
+        if self.current_dialogue_index in [0, 3]:
+            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10, min=200)
+
+            self.dialogue['3'][3] = f'The next valid ten prime numbers for your cogs are {cogs_primes}.'
+
+        if self.current_dialogue_index in [0, 4]:
+            wings_primes = _utilities.next_n_primes_str(self.game.wallet['wings'], 10, min=50)
+            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10, min=200)
+
+            self.dialogue['4'][3] = f'The next valid primes for your wings are {wings_primes}.'
+            self.dialogue['4'][4] = f'And the next valid primes for your cogs are {cogs_primes}.'
+
+        if self.current_dialogue_index in [0, 5]:
+            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10)
+            wings_primes = _utilities.next_n_primes_str(self.game.wallet['wings'], 10)
+            heartFragments_primes = _utilities.next_n_primes_str(self.game.wallet['heartFragments'], 10)
+
+            self.dialogue['5'][2] = f'The next amounts of cogs I will accept are: are {cogs_primes}.'
+            self.dialogue['5'][3] = f'The next amounts of wings I will accept are: are {wings_primes}.'
+            self.dialogue['5'][4] = f'The next amounts of heart fragments I will accept are: are {heartFragments_primes}.'
+
+        if self.current_dialogue_index in [0, 7]:
+            normal_primes = _utilities.next_n_primes_str(self.game.floors['normal'], 3)
+            infinite_primes = _utilities.next_n_primes_str(self.game.infinite_floor_max, 3)
+
+            self.dialogue['7'][2] = f'The next few normal floors you must reach are {normal_primes} and for the inifnite they are {infinite_primes}.'
 
     def conversation_action(self, key):
         # Runs when dialogue matching key is said for thr first time.
         if key == 0 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.characters_met['Lorenz'] = True
 
-        if key in [3, 4, 5] and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.currency_entities.append(
-                _entities.Currency(self.game, 'hammer', self.game.player.pos))
+        if key in [3, 4] and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.currency_entities.append(_entities.Currency(self.game, 'hammer', self.game.player.pos))
             self.game.wallet['cogs'] = 0
 
+        if key == 5 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+            self.game.currency_entities.append(_entities.Currency(self.game, 'hammer', self.game.player.pos))
+            self.game.wallet['cogs'] = 0
+            self.game.wallet['wings'] = 0
+
         if key == 6 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.currency_entities.append(
-                _entities.Currency(self.game, 'hammer', self.game.player.pos))
+            self.game.currency_entities.append(_entities.Currency(self.game, 'hammer', self.game.player.pos))
             self.game.wallet['cogs'] = 0
             self.game.wallet['wings'] = 0
             self.game.wallet['heartFragments'] = 0
 
         if key in [7, 8, 9, 10] and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.currency_entities.append(
-                _entities.Currency(self.game, 'hammer', self.game.player.pos))
+            self.game.currency_entities.append(_entities.Currency(self.game, 'hammer', self.game.player.pos))
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
+        self.update_texts()
 
 
 class Franklin(Character):
@@ -595,18 +655,18 @@ class Franklin(Character):
 
             '1': ['Oh yeah by the way I\'m likely the most useful in these here parts.',
                   'I can tippity tap into your own DNA and make you stronger. There\'s this nifty stuff called chitin that I can use to reinforce you!',
-                  '"What is chitin?" you ask? Who knows!'
+                  '"What is chitin?" you ask? Who knows!',
                   'Bring me 50 chitin and I\'ll make you stronger!'],
 
             '2': ['Yay woo! Your power level is now 2!',
                   'I\'ll give ya another for 50 more chitin and some real smackeroonie gloves!'],
 
             '3': ['Yay woo! Your power level is now 3!',
-                  'And just in time! I\'ve just detected that some of those guys have become stronger!'
+                  'And just in time! I\'ve just detected that some of those guys have become stronger!',
                   'I\'ll give ya another for 50 more chitin and a few little goodies.'],
 
             '4': ['Yay woo! Your power level is OVER 3!',
-                  'Wow, just in time again, what a coinkidink! Some of those guys shooting at you just got even stronger!'
+                  'Wow, just in time again, what a coinkidink! Some of those guys shooting at you just got even stronger!',
                   'I would love to see this power in action! When you take on your biggest challenge, I\'ll be there!']}
 
     def conversation_action(self, key):
@@ -892,9 +952,9 @@ class Watson(Character):
         self.currency_requirements = {
             0: [],
             1: [],
-            2: [['purchase', 'credits', 5]],
-            3: [['purchase', 'credits', 5]],
-            4: [['purchase', 'credits', 5]]
+            2: [['purchase', 'credits', 50]],
+            3: [['purchase', 'credits', 50]],
+            4: [['purchase', 'credits', 50]]
         }
 
         self.dialogue = {
@@ -925,12 +985,12 @@ class Watson(Character):
             self.game.characters_met['Webster'] = True
 
         elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['purpleCogs'] -= 5
+            self.game.wallet['credits'] -= 50
 
         elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['purpleCogs'] -= 10
+            self.game.wallet['credits'] -= 50
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['purpleCogs'] -= 15
+            self.game.wallet['credits'] -= 50
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True

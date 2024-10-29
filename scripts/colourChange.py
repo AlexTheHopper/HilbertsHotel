@@ -12,6 +12,7 @@ def hex_to_rgb(hex_value):
 
 # Define a dictionary for RGB-to-Hex mappings for color replacement
 # RGB keys and hex values for replacements
+#Hilbert:
 color_replacements = {
     (68, 68, 68): '#007700',        # Hat top
     (48, 48, 48): '#0000CC',        # Hat brim
@@ -26,6 +27,15 @@ color_replacements = {
 
     (38, 36, 58): '#331400',        # Body - light
     (20, 16, 32): '#260F00'         # Body - dark
+}
+
+#GunGuy:
+color_replacements = {
+    (45, 9, 19): '#5E2559',        # Hair
+
+    (196, 44, 54): '#9B3693',      # Shirt 
+    (56, 14, 15): '#30092D',       # Vest / pants dark
+    (79, 20, 21): '#4C0E48',       # Pants light
 }
 
 # Loop through all files in the directory

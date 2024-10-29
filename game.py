@@ -4,6 +4,7 @@ Manages game loop, updating all entities and display.
 """
 import random
 import math
+import numpy as np
 import os
 import json
 import cProfile
@@ -25,7 +26,7 @@ class Game:
 
         # Pygame specific parameters and initialisation
         pygame.init()
-        game_version = '0.5.0'
+        game_version = '0.6.0'
         pygame.display.set_caption(f'Hilbert\'s Hotel v{game_version}')
         self.text_font = pygame.font.SysFont('Comic Sans MS', 32, bold=True)
         self.clock = pygame.time.Clock()
@@ -87,6 +88,8 @@ class Game:
                            self.text_font, not_selected, scale=0.5, mode='center')
             self.draw_text('Quit Game: Q', (self.screen_width * 0.9, self.screen_height - 20),
                            self.text_font, not_selected, scale=0.5, mode='center')
+            self.draw_text('Fullscreen: F', (self.screen_width * 0.1, self.screen_height - 20),
+                           self.text_font, not_selected, scale=0.5, mode='center')
             
             if deleting:
                 self.draw_text('Deleting save ' + str(hover_slot % len(save_slots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's',
@@ -127,6 +130,9 @@ class Game:
                         self.run(save_slot)
                     if event.key == pygame.K_z:
                         deleting = 300
+                    if event.key == pygame.K_f:
+                        self.is_fullscreen = not self.is_fullscreen
+                        self.toggle_fullscreen()
                     if event.key == pygame.K_q:
                         pygame.quit()
                         sys.exit()
@@ -158,7 +164,7 @@ class Game:
         self.load_level()
 
         #####################################################
-        ###################### GAME LOOP######################
+        ######################GAME LOOP######################
         #####################################################
 
         while self.game_running:
@@ -339,6 +345,10 @@ class Game:
                         for e in self.enemies.copy():
                             e.kill()
                             self.enemies.remove(e)
+                    if event.key ==pygame.K_j:
+                        for c in self.currency_entities.copy():
+                            self.wallet_temp[str(c.currency_type) + 's'] += c.value
+                            self.currency_entities.remove(c)
                     if event.key == pygame.K_p:
                         for e in self.enemies.copy():
                             if (e.pos[0] < 0 or e.pos[0] > self.tilemap.map_size*self.tilemap.tilesize) or (e.pos[1] < 0 or e.pos[1] > self.tilemap.map_size*self.tilemap.tilesize):
@@ -347,9 +357,6 @@ class Game:
                         print('player: ', self.player.pos)
                         print('bounds: ', 0, 0, ",", self.tilemap.map_size *
                               self.tilemap.tilesize, self.tilemap.map_size*self.tilemap.tilesize)
-                    if event.key == pygame.K_l:
-                        print(
-                            'player pos: ', self.player.pos[0] // self.tilemap.tilesize, self.player.pos[1] // self.tilemap.tilesize)
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
@@ -395,7 +402,7 @@ class Game:
             self.clock.tick(self.fps)
 
         #####################################################
-        #################### GAME LOOP END####################
+        ####################GAME LOOP END####################
         #####################################################
 
     def end_game(self):
@@ -428,6 +435,7 @@ class Game:
             pygame.display.update()
             self.clock.tick(self.fps)
 
+        self.__init__(fullscreen = self.is_fullscreen, screen_size=(self.screen_width, self.screen_height))
         self.load_menu()
 
     def update_dialogues(self):
@@ -525,7 +533,10 @@ class Game:
 
         # Specifically prime num floor
         elif trade[0] == 'primeFloor':
-            if not _utilities.is_prime(self.floors[trade[1]]):
+            if trade[1] == 'infinite':
+                if not _utilities.is_prime(self.infinite_floor_max):
+                    return False
+            elif not _utilities.is_prime(self.floors[trade[1]]):
                 return False
 
         # Also the previous dialogue needs to have been said:
@@ -1245,6 +1256,7 @@ class Game:
                        'portals_met': self.portals_met,
                        'characters_met': self.characters_met,
                        'encounters_check': self.encounters_check,
+                       'completed_wins': self.completed_wins,
                        'dialogue': self.dialogue_history}, f, indent=4)
 
     def load_game(self, save_slot):
@@ -1284,6 +1296,7 @@ class Game:
                 self.portals_met = save_data['portals_met']
                 self.characters_met = save_data['characters_met']
                 self.encounters_check = save_data['encounters_check']
+                self.completed_wins = save_data['completed_wins']
                 self.dialogue_history = save_data['dialogue']
 
         except FileNotFoundError:
