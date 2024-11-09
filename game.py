@@ -26,9 +26,10 @@ class Game:
 
         # Pygame specific parameters and initialisation
         pygame.init()
-        game_version = '0.6.0'
+        game_version = '0.7.0'
         pygame.display.set_caption(f'Hilbert\'s Hotel v{game_version}')
-        self.text_font = pygame.font.SysFont('Comic Sans MS', 32, bold=True)
+        self.text_font = pygame.font.SysFont('Wingdings', 32, bold=True)
+        self.text_font = pygame.font.Font('data/font.ttf', 38)
         self.clock = pygame.time.Clock()
 
         # Define all general game parameters and load in assets
@@ -56,10 +57,8 @@ class Game:
 
         self.clouds = _clouds.Clouds(self.assets['clouds'], count=30)
 
-        background = pygame.transform.scale(
-            self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
-        foreground = pygame.transform.scale(
-            self.assets['menuForeground'], (self.screen_width / 2, self.screen_height / 2))
+        background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
+        foreground = pygame.transform.scale(self.assets['menuForeground'], (self.screen_width / 2, self.screen_height / 2))
 
         while self.in_menu:
 
@@ -93,22 +92,22 @@ class Game:
             
             if deleting:
                 self.draw_text('Deleting save ' + str(hover_slot % len(save_slots)) + ': ' + str(math.floor(deleting / (self.fps/10)) / 10) + 's',
-                               (self.screen_width * (2/4) + 160 * (hover_slot % len(save_slots) - 1), self.screen_height - 115), self.text_font, (200, 0, 0), scale=0.5, mode='center')
+                               (self.screen_width * (2/4) + 180 * (hover_slot % len(save_slots) - 1), self.screen_height - 120), self.text_font, (100, 0, 0), scale=0.5, mode='center')
 
-            self.draw_text('Save 0', (self.screen_width * (2/4) - 160, self.screen_height - 80), self.text_font,
-                           selected if display_slot == 0 else not_selected, mode='center')
-            self.draw_text(str(saved_deaths[0]), (self.screen_width * (2/4) - 160, self.screen_height - 50), self.text_font,
-                           selected if display_slot == 0 else not_selected, mode='center', scale=0.75)
+            self.draw_text('Save 0', (self.screen_width * (2/4) - 180, self.screen_height - 90), self.text_font,
+                           selected if display_slot == 0 else not_selected, mode='center', scale = 0.85)
+            self.draw_text(str(saved_deaths[0]), (self.screen_width * (2/4) - 180, self.screen_height - 50), self.text_font,
+                           selected if display_slot == 0 else not_selected, mode='center', scale=0.6)
 
-            self.draw_text('Save 1', (self.screen_width * (2/4), self.screen_height - 80), self.text_font,
-                           selected if display_slot == 1 else not_selected, mode='center')
+            self.draw_text('Save 1', (self.screen_width * (2/4), self.screen_height - 90), self.text_font,
+                           selected if display_slot == 1 else not_selected, mode='center', scale = 0.85)
             self.draw_text(str(saved_deaths[1]), (self.screen_width * (2/4), self.screen_height - 50), self.text_font,
-                           selected if display_slot == 1 else not_selected, mode='center', scale=0.75)
+                           selected if display_slot == 1 else not_selected, mode='center', scale=0.6)
 
-            self.draw_text('Save 2', (self.screen_width * (2/4) + 160, self.screen_height - 80), self.text_font,
-                           selected if display_slot == 2 else not_selected, mode='center')
-            self.draw_text(str(saved_deaths[2]), (self.screen_width * (2/4) + 160, self.screen_height - 50), self.text_font,
-                           selected if display_slot == 2 else not_selected, mode='center', scale=0.75)
+            self.draw_text('Save 2', (self.screen_width * (2/4) + 180, self.screen_height - 90), self.text_font,
+                           selected if display_slot == 2 else not_selected, mode='center', scale = 0.85)
+            self.draw_text(str(saved_deaths[2]), (self.screen_width * (2/4) + 180, self.screen_height - 50), self.text_font,
+                           selected if display_slot == 2 else not_selected, mode='center', scale=0.6)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -133,7 +132,7 @@ class Game:
                     if event.key == pygame.K_f:
                         self.is_fullscreen = not self.is_fullscreen
                         self.toggle_fullscreen()
-                    if event.key == pygame.K_q:
+                    if event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         sys.exit()
 
@@ -144,7 +143,6 @@ class Game:
             self.display.blit(self.display_outline, (0, 0))
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
             self.screen.blit(pygame.transform.scale(self.hud_display, self.screen.get_size()), (0, 0))
-            # self.screen.blit(self.hud_display, (0, 0))
 
             pygame.display.update()
             self.clock.tick(self.fps)
@@ -152,13 +150,153 @@ class Game:
 
         self.end_game()
 
-    def run(self, save_slot):
+    def set_player_colours(self):
+        #When not starting a new game, no options to change colour, just alter assets and jump straight in.
+        if self.creation_done:
+            default_player_colours = {
+            'shirt': (74, 94, 132),
+            'front Leg': (51, 20, 0),
+            'back Leg': (38, 15, 0),
+            'tie': (2, 2, 2),
+            'belt': (5, 5, 5),
+            'skin': (175, 168, 151),
+            'eye': (0, 1, 104),
+            }
 
-        self.in_menu = False
-        self.sfx['music'].play(-1)
+            for clothing_type in default_player_colours.keys():
+                _utilities.alter_character_colour(self, default_player_colours[clothing_type], self.player_colours[clothing_type])
+            _utilities.alter_character_colour(self, (150, 143, 126), tuple((max(1, c - 25) for c in self.player_colours['skin'])))
+            return
+        
+        self.dummy_player = _entities.PlayerCustomise(self, (800, 567), (16, 16))
+        background = pygame.transform.scale(self.assets['infiniteBackground'], (self.screen_width / 2, self.screen_height / 2))
+        self.tilemap.tilemap = {
+            f'{x};39': {"type": "normal", "variant": 1, "pos": [x, 39]}
+            for x in range(42, 60)
+        }
+        customising_colours = True
+        selected = (86, 31, 126)
+        not_selected = (255, 255, 255)
+        player_render_scale = 5
+        reducing_player = False
+
+        height_index = 0
+        selection_indices = {
+        'shirt': 0,
+        'front Leg': 0,
+        'back Leg': 0,
+        'tie': 0,
+        'belt': 0,
+        'skin': 0,
+        'eye': 0,
+        }
+
+        while customising_colours:
+
+            # Background
+            self.display.blit(background, (0, 0))
+            self.display_outline.fill((0, 0, 0, 0))
+            self.hud_display.fill((0, 0, 0, 0))
+
+            if not reducing_player:
+                self.draw_text('Who are you?', (self.screen_width / 2 - 275, self.screen_height / 2 - 150), self.text_font, (255, 255, 255), mode='center')
+                self.draw_text('Confirm: Z', (self.screen_width / 2 - 275, self.screen_height / 2 + 160), self.text_font, (255, 255, 255), mode='center')
+
+                for n, piece in enumerate(list(selection_indices.keys())):
+                    text_col = selected if piece == _utilities.index_to_value(height_index, list(selection_indices.keys())) else not_selected
+                    self.draw_text(f'{piece.capitalize()}:', (self.screen_width / 2 + 275, self.screen_height / 2 - 350 + 100*n), self.text_font, text_col, mode='center', scale = 0.5)
+
+                    for offset, colour in enumerate(range(selection_indices[piece]-2, selection_indices[piece]+3)):
+                        circle_size = 25 - 3*abs(offset - 2)
+                        pygame.draw.circle(self.hud_display, (255, 255, 255), (self.screen_width / 2 + 125 + offset*75, self.screen_height / 2 - 300 + 100*n), circle_size)
+                        pygame.draw.circle(self.hud_display, _utilities.index_to_value(selection_indices[piece] - 2 + offset, self.player_colours_options[piece]), (self.screen_width / 2 + 125 + offset*75, self.screen_height / 2 - 300 + 100*n), circle_size-2)
+                
+                #Triangle indicators
+                tri_point = (self.screen_width / 2 + 475, self.screen_height / 2 - 300 + 100*(height_index % 7))
+                pygame.draw.lines(self.hud_display, selected, False, [(tri_point[0], tri_point[1]-10),
+                                                                        (tri_point[0]+10, tri_point[1]),
+                                                                        (tri_point[0], tri_point[1]+10)], 5)
+                tri_point = (self.screen_width / 2 + 75, self.screen_height / 2 - 300 + 100*(height_index % 7))
+                pygame.draw.lines(self.hud_display, selected, False, [(tri_point[0], tri_point[1]-10),
+                                                                        (tri_point[0]-10, tri_point[1]),
+                                                                        (tri_point[0], tri_point[1]+10)], 5)
+                self.tilemap.move_tiles_customise()
+                self.tilemap.render_colour_screen(self.display_outline, offset=self.render_scroll)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        self.sfx['blip'].play()
+                        clothing_type = _utilities.index_to_value(height_index, list(selection_indices.keys()))
+
+                        if clothing_type != 'confirm':
+                            current_colour = _utilities.index_to_value(selection_indices[clothing_type], self.player_colours_options[clothing_type])
+                            new_colour = _utilities.index_to_value(selection_indices[clothing_type] - 1, self.player_colours_options[clothing_type])
+                            _utilities.alter_character_colour(self, current_colour, new_colour)
+                            self.player_colours[clothing_type] = new_colour
+
+                        selection_indices[_utilities.index_to_value(height_index, list(selection_indices.keys()))] -= 1
+                    if event.key == pygame.K_RIGHT:
+                        self.sfx['blip'].play()
+                        clothing_type = _utilities.index_to_value(height_index, list(selection_indices.keys()))
+
+                        if clothing_type != 'confirm':
+                            current_colour = _utilities.index_to_value(selection_indices[clothing_type], self.player_colours_options[clothing_type])
+                            new_colour = _utilities.index_to_value(selection_indices[clothing_type] + 1, self.player_colours_options[clothing_type])
+                            _utilities.alter_character_colour(self, current_colour, new_colour)
+                            self.player_colours[clothing_type] = new_colour
+
+                        selection_indices[_utilities.index_to_value(height_index, list(selection_indices.keys()))] += 1
+                    if event.key == pygame.K_UP:
+                        self.sfx['dashClick'].play()
+                        height_index -= 1
+                    if event.key == pygame.K_DOWN:
+                        self.sfx['dashClick'].play()
+                        height_index += 1
+                    if event.key == pygame.K_z:
+                        reducing_player = True
+                        _utilities.alter_character_colour(self, (150, 143, 126), tuple((max(1, c - 25) for c in self.player_colours['skin'])))
+                        self.dummy_player.set_action('idle')
+
+                    if event.key == pygame.K_f:
+                        self.is_fullscreen = not self.is_fullscreen
+                        self.toggle_fullscreen()
+                    if event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
+                        self.__init__(fullscreen = self.is_fullscreen, screen_size=(self.screen_width, self.screen_height))
+                        self.load_menu()
+
+            if reducing_player:
+                player_render_scale = max(player_render_scale - 0.01, 1)
+                self.scroll[0] += ((self.dummy_player.rect().x + (self.dummy_player.size[0] * min(player_render_scale, 3) / 2)) - self.screen_width / 4 - self.scroll[0]) / 15
+                self.scroll[1] += ((self.dummy_player.rect().y + (self.dummy_player.size[1] * min(player_render_scale, 3) / 2)) - self.screen_height / 4 - self.scroll[1]) / 15
+                self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
+
+            if player_render_scale <= 1:
+                self.creation_done = True
+                customising_colours = False
+
+            self.dummy_player.update(self.tilemap, (0, 0))
+            self.dummy_player.render(self.display_outline, offset=self.render_scroll, scale = min(player_render_scale, 3))
+
+            self.display.blit(self.display_outline, (0, 0))
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+            self.screen.blit(pygame.transform.scale(self.hud_display, self.screen.get_size()), (0, 0))
+
+            pygame.display.update()
+            self.clock.tick(self.fps)
+
+    def run(self, save_slot):
 
         self.save_slot = save_slot
         self.load_game(self.save_slot)
+
+        self.set_player_colours()
+        self.in_menu = False
+        self.sfx['music'].play(-1)
 
         self.tilemap.load_tilemap('lobby')
         self.load_level()
@@ -169,8 +307,8 @@ class Game:
 
         while self.game_running:
             # Camera movement
-            self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 30
-            self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 30
+            self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 15
+            self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 15
             self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
             # Background
@@ -286,6 +424,7 @@ class Game:
             self.interraction_frame_a = False
             self.interraction_frame_s = False
             self.interraction_frame_v = False
+            self.interraction_frame_q = False
 
             # Event handler
             for event in pygame.event.get():
@@ -327,6 +466,8 @@ class Game:
                         self.interraction_frame_v = True
                     if event.key == pygame.K_f:
                         self.interraction_frame_f = True
+                    if event.key == pygame.K_q:
+                        self.interraction_frame_q = True
                     if event.key == pygame.K_d:
                         self.display_hud = not self.display_hud
                     if event.key == pygame.K_ESCAPE:
@@ -374,9 +515,9 @@ class Game:
                     (0, 0, 0, max(self.min_pause_darkness, self.cave_darkness)))
                 self.draw_text('YOU DIED', (self.screen_width / 2, self.screen_height / 2 - 60), self.text_font, (200, 0, 0), mode='center')
 
-                self.draw_text(self.death_message, (self.screen_width / 2, self.screen_height / 2 - 30), self.text_font, (200, 0, 0), mode='center', scale=0.5)
+                self.draw_text(self.death_message, (self.screen_width / 2, self.screen_height / 2 - 25), self.text_font, (200, 0, 0), mode='center', scale=0.5)
                 self.draw_text('Deaths: ' + str(self.death_count), (self.screen_width / 2, self.screen_height / 2 + 30), self.text_font, (200, 0, 0), mode='center', scale=0.5)
-                self.draw_text('Press z to Alive Yourself', (self.screen_width / 2, self.screen_height / 2 + 50), self.text_font, (200, 0, 0), mode='center', scale=0.5)
+                self.draw_text('Press z to Alive Yourself', (self.screen_width / 2, self.screen_height / 2 + 55), self.text_font, (200, 0, 0), mode='center', scale=0.5)
 
                 if self.interraction_frame_z:
                     self.transition_to_level('lobby')
@@ -389,7 +530,6 @@ class Game:
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) if self.screenshake_on else (0, 0)
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
             self.screen.blit(pygame.transform.scale(self.hud_display, self.screen.get_size()), (0, 0))
-            # self.screen.blit(self.hud_display, (0, 0))
 
             # Level transition circle
             if self.transition:
@@ -601,11 +741,11 @@ class Game:
 
         # Actually display the text (and icon):
         for n in range(len(self.display_text_list)):
-            self.draw_text(str(self.display_text_list[n]), (self.screen_width / 2, (self.screen_height / 2)-30 + 40*n), self.text_font, (255, 255, 255), mode='center')
+            self.draw_text(str(self.display_text_list[n]), (self.screen_width / 2, (self.screen_height / 2 - 45)-30 + 48*n), self.text_font, (255, 255, 255), mode='center', scale = 0.8)
         if self.display_icon:
             icon = self.display_icons[self.display_icon]
             icon = pygame.transform.scale(icon, (icon.get_width() * 2, icon.get_height() * 2))
-            self.hud_display.blit(icon, ((self.screen_width / 2) - icon.get_width() / 2, self.screen_height / 2 - 90 - icon.get_height() / 2))
+            self.hud_display.blit(icon, ((self.screen_width / 2) - icon.get_width() / 2, self.screen_height / 2 - 135 - icon.get_height() / 2))
 
     def check_encounter(self, entity):
         """Determine if the player has encountered entity before.
@@ -617,7 +757,7 @@ class Game:
             none
 
         """
-        if not self.encounters_check[entity]:
+        if not self.encounters_check[entity] and not self.dead:
             self.run_text('New!', entity)
             self.encounters_check[entity] = True
 
@@ -668,6 +808,8 @@ class Game:
 
         elif not self.dead and self.infinite_mode_active and self.previous_level == 'infinite':
             self.floors[self.previous_level] += 1
+
+        self.player.light_size = min(90 + self.wallet['eyes'], 200)
 
         # Spawn in entities
         self.enemies = []
@@ -804,17 +946,17 @@ class Game:
         text_col = (200, 200, 200) if not self.dead else (200, 0, 0)
         if pygame.time.get_ticks() % 60 == 0:
             self.display_fps = round(self.clock.get_fps())
-        self.draw_text('FPS: ' + str(self.display_fps), (self.screen_width-35,
-                       self.screen_height - 10), self.text_font, text_col, scale=0.5, mode='center')
+        self.draw_text('FPS: ' + str(self.display_fps), (self.screen_width-10,
+                       self.screen_height - 5), self.text_font, text_col, scale=0.5, mode='right')
 
         if self.current_level != 'lobby':
             self.draw_text('Floor: ' + str(self.floors[self.current_level]), (
-                self.screen_width - 10, 30), self.text_font, text_col, scale=0.5, mode='right')
+                self.screen_width - 10, 33), self.text_font, text_col, scale=0.5, mode='right')
             
             self.draw_text('Enemies Remaining: ' + str(len(self.enemies) + len(self.bosses)),
-                           (self.screen_width / 2, 50), self.text_font, text_col, scale=0.5, mode='center')
+                           (self.screen_width / 2, 55), self.text_font, text_col, scale=0.5, mode='center')
         else:
-            self.draw_text('Floor: Lobby', (self.screen_width - 10, 30),
+            self.draw_text('Floor: Lobby', (self.screen_width - 10, 33),
                            self.text_font, text_col, scale=0.5, mode='right')
 
         # Display Wallet
@@ -831,7 +973,7 @@ class Game:
                 currency_display = str(self.wallet[currency]) + (' + ('+str(self.wallet_temp[currency])+')' if (self.current_level != 'lobby' and not self.dead and self.wallet_temp[currency]) else '') + extra
 
                 self.hud_display.blit(self.display_icons[currency], (10, 10 + depth*30))
-                self.draw_text(currency_display, (40, 13 + depth*30), self.text_font, text_col, scale=0.5)
+                self.draw_text(currency_display, (45, 9 + depth*30), self.text_font, text_col, scale=0.5)
                 depth += 1
 
         # Display Player Health
@@ -860,13 +1002,14 @@ class Game:
         if self.paused and not self.talking:
             self.draw_text('PAUSED', (self.screen_width / 2, self.screen_height / 2),
                            self.text_font, (200, 200, 200), mode='center')
-            self.draw_text('Return To Menu: z', (self.screen_width / 2, self.screen_height /
-                           2 + 30), self.text_font, (200, 200, 200), scale=0.5, mode='center')
-            self.draw_text('Screenshake: ' + ('On' if self.screenshake_on else 'Off') + ' (s)', (3 * self.screen_width /
+            self.draw_text('Return To Menu: Q', (self.screen_width / 2, self.screen_height /
+                           2 + 40), self.text_font, (200, 200, 200), scale=0.5, mode='center')
+                           
+            self.draw_text('Screenshake: ' + ('On' if self.screenshake_on else 'Off') + ' (S)', (3 * self.screen_width /
                            4, self.screen_height - 30), self.text_font, (200, 200, 200), scale=0.5, mode='center')
-            self.draw_text('Volume: ' + ('On' if self.volume_on else 'Off') + ' (v)', (self.screen_width / 4,
+            self.draw_text('Volume: ' + ('On' if self.volume_on else 'Off') + ' (V)', (self.screen_width / 4,
                            self.screen_height - 30), self.text_font, (200, 200, 200), scale=0.5, mode='center')
-            self.draw_text('Fullscreen: ' + ('On' if self.is_fullscreen else 'Off') + ' (f)', (2 * self.screen_width / 4,
+            self.draw_text('Fullscreen: ' + ('On' if self.is_fullscreen else 'Off') + ' (F)', (2 * self.screen_width / 4,
                            self.screen_height - 30), self.text_font, (200, 200, 200), scale=0.5, mode='center')
 
             if self.interraction_frame_s:
@@ -878,7 +1021,7 @@ class Game:
                 self.volume_on = not self.volume_on
                 for sound in self.sfx_volumes.keys():
                     self.sfx[sound].set_volume(self.sfx_volumes[sound] if self.volume_on else 0)
-            if self.interraction_frame_z:
+            if self.interraction_frame_q:
                 self.paused = False
                 self.current_level = 'lobby'
                 self.floors['infinite'] = 1
@@ -1006,7 +1149,8 @@ class Game:
             'ambience': 0.2,
             'textBlip': 0.25,
             'ding': 0.1,
-            'dashClick': 0.05
+            'dashClick': 0.05,
+            'blip': 0.1,
         }
 
         self.sfx = {}
@@ -1036,6 +1180,7 @@ class Game:
             convo_info = character.get_conversation()
             self.current_text_list = convo_info[0]
             character.conversation_action(convo_info[1])
+            convo_info = character.get_conversation()
             self.display_text_list = [str(character.name) + ': ', ' ']
             self.display_icon = False
         elif character == 'New!':
@@ -1081,7 +1226,7 @@ class Game:
             none
 
         """
-        pygame.draw.circle(self.darkness_surface,(0, 0, 0, transparency), pos, radius)
+        pygame.draw.circle(self.darkness_surface, (0, 0, 0, transparency), pos, radius)
 
     def get_saved_deaths(self):
         """Used on main menu to retrieve number of deaths for each save file..
@@ -1257,6 +1402,8 @@ class Game:
                        'characters_met': self.characters_met,
                        'encounters_check': self.encounters_check,
                        'completed_wins': self.completed_wins,
+                       'creation_done': self.creation_done,
+                       'player_colours': self.player_colours,
                        'dialogue': self.dialogue_history}, f, indent=4)
 
     def load_game(self, save_slot):
@@ -1297,12 +1444,15 @@ class Game:
                 self.characters_met = save_data['characters_met']
                 self.encounters_check = save_data['encounters_check']
                 self.completed_wins = save_data['completed_wins']
+                self.creation_done = save_data['creation_done']
+                self.player_colours = save_data['player_colours']
                 self.dialogue_history = save_data['dialogue']
 
         except FileNotFoundError:
-            f = open('data/saves/' + str(save_slot) + '.json', 'w')
-            json.dump({'floor': self.floors}, f)
-            f.close()
+            # f = open('data/saves/' + str(save_slot) + '.json', 'w')
+            # json.dump({'floor': self.floors}, f)
+            # f.close()
+            pass
 
         for sound in self.sfx_volumes.keys():
             self.sfx[sound].set_volume(

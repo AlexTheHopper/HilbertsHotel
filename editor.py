@@ -9,7 +9,7 @@ class Editor:
     def __init__(self):
         self.running = True
         self.fps = 60
-        self.screen_width = 1080
+        self.screen_width = 1280
         self.screen_height = 720
 
         pygame.init()

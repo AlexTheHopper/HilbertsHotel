@@ -38,6 +38,7 @@ class PhysicsEntity:
         self.set_action('idle')
         self.render_distance = self.game.screen_width / 3
 
+        self.frame_movement = [0, 0]
         self.last_movement = [0, 0]
 
         self.dashing = 0
@@ -55,6 +56,7 @@ class PhysicsEntity:
             'fairyBread': 0,
             'boxingGlove': 0,
             'yellowOrb': 0,
+            'redOrb': 0,
             'hammer': 0,
             'credit': 0
         }
@@ -79,8 +81,7 @@ class PhysicsEntity:
                            'left': False, 'right': False}
 
         # Forced movement plus velocity already there
-        self.frame_movement = (
-            movement[0] + self.velocity[0], movement[1] + self.velocity[1])
+        self.frame_movement = (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
         self.last_movement = movement
 
         if self.collide_wall_check:
@@ -145,7 +146,7 @@ class PhysicsEntity:
         self.animation.update()
         self.display_darkness_circle()
 
-    def render(self, surface, offset=(0, 0), rotation=0, transparency=255):
+    def render(self, surface, offset=(0, 0), rotation=0, transparency=255, scale=1):
         # Only update/render at close distances
         render_dist_to_player = np.linalg.norm(self.vector_to(self.game.player))
         if render_dist_to_player > self.render_distance and not self.is_boss:
@@ -156,6 +157,8 @@ class PhysicsEntity:
 
         image = self.animation.img()
         image.set_alpha(transparency)
+        if scale != 1:
+            image = pygame.transform.scale(image, (scale * image.get_width(), scale * image.get_height()))
 
         if rotation != 0:
             rot_image = pygame.transform.rotate(image, rotation * 180 / math.pi)
@@ -731,6 +734,7 @@ class Player(PhysicsEntity):
 
         self.total_dashes = 1
         self.dashes = self.total_dashes
+        self.can_dash = True
 
         self.wall_slide = False
         self.last_collided_wall = False
@@ -746,7 +750,6 @@ class Player(PhysicsEntity):
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
 
-        self.light_size = 90 + self.game.wallet['eyes'] if 90 + self.game.wallet['eyes'] < 250 else 500
         self.air_time += 1
 
         if self.damage_cooldown:
@@ -882,6 +885,15 @@ class Player(PhysicsEntity):
         else:
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
 
+        if self.animation.frame % 5 == 0:
+            webs = [e for e in self.game.extra_entities if e.type == 'web']
+            self.terminal_vel = 5
+            self.can_dash = True
+            for web in webs:
+                if self.rect().colliderect(web.rect()):
+                    self.terminal_vel = 0.5
+                    self.can_dash = False
+
     def render(self, surface, offset=(0, 0)):
         # pygame.draw.rect(self.game.display_outline, (255,0,0), (1*(self.pos[0] - self.game.render_scroll[0]), 1*(self.pos[1] - self.game.render_scroll[1]), self.size[0], self.size[1] ))
 
@@ -889,7 +901,7 @@ class Player(PhysicsEntity):
             super().render(surface, offset=offset)
 
     def jump(self):
-        if self.wall_slide:
+        if self.wall_slide and self.can_dash:
             self.velocity[1] = -2.3
             self.air_time = 5
             self.jumps = max(0, self.jumps - 1)
@@ -903,7 +915,7 @@ class Player(PhysicsEntity):
                     (self.rect().centerx, self.rect().bottom), angle, speed, color=(190, 200, 220)))
             return True
 
-        elif self.jumps > 0 and abs(self.dashing) < 50:
+        elif self.jumps > 0 and abs(self.dashing) < 50 and self.can_dash:
             self.jumps -= 1
             self.velocity[1] = min(self.velocity[1], -3)
             self.air_time = 5
@@ -915,7 +927,7 @@ class Player(PhysicsEntity):
             return True
 
     def dash(self):
-        if abs(self.dashing) <= 50 and self.dashes > 0 and not self.game.dead:
+        if abs(self.dashing) <= 50 and self.dashes > 0 and not self.game.dead and self.can_dash:
             self.spark_timer = 0
             self.dashes = max(self.dashes - 1, 0)
             self.game.sfx['dash'].play()
@@ -990,6 +1002,19 @@ class Player(PhysicsEntity):
                     ).center, angle, 2 + random.random(), color=(100, 0, 0)))
                     self.game.particles.append(_particle.Particle(self.game, 'particle' + str(self.game.power_level), self.game.player.rect().center, vel=[
                                                math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame=random.randint(0, 7)))
+
+class PlayerCustomise(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'player', pos, size)
+        self.gravity_affected = False
+        self.collide_wall_check = False
+        self.collide_wall = False
+        self.is_boss = True
+        self.anim_offset = (0, 0)
+        self.set_action('run')
+
+    def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
 
 class Currency(PhysicsEntity):
     def __init__(self, game, currency_type, pos, size=(6, 6), value=1):
@@ -1132,26 +1157,32 @@ class Bullet():
         self.light_size = 10
 
     def update(self, game):
-        if self.game.cave_darkness and self.game.transition <= 0:
-            self.game.darkness_circle(0, self.light_size, (int(self.pos[0]) - self.game.render_scroll[0], int(self.pos[1]) - self.game.render_scroll[1]))
-        self.game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - self.game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - self.game.render_scroll[1]))
+        if game.cave_darkness and game.transition <= 0:
+            game.darkness_circle(0, self.light_size, (int(self.pos[0]) - game.render_scroll[0], int(self.pos[1]) - game.render_scroll[1]))
+        game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - game.render_scroll[1]))
 
-        if not self.game.paused:
+        if not game.paused:
             self.pos[0] += self.speed[0]
             self.pos[1] += self.speed[1]
 
         # Check to destroy
-        if self.game.tilemap.solid_check(self.pos):
+        if game.tilemap.solid_check(self.pos):
             if self.type == 'projectile':
                 velocity_angle = math.atan2(self.speed[1], (self.speed[0] if self.speed[0] != 0 else 0.01))
                 for _ in range(4):
                     self.game.sparks.append(_spark.Spark(self.pos, random.random() - 0.5 + velocity_angle, 2 + random.random()))
             return True
 
-        # Check for player collision:
-        if self.game.player.rect().collidepoint(self.pos) and abs(self.game.player.dashing) < 50:
-            if not self.game.dead:
-                self.game.player.damage(self.attack_power, self.origin)
+        # Check for player/crate collision:
+        for crate in [e for e in game.extra_entities.copy() if e.type == 'crate']:
+            if crate.rect().collidepoint(self.pos):
+                crate.kill()
+                game.extra_entities.remove(crate)
+                return True
+
+        if game.player.rect().collidepoint(self.pos) and abs(game.player.dashing) < 50:
+            if not game.dead:
+                game.player.damage(self.attack_power, self.origin)
                 return True
 
 class RolyPoly(PhysicsEntity):
@@ -1392,6 +1423,16 @@ class Spider(PhysicsEntity):
                     self.velocity = [0, 0]
                     self.timer = random.randint(10, 30)
                     self.set_action('idle')
+
+                    #create web sometimes
+                    if random.random() < 0.5:
+                        x = self.pos[0]//tilemap.tilesize
+                        y = self.pos[1]//tilemap.tilesize
+                        tile_pos = str(x) + ';' + str(y)
+                        pos = [x*tilemap.tilesize, y*tilemap.tilesize]
+                        web_positions = [w.pos for w in self.game.extra_entities if w.type == 'web']
+                        if tile_pos not in tilemap.tilemap and pos not in web_positions:
+                            self.game.extra_entities.append(Web(self.game, pos, self.game.entity_info[53]['size']))
 
         # Death Condition
         if self.check_damages():
@@ -1738,7 +1779,7 @@ class AlienShip(PhysicsEntity):
             elif self.collisions['left'] or self.collisions['right']:
                 self.velocity[0] = -self.velocity[0]
 
-            if any(self.collisions.values()) and random.random() < 0.1:
+            if any(self.collisions.values()) and random.random() < 0.3:
                 to_player = self.vector_to(self.game.player)
                 norm = np.linalg.norm(to_player) * random.uniform(1.2, 1.5)
 
@@ -1902,6 +1943,8 @@ class Orb(PhysicsEntity):
         self.velocity = velocity
         self.gravity_affected = False
         self.colour = colour
+
+        self.is_boss = True
 
         self.anim_offset = (-1, -1)
 
@@ -2082,7 +2125,40 @@ class PenthouseLock(PhysicsEntity):
                     for _ in range(10):
                         self.game.sparks.append(_spark.Spark([tilemap.tilesize * 18 + 8, tilemap.tilesize * -82 + 8], random.uniform(0, 2 * math.pi), 2, color=random.choice([(1, 1, 1), (255, 255, 255)])))
                 self.game.run_text(self.text, talk_type = 'entity')
-                    
+
+class Web(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'web', pos, size)
+        self.gravity_affected = False
+        self.collide_wall_check = False
+        self.collide_wall = False
+        self.anim_offset = (0, 0)
+        self.currency_drops['chitin'] = 1 if random.random() < 0.2 else 0
+
+    def update(self, tilemap, movement=(0, 0)):
+        # super().update(tilemap, movement=movement)
+        if self.rect().colliderect(self.game.player.rect()) and abs(self.game.player.dashing) >= 50:
+            self.kill()
+            return True
+
+class Crate(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'crate', pos, size)
+        self.gravity_affected = False
+        self.collide_wall_check = False
+        self.collide_wall = False
+        self.anim_offset = (-2, -4)
+
+        for currency in self.currency_drops.keys():
+            if self.game.encounters_check[f'{currency}s'] and random.random() < 0.2 and currency not in ['hammer', 'credit']:
+                self.currency_drops[currency] += 1
+
+    def update(self, tilemap, movement=(0, 0)):
+        if self.rect().colliderect(self.game.player.rect()) and abs(self.game.player.dashing) >= 50:
+            self.kill()
+            return True
+
+        self.animation.update()
 
 class Machine(PhysicsEntity):
     def __init__(self, game, pos, size):
@@ -2172,9 +2248,9 @@ class Machine(PhysicsEntity):
                 if str(random_tile) not in self.base:
                     del self.game.tilemap.tilemap[random_tile]
 
-        if dist_player < 25 and self.action == 'idle':
+        if dist_player < 35 and self.action == 'idle':
             xpos = 2 * (self.rect().centerx - self.game.render_scroll[0])
-            ypos = 2 * (self.rect().centery -self.game.render_scroll[1]) - 50
+            ypos = 2 * (self.rect().centery -self.game.render_scroll[1]) - 60
 
             self.game.draw_text('Activate Machine       Destroy Machine', (xpos, ypos), self.game.text_font, (255, 255, 255), mode='center', scale=0.75)
             self.game.hud_display.blit(self.game.assets['a_sign'], (xpos-144, ypos + 25))
@@ -2202,7 +2278,6 @@ class Machine(PhysicsEntity):
             if len(self.game.extra_entities) > 50 and (self.game.display_fps < 45 or len(self.game.extra_entities) > 200):
                 self.end_game(end_type = 1)
                 
-
 class HilbertOrb(PhysicsEntity):
     def __init__(self, game, pos, size, velocity):
         super().__init__(game, 'hilbert_orb', pos, size)
@@ -2818,7 +2893,7 @@ class SpaceBoss(Boss):
     def __init__(self, game, pos, size):
         super().__init__(game, 'spaceboss', pos, size)
 
-        self.currency_drops['purpleCog'] = random.randint(0, 2) * self.difficulty
+        self.currency_drops['purpleCog'] = self.difficulty
 
         self.gravity_affected = True
         self.collide_wall_check = True
@@ -3056,6 +3131,9 @@ class SpookyBoss(Boss):
 
         self.anim_offset = (0, 0)
 
+    def activate(self):
+        pass
+
     def update(self, tilemap, movement=(0, 0)):
         if super().update(tilemap, movement=movement):
             return True
@@ -3291,7 +3369,7 @@ class AussieBoss(Boss):
         self.active_min_time = max(60, 100 - self.difficulty * 20)
         self.active_max_time = max(70, 120 - self.difficulty * 20)
 
-        self.health = 2 + 2 * self.difficulty
+        self.health = 6 + 2 * self.difficulty
         self.max_health = self.health
 
         self.gravity_affected = True
@@ -3383,7 +3461,7 @@ class HeavenBoss(Boss):
 
         self.attack_radius = int(100 * math.atan(self.difficulty / 5))
 
-        self.health = 2 + 2 * self.difficulty
+        self.health = 6 + 2 * self.difficulty
         self.max_health = self.health
 
         self.gravity_affected = False
@@ -3470,8 +3548,8 @@ class HilbertBoss(Boss):
 
         self.currency_drops['purpleCog'] = 20
 
-        self.health = 2
-        self.stage_two_health = 1
+        self.health = 15
+        self.stage_two_health = 10
         self.max_health = self.health
 
         self.gravity_affected = True

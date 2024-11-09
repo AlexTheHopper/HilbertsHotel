@@ -71,6 +71,40 @@ class Tilemap:
                                 tile['pos'][1] * self.tile_size - offset[1])
                     surface.blit(asset, position)
 
+    def render_colour_screen(self, surface, offset=(0, 0)):
+        # Render tiles
+        for key in self.tilemap.keys():
+
+            tile = self.tilemap[key]
+            x_str, y_str = key.split(";")
+            x, y = float(x_str), float(y_str)
+
+            dist_to_dummy = np.linalg.norm((self.game.dummy_player.rect().centerx-(x*self.tile_size), self.game.dummy_player.rect().centery-(y*self.tile_size)))
+            transparency = int(255 - 255*(dist_to_dummy / 200))
+            transparency = -200 * math.atan((dist_to_dummy-130)/30) + 30
+
+            asset = self.game.assets[tile['type']][tile['variant']].copy()
+            asset.set_alpha(transparency)
+            position = (tile['pos'][0] * self.tile_size - offset[0],
+                        tile['pos'][1] * self.tile_size - offset[1])
+            surface.blit(asset, position)
+            
+
+    def move_tiles_customise(self):
+        #Move tiles:
+        keys = [key for key in self.tilemap.keys()]
+        for tile_key in keys:
+            x = self.tilemap[tile_key]['pos'][0]
+            y = self.tilemap[tile_key]['pos'][1]
+            newx = x - 0.05
+            newy = y
+
+            if newx < 43:
+                self.tilemap[f'{newx+18};{newy}'] = {'type': self.tilemap[tile_key]['type'], 'variant': self.tilemap[tile_key]['variant'], 'pos': [newx+18, newy]}
+            else:
+                self.tilemap[f'{newx};{newy}'] = {'type': self.tilemap[tile_key]['type'], 'variant': self.tilemap[tile_key]['variant'], 'pos': [newx, newy]}
+            del self.tilemap[tile_key]
+
     def extract(self, search, keep=False):
         matches = []
         if isinstance(search, list):
@@ -265,37 +299,30 @@ class Tilemap:
                             'type': 'spawnersPortal', 'variant': 5, 'pos': [x, y]}
 
                     # Characters
-                    elif not self.game.characters_met['Noether'] and self.game.floors[level_type] > 7 and level_type == 'normal' and not noether_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 6, 'pos': [x, y]}
+                    elif not self.game.characters_met['Noether'] and self.game.floors[level_type] > 5 and level_type == 'normal' and not noether_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 6, 'pos': [x, y]}
                         noether_placed = True
+                    elif not self.game.characters_met['Lorenz'] and self.game.floors[level_type] > 8 and level_type == 'normal' and not lorenz_placed:
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 11, 'pos': [x, y]}
+                        lorenz_placed = True
                     elif not self.game.characters_met['Curie'] and self.game.floors[level_type] > 10 and level_type == 'normal' and not curie_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 7, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 7, 'pos': [x, y]}
                         curie_placed = True
                     elif not self.game.characters_met['Planck'] and self.game.floors[level_type] > 13 and level_type == 'normal' and not planck_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 8, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 8, 'pos': [x, y]}
                         planck_placed = True
-                    elif not self.game.characters_met['Lorenz'] and self.game.floors[level_type] > 17 and level_type == 'normal' and not lorenz_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 11, 'pos': [x, y]}
-                        lorenz_placed = True
+
                     elif not self.game.characters_met['Franklin'] and self.game.floors[level_type] > 6 and level_type == 'spooky' and not franklin_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 14, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 14, 'pos': [x, y]}
                         franklin_placed = True
                     elif not self.game.characters_met['Rubik'] and self.game.floors[level_type] > 1 and level_type == 'rubiks' and not rubik_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 16, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 16, 'pos': [x, y]}
                         rubik_placed = True
                     elif not self.game.characters_met['Melatos'] and self.game.floors[level_type] > 3 and level_type == 'aussie' and not melatos_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 21, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 21, 'pos': [x, y]}
                         melatos_placed = True
                     elif not self.game.characters_met['Cantor'] and self.game.floors['infinite'] > 3 and not cantor_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 17, 'pos': [x, y]}
+                        self.tilemap[loc] = {'type': 'spawners', 'variant': 17, 'pos': [x, y]}
                         cantor_placed = True
 
                     # Add enemies:
@@ -321,8 +348,7 @@ class Tilemap:
             loc = str(x) + ';' + str(y)
 
             # Add random decorations
-            potential_decoration = random.choices(
-                decoration_list, weights, k=1)[0]
+            potential_decoration = random.choices(decoration_list, weights, k=1)[0]
             if not self.is_physics_tile([[x, y]], offsets=potential_decoration[3]):
                 if self.is_physics_tile([[x, y]], offsets=potential_decoration[4][1:], mode=potential_decoration[4][0]):
 
@@ -343,6 +369,8 @@ class Tilemap:
         return offgrid_tiles
 
     def is_physics_tile(self, poss, offsets=[[0, 0]], mode='any'):
+        if mode == 'clear':
+            return True
         for pos in poss:
             for offset in offsets:
                 loc = str(pos[0] + offset[0]) + ';' + str(pos[1] + offset[1])
@@ -459,7 +487,6 @@ class Tilemap:
             keep_meteor_baits = 30 in keep
             if keep[0] == keep[1] and keep[0] in ['heaven', 'hell']:
                 keep[1] = 'heaven' if keep[0] == 'hell' else 'hell'
-            print(keep)
 
             # remove the rest:
             for spawner in self.extract('spawners', keep=True):
@@ -525,7 +552,7 @@ class Tilemap:
                     window_choice = random.choice(range(self.autotile_count, self.autotile_count + 3))
                     tile['variant'] = window_choice if random.random() < 0.01 else 5
 
-                    if tile['type'] in ['space', 'heaven'] and random.random() < 0.1:
+                    if tile['type'] in ['grass', 'space', 'heaven'] and random.random() < (0.4 if tile['type'] == 'grass' else 0.1):
                         tile['variant'] = random.choice(range(self.autotile_count + 3, len(self.game.assets[tile['type']])))
 
                     elif tile['type'] == 'spooky' and random.random() < 0.005:

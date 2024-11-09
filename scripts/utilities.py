@@ -104,9 +104,11 @@ def initialise_game_params(game):
     game.interraction_frame_a = False
     game.interraction_frame_s = False
     game.interraction_frame_v = False
+    game.interraction_frame_q = False
     game.cave_darkness_range = (50, 250)
     game.cave_darkness = True
     game.min_pause_darkness = 150
+    game.transition = 0
     game.currency_entities = []
     game.boss_frequency = 5
 
@@ -141,26 +143,29 @@ def initialise_game_params(game):
     # Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
     game.floor_specifics = {
         'normal': {'decorationMod': 2,
-                   'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                   'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                    ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['decor', [7], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]]]},
 
         'grass': {'decorationMod': 10,
                   'decorations': [['decor', range(0, 2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                   ['spawners', [18], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                  ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                   ['decor', [8], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]]]},
 
         'spooky': {'decorationMod': 1,
-                   'decorations': [['decor', [3], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                   'decorations': [['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [53], 2, [[0, 0]], ['clear', [0, 0]], [[0], [0]]],
                                    ['spawners', [12], 1, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]]]},
 
         'rubiks': {'decorationMod': 1,
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [16], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
+                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'aussie': {'decorationMod': 1,
                    'decorations': [['decor', [4], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
@@ -168,22 +173,26 @@ def initialise_game_params(game):
                                    ['decor', [6], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
                                    ['decor', [17], 0.1, [[0, 0]], ['all', [0, 1]], [range(-2, 3), [0]]],
                                    ['decor', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 4), [0]]],
-                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],]},
+                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],
+                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'space': {'decorationMod': 3,
                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                   ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
                                   ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
                                   ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
-                                  ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],]},
+                                  ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],
+                                  ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'heaven': {'decorationMod': 5,
                    'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                   ['decor', [19], 1, [[0, 0]], ['all', [0, 1]], [range(0, 11), range(1, 8)]],]},
+                                   ['decor', [19], 1, [[0, 0]], ['all', [0, 1]], [range(0, 11), range(1, 8)]],
+                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'hell': {'decorationMod': 5,
                  'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                  ['spawners', [36], 0.8, [[0, 0]], ['all', [0, 1]], [range(-3, 3), [0]]],
+                                 ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                  ['decor', [20], 1, [[0, 0]], ['all', [0, -1]], [range(0, 5), [0]]],
                                  ['decor', [21], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],]},
     }
@@ -191,18 +200,25 @@ def initialise_game_params(game):
     game.available_enemy_variants = {
         'normal': [3],
         'normalWeights': [2],
+
         'grass': [3, 9],
         'grassWeights': [1, 2],
+
         'spooky': [3, 13],
         'spookyWeights': [2, 3],
+
         'rubiks': [3, 15],
         'rubiksWeights': [1, 1],
+
         'aussie': [3],
         'aussieWeights': [1],
+
         'space': [3, 22],
         'spaceWeights': [1, 1],
+
         'heaven': [3, 22, 37],
         'heavenWeights': [1, 1, 2],
+        
         'hell': [3, 4, 13, 39],
         'hellWeights': [1, 1, 1, 2],
     }
@@ -239,6 +255,9 @@ def initialise_game_params(game):
         48: {'type': 'extra_entity', 'object': _entities.HelperOrb, 'size': (2, 2)},
         49: {'type': 'extra_entity', 'object': _entities.HilbertOrbSpawner, 'size': (16, 16)},
         50: {'type': 'extra_entity', 'object': _entities.Chandelier, 'size': (32, 128)},
+        51: {'type': 'extra_entity', 'object': _entities.Crate, 'size': (12, 12)},
+        52: {'type': 'extra_entity', 'object': _entities.PlayerCustomise, 'size': (16, 16)},
+        53: {'type': 'extra_entity', 'object': _entities.Web, 'size': (16, 16)},
 
         10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
@@ -302,6 +321,8 @@ def initialise_game_params(game):
             'helper_orb/': [['idle', 6, True]],
             'hilbert_orb_spawner/': [['idle', 1, False], ['activating', 6, True], ['active', 6, True]],
             'chandelier/': [['idle', 4, True]],
+            'crate/': [['idle', 1, False]],
+            'web/': [['idle', 1, False]],
         },
 
         'entities/.bosses/': {
@@ -335,12 +356,9 @@ def initialise_game_params(game):
     game.render_scroll = (int(game.scroll[0]), int(game.scroll[1]))
 
     # overlay displays
-    game.display_outline = pygame.Surface(
-        (game.screen_width / 2, game.screen_height / 2), pygame.SRCALPHA)
-    game.display = pygame.Surface(
-        (game.screen_width / 2, game.screen_height / 2))
-    game.darkness_surface = pygame.Surface(
-        game.display_outline.get_size(), pygame.SRCALPHA)
+    game.display_outline = pygame.Surface((game.screen_width / 2, game.screen_height / 2), pygame.SRCALPHA)
+    game.display = pygame.Surface((game.screen_width / 2, game.screen_height / 2))
+    game.darkness_surface = pygame.Surface(game.display_outline.get_size(), pygame.SRCALPHA)
 
     # VALUES THAT SAVE
     game.max_health = 1
@@ -352,6 +370,28 @@ def initialise_game_params(game):
     game.spawn_point = False
     game.screenshake_on = True
     game.volume_on = True
+
+    game.creation_done = False
+    game.player_colours = {
+        'shirt': (74, 94, 132),
+        'front Leg': (51, 20, 0),
+        'back Leg': (38, 15, 0),
+        'tie': (2, 2, 2),
+        'belt': (5, 5, 5),
+        'skin': (175, 168, 151),
+        'eye': (0, 1, 104),
+    }
+
+    game.player_colours_options = {
+        'shirt': [game.player_colours['shirt'], (26, 35, 112), (87, 112, 103), (27, 91, 38), (193, 181, 100), (170, 111, 22), (170, 94, 88), (119, 5, 15), (96, 0, 96), (119, 79, 113)],
+        'front Leg': [game.player_colours['front Leg'], (38, 38, 38), (13, 22, 99), (74, 99, 90), (14, 78, 25), (180, 168, 87), (157, 98, 9), (157, 81, 75), (106, 0, 2), (83, 0, 83), (106, 66, 100)],
+        'back Leg': [game.player_colours['back Leg'], (22, 22, 22), (0, 4, 81), (56, 81, 72), (0, 60, 7), (162, 150, 69), (139, 80, 0), (139, 63, 57), (88, 0, 0), (65, 0, 65), (88, 48, 82)],
+        'tie': [game.player_colours['tie'], (100, 100, 100), (255, 255, 255), (0, 0, 63), (38, 63, 54), (0, 42, 0), (114, 132, 51), (121, 62, 0), (121, 45, 39), (70, 0, 0), (47, 0, 47), (70, 30, 64)],
+        'belt': [game.player_colours['belt'], (100, 100, 101), (255, 255, 254), (0, 0, 62), (38, 63, 53), (0, 42, 1), (114, 132, 52), (121, 62, 1), (121, 45, 38), (70, 0, 1), (47, 0, 48), (70, 30, 65)],
+        'skin': [game.player_colours['skin'], (255, 219, 172), (241, 194, 125), (224, 172, 105), (198, 134, 66), (141, 85, 36), (0, 1, 105), (74, 99, 91), (14, 78, 26), (180, 168, 88), (157, 98, 8), (157, 81, 76), (106, 0, 3), (83, 0, 84), (106, 66, 101)],
+        'eye': [game.player_colours['eye'], (74, 98, 91), (14, 77, 26), (180, 168, 86), (157, 99, 8), (157, 81, 74), (106, 0, 1), (83, 0, 82), (106, 66, 99)],
+    }
+
     game.completed_wins = {
         '1': 0,
         '2': 0
@@ -370,192 +410,37 @@ def initialise_game_params(game):
         'boxingGloves': 0,
         'yellowOrbs': 0,
         'redOrbs': 0,
+        'credits': 0,
         'hammers': 0,
         'penthouseKeys': 0,
-        'credits': 0,
     }
 
     # Prep dialogue management.
+
+    character_lengths = {
+        'Hilbert': 13,
+        'Noether': 10,
+        'Curie': 7,
+        'Planck': 3,
+        'Faraday': 4,
+        'Lorenz': 11,
+        'Franklin': 5,
+        'Rubik': 4,
+        'Cantor': 5,
+        'Melatos': 6,
+        'Webster': 5,
+        'Barad': 5,
+        'Watson': 5,
+    }
+
     game.dialogue_history = {
-        'Hilbert': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False,
-                    '5available': False,
-                    '5said': False,
-                    '6available': False,
-                    '6said': False,
-                    '7available': False,
-                    '7said': False,
-                    '8available': False,
-                    '8said': False,
-                    '9available': False,
-                    '9said': False,
-                    '10available': False,
-                    '10said': False,
-                    '11available': False,
-                    '11said': False,
-                    '12available': False,
-                    '12said': False,},
 
-        'Noether': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False,
-                    '5available': False,
-                    '5said': False,
-                    '6available': False,
-                    '6said': False,
-                    '7available': False,
-                    '7said': False,
-                    '8available': False,
-                    '8said': False,
-                    '9available': False,
-                    '9said': False},
+        name: {
+            f"{i}{key}": False
+            for i in range(count) for key in ['available', 'said']
+        }
 
-        'Curie': {'0available': True,
-                  '0said': False,
-                  '1available': False,
-                  '1said': False,
-                  '2available': False,
-                  '2said': False,
-                  '3available': False,
-                  '3said': False,
-                  '4available': False,
-                  '4said': False,
-                  '5available': False,
-                  '5said': False,
-                  '6available': False,
-                  '6said': False},
-
-        'Planck': {'0available': True,
-                   '0said': False,
-                   '1available': False,
-                   '1said': False,
-                   '2available': False,
-                   '2said': False},
-
-        'Faraday': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False},
-
-        'Lorenz': {'0available': True,
-                   '0said': False,
-                   '1available': False,
-                   '1said': False,
-                   '2available': False,
-                   '2said': False,
-                   '3available': False,
-                   '3said': False,
-                   '4available': False,
-                   '4said': False,
-                   '5available': False,
-                   '5said': False,
-                   '6available': False,
-                   '6said': False,
-                   '7available': False,
-                   '7said': False,
-                   '8available': False,
-                   '8said': False,
-                   '9available': False,
-                   '9said': False,
-                   '10available': False,
-                   '10said': False},
-
-        'Franklin': {'0available': True,
-                     '0said': False,
-                     '1available': False,
-                     '1said': False,
-                     '2available': False,
-                     '2said': False,
-                     '3available': False,
-                     '3said': False,
-                     '4available': False,
-                     '4said': False},
-
-        'Rubik': {'0available': True,
-                  '0said': False,
-                  '1available': False,
-                  '1said': False,
-                  '2available': False,
-                  '2said': False,
-                  '3available': False,
-                  '3said': False},
-
-        'Cantor': {'0available': True,
-                   '0said': False,
-                   '1available': False,
-                   '1said': False,
-                   '2available': False,
-                   '2said': False,
-                   '3available': False,
-                   '3said': False,
-                   '4available': False,
-                   '4said': False},
-
-        'Melatos': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False,
-                    '5available': False,
-                    '5said': False},
-
-        'Webster': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False},
-
-        'Barad': {'0available': True,
-                    '0said': False,
-                    '1available': False,
-                    '1said': False,
-                    '2available': False,
-                    '2said': False,
-                    '3available': False,
-                    '3said': False,
-                    '4available': False,
-                    '4said': False},
-
-        'Watson': {'0available': True,
-                   '0said': False,
-                   '1available': False,
-                   '1said': False,
-                   '2available': False,
-                   '2said': False,
-                   '3available': False,
-                   '3said': False,
-                   '4available': False,
-                   '4said': False},
-
+    for name, count in character_lengths.items()
     }
 
     game.characters_met = {
@@ -602,9 +487,9 @@ def initialise_game_params(game):
         'boxingGloves': False,
         'yellowOrbs': False,
         'redOrbs': False,
+        'credits': False,
         'hammers': False,
         'penthouseKeys': False,
-        'credits': False
     }
 
     game.encounters_check_text = {
@@ -622,9 +507,9 @@ def initialise_game_params(game):
         'boxingGloves': ['Boxing Gloves: For some reason kangaroos got \'em. Punchy punch!'],
         'yellowOrbs': ['Heavenly Orbs: They glow with the power of one million beers.'],
         'redOrbs': ['Satanic Orbs: They glow with the power of one million Jägermeisters.'],
+        'credits': ['Credit: Ooh, interesting little thingy, can be used to give credit where credit it due.'],
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.'],
         'penthouseKeys': ['Penthouse Key: Grants acess to the penthouse.'],
-        'credits': ['Credit: Ooh, interesting little thingy, can be used to give credit where credit it due. Of this game. Not DNA.'],
         'error': ['OOPS! Something went wrong here and I couldnt find the text for you, soz.']
     }
 
@@ -763,6 +648,24 @@ def next_n_primes_str(current_check, n, min = 0):
             found_primes.append(str(current_check))
         current_check += 1
     return f"{', '.join(map(str, found_primes[:-1]))} and {found_primes[-1]}"
+
+def index_to_value(i, list):
+    index = i % len(list)
+    return list[index]
+
+def alter_character_colour(game, old_c, new_c):
+    for action in ['idle', 'run', 'jump', 'wall_slide']:
+        for frame in range(len(game.assets[f'player/{action}'].images)):
+
+            game.assets[f'player/{action}'].images[frame] = colour_change(game.assets[f'player/{action}'].images[frame], old_c, new_c)
+
+def colour_change(image, old_c, new_c):
+    img = pygame.Surface(image.get_size())
+    img.fill(new_c)
+    image.set_colorkey(old_c)
+    img.blit(image, (0, 0))
+    img.set_colorkey((0, 0, 0))
+    return img
 
 class Animation:
     def __init__(self, images, img_dur=5, loop=True):

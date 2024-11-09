@@ -76,7 +76,7 @@ class Character(_entities.PhysicsEntity):
                     self.game.hud_display.blit(self.game.display_icons[requirement[1]], (xpos - (requirement_num * offset_length) / 2 + offset_n * offset_length + 10, ypos))
                     colour = (0, 150, 0) if self.current_trade_ability[i] else (150, 0, 0)
                     self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirement_num * offset_length) / 2 + offset_n *
-                                        offset_length + 10, ypos - 2), self.game.text_font, colour, mode='left', scale=0.75)
+                                        offset_length + 13, ypos - 3), self.game.text_font, colour, mode='left', scale=0.5)
                     offset_n += 1
 
             if distto_player >= 15 and self.new_dialogue:
@@ -124,7 +124,7 @@ class Hilbert(Character):
             4: [['purchase', 'cogs', 50]],
             5: [['purchase', 'cogs', 100]],
             6: [['purchase', 'cogs', 150]],
-            7: [['purchase', 'eyes', 30]],
+            7: [['purchase', 'eyes', 100]],
             8: [['purchase', 'redCogs', 5]],
             9: [['purchase', 'blueCogs', 5], ['purchase', 'purpleCogs', 5]],
             10: [['purchase', 'fairyBreads', 20], ['purchase', 'boxingGloves', 20], ['floor', 'aussie', 15]],
@@ -133,7 +133,7 @@ class Hilbert(Character):
         }
 
         self.dialogue = {
-            '0': ['Welcome...To my (Hilbert\'s) Hotel!',
+            '0': ['Welcome... To my Hotel!',
                   'Where it\'s not only bigger, but INFINITE on the inside!',
                   'So you want to join my Concierge Team? Hmm I don\'t know, what skills do you bring?',
                   'Oh! You can dash attack with your x key?',
@@ -210,7 +210,7 @@ class Hilbert(Character):
             self.game.wallet['cogs'] -= 150
 
         elif key == 7 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['eyes'] -= 30
+            self.game.wallet['eyes'] -= 100
             self.game.difficulty += 1
 
             #Add bats to grass and spooky to avoid being softlocked/having to kill yourself a bunch.
@@ -235,8 +235,7 @@ class Hilbert(Character):
             self.game.wallet['purpleCogs'] -= 10
 
         elif key == 12 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.currency_entities.append(
-                _entities.Currency(self.game, 'penthouseKey', self.game.player.pos))
+            self.game.currency_entities.append(_entities.Currency(self.game, 'penthouseKey', self.game.player.pos))
             self.game.wallet['yellowOrbs'] -= 20
             self.game.wallet['redOrbs'] -= 20
 
@@ -348,7 +347,7 @@ class Curie(Character):
             3: [['purchase', 'wings', 50], ['purchase', 'cogs', 50]],
             4: [['purchase', 'wings', 75], ['purchase', 'cogs', 50]],
             5: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 25], ['purchase', 'chitins', 25]],
-            6: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'redCogs', 50], ['purchase', 'chitins', 50]]
+            6: [['purchase', 'wings', 50], ['purchase', 'cogs', 100], ['purchase', 'blueCogs', 50], ['purchase', 'chitins', 50]]
         }
 
         self.dialogue = {
@@ -488,6 +487,7 @@ class Faraday(Character):
 
             '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to most of them! They\'ve all been sealed off but I managed to scrape this portal together.',
                   'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.',
+                  'Furthermore, I think exploring several slices will cause them to interract, bringing monsters from one into the other over time...',
                   'I\'m too scared to face Hilbert on my own but if you ever build up the courage, I\'ll be there by your side.']}
 
     def conversation_action(self, key):
@@ -645,8 +645,8 @@ class Franklin(Character):
             0: [],
             1: [],
             2: [['purchase', 'chitins', 50]],
-            3: [['purchase', 'chitins', 50], ['purchase', 'boxingGloves', 50], ['purchase', 'cogs', 50]],
-            4: [['purchase', 'chitins', 50], ['purchase', 'cogs', 50], ['purchase', 'blueCogs', 25], ['purchase', 'redCogs', 25]]
+            3: [['purchase', 'chitins', 50], ['purchase', 'boxingGloves', 50], ['purchase', 'blueCogs', 10]],
+            4: [['purchase', 'chitins', 50], ['purchase', 'cogs', 50], ['purchase', 'purpleCogs', 10]]
         }
 
         self.dialogue = {
@@ -659,6 +659,7 @@ class Franklin(Character):
                   'Bring me 50 chitin and I\'ll make you stronger!'],
 
             '2': ['Yay woo! Your power level is now 2!',
+                  'With higher power levels, you will be able to defeat stronger GunGuys which may or may not drop you more exciting types of cogs!',
                   'I\'ll give ya another for 50 more chitin and some real smackeroonie gloves!'],
 
             '3': ['Yay woo! Your power level is now 3!',
@@ -685,6 +686,7 @@ class Franklin(Character):
 
             self.game.wallet['chitins'] -= 50
             self.game.wallet['boxingGloves'] -= 50
+            self.game.wallet['blueCogs'] -= 10
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.power_level += 1
@@ -692,8 +694,7 @@ class Franklin(Character):
 
             self.game.wallet['chitins'] -= 50
             self.game.wallet['cogs'] -= 50
-            self.game.wallet['redCgs'] -= 25
-            self.game.wallet['blueCogs'] -= 25
+            self.game.wallet['purpleCogs'] -= 10
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
 
