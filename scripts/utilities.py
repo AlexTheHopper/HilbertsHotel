@@ -73,7 +73,7 @@ def initialise_main_screen(game):
     game.hud_display = pygame.Surface((game.screen_width, game.screen_height))
     game.hud_display.set_colorkey((0, 0, 0))
     game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2),
-                   game.text_font, (86, 31, 126), scale=1.5, mode='center')
+                   game.text_font, (86, 31, 126), scale=8, mode='center')
     game.screen.blit(pygame.transform.scale(game.hud_display, game.screen.get_size()), (0, 0))
     pygame.display.update()
 
@@ -88,6 +88,7 @@ def initialise_game_params(game):
     """
     game.game_running = False
     game.in_menu = True
+    game.saved_characters = [False, False, False]
     game.game_ending = False
     game.fps = 60
     game.display_fps = game.fps
@@ -125,6 +126,7 @@ def initialise_game_params(game):
     game.next_level = 'lobby'
 
     game.level_style = 'lobby'
+    game.music_playing = 'lobby'
 
     game.infinite_mode_active = False
     game.infinite_floor_max = 1
@@ -144,26 +146,31 @@ def initialise_game_params(game):
     game.floor_specifics = {
         'normal': {'decorationMod': 2,
                    'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
+                                   ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
-                                   ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                   ['decor', [7], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]]]},
+                                   ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
         'grass': {'decorationMod': 10,
                   'decorations': [['decor', range(0, 2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                   ['spawners', [18], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
+                                  ['spawners', [54], 0.5, [[0, 0]], ['all', [0, 1]], [range(0,8), [8]]],
+                                  ['decor', [7], 0.2, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [8], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
-                                  ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]]]},
+                                  ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
+                                  ['decor', [22], 2, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]]]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [53], 2, [[0, 0]], ['clear', [0, 0]], [[0], [0]]],
-                                   ['spawners', [12], 1, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]]]},
+                                   ['spawners', [12], 2, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]],
+                                   ['decor', [22], 0.25, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],]},
 
         'rubiks': {'decorationMod': 1,
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [16], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                   ['decor', [22], 0.25, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
@@ -173,20 +180,24 @@ def initialise_game_params(game):
                                    ['decor', [6], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
                                    ['decor', [17], 0.1, [[0, 0]], ['all', [0, 1]], [range(-2, 3), [0]]],
                                    ['decor', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 4), [0]]],
+                                   ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'space': {'decorationMod': 3,
                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                  ['decor', [7], 0.5, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
                                   ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
                                   ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
                                   ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],
+                                  ['decor', [22], 1, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'heaven': {'decorationMod': 5,
                    'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['decor', [19], 1, [[0, 0]], ['all', [0, 1]], [range(0, 11), range(1, 8)]],
+                                   ['decor', [22], 1, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'hell': {'decorationMod': 5,
@@ -194,7 +205,8 @@ def initialise_game_params(game):
                                  ['spawners', [36], 0.8, [[0, 0]], ['all', [0, 1]], [range(-3, 3), [0]]],
                                  ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                  ['decor', [20], 1, [[0, 0]], ['all', [0, -1]], [range(0, 5), [0]]],
-                                 ['decor', [21], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],]},
+                                 ['decor', [21], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
+                                 ['decor', [22], 1, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],]},
     }
 
     game.available_enemy_variants = {
@@ -256,8 +268,9 @@ def initialise_game_params(game):
         49: {'type': 'extra_entity', 'object': _entities.HilbertOrbSpawner, 'size': (16, 16)},
         50: {'type': 'extra_entity', 'object': _entities.Chandelier, 'size': (32, 128)},
         51: {'type': 'extra_entity', 'object': _entities.Crate, 'size': (12, 12)},
-        52: {'type': 'extra_entity', 'object': _entities.PlayerCustomise, 'size': (16, 16)},
+        52: {'type': 'extra_entity', 'object': _entities.PlayerCustomise, 'size': (8, 12)},
         53: {'type': 'extra_entity', 'object': _entities.Web, 'size': (16, 16)},
+        54: {'type': 'extra_entity', 'object': _entities.Parrot, 'size': (7, 8)},
 
         10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
@@ -290,7 +303,7 @@ def initialise_game_params(game):
             'echidna/': [['idle', 10, True], ['grace', 10, True], ['charging', 30, False], ['walking', 6, True]],
             'gunguy/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
             'gunguyBlue/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
-            'gunguyOrange/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
+            'gunguyRed/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
             'gunguyPurple/': [['idle', 10, True], ['grace', 4, True], ['run', 4, True], ['jump', 20, True]],
             'kangaroo/': [['idle', 10, True], ['grace', 5, True], ['prep', 4, True], ['jumping', 4, True]],
             'rolypoly/': [['idle', 10, True], ['run', 4, True]],
@@ -309,7 +322,7 @@ def initialise_game_params(game):
             'meteor_bait/': [['idle', 6, True]],
             'spawn_point/': [['idle', 5, True], ['active', 5, True]],
             'torch/': [['idle', 4, True]],
-            'gravestone/': [['idle', 4, True]],
+            'gravestone/': [['idle', 4, True], ['active', 5, False]],
             'fly_ghost/': [['idle', 6, True]],
             'candle/': [['idle', 8, True], ['preparing', 8, True], ['active', 8, True]],
             'orb_cherub/': [['idle', 6, True]],
@@ -323,6 +336,8 @@ def initialise_game_params(game):
             'chandelier/': [['idle', 4, True]],
             'crate/': [['idle', 1, False]],
             'web/': [['idle', 1, False]],
+            'parrot/': [['idle', 5, True], ['flying', 5, True]],
+            'parrot_saved/': [['idle', 5, True], ['flying', 5, True]],
         },
 
         'entities/.bosses/': {
@@ -541,15 +556,15 @@ def initialise_game_params(game):
     game.enemy_names = {
         'default': 'Nothing',
         'gunguy': 'Gun Guy',
-        'gunguyOrange': 'Orange Gun Guy',
+        'gunguyRed': 'Red Gun Guy',
         'gunguyBlue': 'Blue Gun Guy',
         'gunguyPurple': 'Purple Gun Guy',
         'gunguyStaff': 'Wizard',
-        'gunguyOrangeStaff': 'Orange Wizard',
+        'gunguyRedStaff': 'Red Wizard',
         'gunguyBlueStaff': 'Blue Wizard',
         'gunguyPurpleStaff': 'Purple Wizard',
         'gunguyWitch': 'Witch',
-        'gunguyOrangeWitch': 'Orange Witch',
+        'gunguyRedWitch': 'Red Witch',
         'gunguyBlueWitch': 'Blue Witch',
         'gunguyPurpleWitch': 'Purple Witch',
         'bat': 'Bat',
@@ -666,6 +681,30 @@ def colour_change(image, old_c, new_c):
     img.blit(image, (0, 0))
     img.set_colorkey((0, 0, 0))
     return img
+
+def set_area_music(game, level_style, prev):
+    if level_style == 'infinite':
+        level_style = 'final'
+    areas = list(game.floor_specifics.keys())
+    areas.append('lobby')
+    areas.append('final')
+    for style in areas:
+        if not (style == level_style == game.music_playing):
+            game.sfx[f'{style}_music'].fadeout(1000)
+
+    game.sfx['hilbert_music'].fadeout(1000)
+    if level_style != game.music_playing:
+        game.sfx[f'{level_style}_music'].play(loops = -1, fade_ms = 1000)
+        game.music_playing = level_style
+
+def reset_music(game):
+    areas = list(game.floor_specifics.keys())
+    areas.append('lobby')
+    areas.append('final')
+    for style in areas:
+        game.sfx[f'{style}_music'].fadeout(1000)
+    game.sfx['hilbert_music'].fadeout(1000)
+    game.sfx['ambience'].play(loops = -1, fade_ms = 1000)
 
 class Animation:
     def __init__(self, images, img_dur=5, loop=True):

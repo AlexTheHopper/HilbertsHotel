@@ -65,25 +65,27 @@ class Character(_entities.PhysicsEntity):
             except KeyError:
                 requirement_num = 0
 
-            xpos = 2 * (self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0] + 7)
-            ypos = 2 * int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 30
-            offset_length = 80
+            xpos = self.pos[0] - self.game.render_scroll[0] + self.anim_offset[0]
+            ypos = int(self.pos[1] - self.game.render_scroll[1] + self.anim_offset[1]) - 15
+            offset_length = 40
 
             if requirement_num > 0:
                 offset_n = 0
                 for i, requirement in enumerate(self.currency_requirements[self.current_dialogue_index + 1]):
                     # Display requirements above character:
-                    self.game.hud_display.blit(self.game.display_icons[requirement[1]], (xpos - (requirement_num * offset_length) / 2 + offset_n * offset_length + 10, ypos))
+                    icon = self.game.display_icons[requirement[1]]
+                    self.game.hud_display.blit(icon, (xpos - (requirement_num * offset_length) / 2 + offset_n * offset_length + 10, ypos - (icon.get_height() / 2) + 4))
+
                     colour = (0, 150, 0) if self.current_trade_ability[i] else (150, 0, 0)
-                    self.game.draw_text(str(requirement[2]), (xpos + 30 - (requirement_num * offset_length) / 2 + offset_n *
-                                        offset_length + 13, ypos - 3), self.game.text_font, colour, mode='left', scale=0.5)
+                    self.game.draw_text(str(requirement[2]), (xpos + 15 - (requirement_num * offset_length) / 2 + offset_n *
+                                        offset_length + 13, ypos - 3), self.game.text_font, colour, mode='left')
                     offset_n += 1
 
             if distto_player >= 15 and self.new_dialogue:
-                self.game.hud_display.blit(self.game.assets['exclamation'], (xpos - 4, ypos - (25 if requirement_num else 5)))
+                self.game.hud_display.blit(self.game.assets['exclamation'], (xpos + 5, ypos - (20 if requirement_num else 5)))
 
             elif distto_player < 15:
-                self.game.hud_display.blit(self.game.assets['z_sign'], (xpos - 14, ypos - (25 if requirement_num else 5)))
+                self.game.hud_display.blit(self.game.assets['z_sign'], (xpos, ypos - (20 if requirement_num else 5)))
 
                 if self.game.interraction_frame_z and not self.game.dead:
                     self.game.run_text(self)
@@ -136,7 +138,7 @@ class Hilbert(Character):
             '0': ['Welcome... To my Hotel!',
                   'Where it\'s not only bigger, but INFINITE on the inside!',
                   'So you want to join my Concierge Team? Hmm I don\'t know, what skills do you bring?',
-                  'Oh! You can dash attack with your x key?',
+                  'Oh! You can dash attack with your x key, and pause with your ESC key?',
                   'How original...'],
 
             '1': ['Well if you\'re that insistent. I do have a little problem, help me out with it then the job and Tophat(!) are yours!',
@@ -238,6 +240,8 @@ class Hilbert(Character):
             self.game.currency_entities.append(_entities.Currency(self.game, 'penthouseKey', self.game.player.pos))
             self.game.wallet['yellowOrbs'] -= 20
             self.game.wallet['redOrbs'] -= 20
+
+            self.game.sfx['lobby_music'].fadeout(2000)
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
 
@@ -373,7 +377,7 @@ class Curie(Character):
                   'I can improve this more, just you watch!'],
 
             '6': ['Wow. I\'m digging your style, my guy.',
-                  'Unfortunately, that\'s the limit of my tech at the moment, but I would love to see these boots in action soon! Let me know if you need any help in there!']
+                  'Unfortunately, that\'s the limit of my tech at the moment. I sure am glad we met, most of the concierge team hid away after what happened to Watson, but with you, I think we stand a chance.']
         }
 
     def conversation_action(self, key):
@@ -429,16 +433,16 @@ class Planck(Character):
         }
 
         self.dialogue = {
-            '0': ['Oh by golly gosh am I lost! Do you know the way back to the lobby?',
-                  'Brilliant, cheers I\'ll follow you back!'],
+            '0': ['Boy, am I glad to see someone different! I\'ve ventured in here to sell stuff to these people, but no one wants any :(',
+                  'Maybe you do! I\'ll just follow you back to the lobby and we shall see. :)'],
 
-            '1': ['Oh yeah by the way I\'m also quite useful \'round here.',
+            '1': ['Alright here we are. Now. Please buy my thingies!',
                   'I can make you temporary hearts! They will only last until you get hit.',
                   'They\'re each yours for just 5 heart fragments! It\'s been a bit slow here at the ol\' Temporary Heart Shop... Please buy them...'],
 
             '2': ['Here\'s a temporary heart!',
                   'Don\'t go losing it all at once!',
-                  '']}
+                  'PLACEHOLDER TEXT - BUG IF SEEN']}
 
         self.update_final_text()
 
@@ -457,8 +461,7 @@ class Planck(Character):
             self.game.dialogue_history[self.name][str(key) + 'said'] = True
 
     def update_final_text(self):
-        self.final_text = f'If you buy {self.game.temp_hearts_for_planck -
-                                       self.game.temp_hearts_bought} more I will be able to pay off all my debts to Hilbert and be forever in your debt!' if self.game.temp_hearts_bought < self.game.temp_hearts_for_planck else 'I can finally pay off my debts! Thank you so so much kind stranger!'
+        self.final_text = f'If you buy {self.game.temp_hearts_for_planck - self.game.temp_hearts_bought} more I will be able to pay off all my debts to Hilbert and be forever in YOUR debt!' if self.game.temp_hearts_bought < self.game.temp_hearts_for_planck else 'I can finally pay off my debts! Thank you so so much kind stranger!'
         self.dialogue['2'][2] = self.final_text
 
 
@@ -488,7 +491,8 @@ class Faraday(Character):
             '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to most of them! They\'ve all been sealed off but I managed to scrape this portal together.',
                   'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.',
                   'Furthermore, I think exploring several slices will cause them to interract, bringing monsters from one into the other over time...',
-                  'I\'m too scared to face Hilbert on my own but if you ever build up the courage, I\'ll be there by your side.']}
+                  'Many of us on the concierge team got worried about Hilbert\'s actions, so hid away from him.',
+                  'I\'m too scared to face him on my own but if you ever build up the courage, I\'ll be there by your side.']}
 
     def conversation_action(self, key):
         # Runs when dialogue matching key is said for thr first time.
@@ -800,7 +804,7 @@ class Melatos(Character):
         }
 
         self.dialogue = {
-            '0': ['G\'day champ! I\'ve gone and found myself stuck in what appears to be stereotypical Australia.',
+            '0': ['G\'day champ! I\'ve gone and found myself stuck in some real weird place.',
                   'I will be following you out of here I think.'],
 
             '1': ['Damn, now that I am out of there I\'m getting really peckish.',
@@ -960,7 +964,8 @@ class Watson(Character):
 
         self.dialogue = {
             '0': ['Woah hey hi!',
-                  'I been sitting down here so long it\'s been ages since I\'ve seen anyone!',
+                  'I been locked down here so long it\'s been ages since I\'ve seen anyone! Can\'t believe I wasn\'t able to make that machine, ah well.',
+                  'Anyway!',
                   'I have some reeeaaallly top secret information for you... for a price.',
                   'It\'s worth it, I promise, I was told this by God!'],
 

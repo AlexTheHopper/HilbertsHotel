@@ -2,7 +2,6 @@
 Tilemap module for Hilbert's Hotel.
 Manages all tilemap behaviour, generation and rendering.
 """
-
 import json
 import tkinter
 from tkinter import filedialog
@@ -55,9 +54,16 @@ class Tilemap:
     def render(self, surface, offset=(0, 0)):
         # Render non-grid assets
         for tile in self.offgrid_tiles:
+            posx = tile['pos'][0] - offset[0]
+            if posx > self.game.screen_width / 2 or posx < -(self.tile_size*3):
+                continue
+
+            posy = tile['pos'][1] - offset[1]
+            if posy > self.game.screen_height / 2 or posy < -(self.tile_size*3):
+                continue
+
             asset = self.game.assets[tile['type']][tile['variant']]
-            position = (tile['pos'][0] - offset[0], tile['pos'][1] - offset[1])
-            surface.blit(asset, position)
+            surface.blit(asset, (posx, posy))
 
         # Render tiles
         for x in range(offset[0] // self.tile_size, (offset[0] + surface.get_width()) // self.tile_size + 1):
@@ -335,13 +341,12 @@ class Tilemap:
         deco_num = 0
         glowworm_count = 0
         glowwom_max = 15
-        deco_num_max = math.ceil(
-            size / 5 * self.game.floor_specifics[level_style]['decorationMod'])
+        deco_num_max = math.ceil(size / 5 * self.game.floor_specifics[level_style]['decorationMod'])
         decoration_list = self.game.floor_specifics[level_style]['decorations']
         weights = [deco[2] for deco in decoration_list]
         attempt_counter = 0
 
-        while (deco_num < deco_num_max) and attempt_counter < 5000:
+        while (deco_num < deco_num_max) and attempt_counter < size**2:
             attempt_counter += 1
             x = random.choice(range(buffer, self.map_size - buffer))
             y = random.choice(range(buffer, self.map_size - buffer))
@@ -550,7 +555,7 @@ class Tilemap:
                 if AUTOTILE_MAP[neighbours] == 5 and windows == True:
 
                     window_choice = random.choice(range(self.autotile_count, self.autotile_count + 3))
-                    tile['variant'] = window_choice if random.random() < 0.01 else 5
+                    tile['variant'] = window_choice if random.random() < 0.03 else 5
 
                     if tile['type'] in ['grass', 'space', 'heaven'] and random.random() < (0.4 if tile['type'] == 'grass' else 0.1):
                         tile['variant'] = random.choice(range(self.autotile_count + 3, len(self.game.assets[tile['type']])))
