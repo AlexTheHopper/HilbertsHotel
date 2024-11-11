@@ -91,6 +91,7 @@ def initialise_game_params(game):
     game.saved_characters = [False, False, False]
     game.game_ending = False
     game.fps = 60
+    game.dt = 1
     game.display_fps = game.fps
     game.initialising_game = True
     game.display_hud = True
@@ -146,7 +147,7 @@ def initialise_game_params(game):
     game.floor_specifics = {
         'normal': {'decorationMod': 2,
                    'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                   ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
+                                   ['decor', [22], 0.3, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                    ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
@@ -158,19 +159,19 @@ def initialise_game_params(game):
                                   ['decor', [7], 0.2, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [8], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
-                                  ['decor', [22], 2, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]]]},
+                                  ['decor', [22], 0.3, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]]]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [53], 2, [[0, 0]], ['clear', [0, 0]], [[0], [0]]],
                                    ['spawners', [12], 2, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]],
-                                   ['decor', [22], 0.25, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],]},
+                                   ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],]},
 
         'rubiks': {'decorationMod': 1,
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [16], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
-                                   ['decor', [22], 0.25, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
+                                   ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
@@ -191,13 +192,13 @@ def initialise_game_params(game):
                                   ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
                                   ['decor', [12], 1, [[0, 0]], ['all', [0, 1]], [range(0, 5), [0]]],
                                   ['decor', [13], 1, [[0, 0]], ['all', [0, 1]], [range(0, 2), [0]]],
-                                  ['decor', [22], 1, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
+                                  ['decor', [22], 0.75, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'heaven': {'decorationMod': 5,
                    'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['decor', [19], 1, [[0, 0]], ['all', [0, 1]], [range(0, 11), range(1, 8)]],
-                                   ['decor', [22], 1, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
+                                   ['decor', [22], 0.2, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'hell': {'decorationMod': 5,

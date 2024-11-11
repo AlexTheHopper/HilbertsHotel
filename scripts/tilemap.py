@@ -341,12 +341,12 @@ class Tilemap:
         deco_num = 0
         glowworm_count = 0
         glowwom_max = 15
-        deco_num_max = math.ceil(size / 5 * self.game.floor_specifics[level_style]['decorationMod'])
+        deco_num_max = math.ceil(size / 10 * self.game.floor_specifics[level_style]['decorationMod'])
         decoration_list = self.game.floor_specifics[level_style]['decorations']
         weights = [deco[2] for deco in decoration_list]
         attempt_counter = 0
 
-        while (deco_num < deco_num_max) and attempt_counter < size**2:
+        while (deco_num < deco_num_max) and attempt_counter < 10*size**2:
             attempt_counter += 1
             x = random.choice(range(buffer, self.map_size - buffer))
             y = random.choice(range(buffer, self.map_size - buffer))
@@ -362,6 +362,8 @@ class Tilemap:
                     add_deco = {'type': potential_decoration[0], 'variant': random.choice(
                         potential_decoration[1]), 'pos': [x * self.tile_size + deco_offset_x, y * self.tile_size + deco_offset_y]}
                     offgrid_tiles.append(add_deco)
+                    if add_deco['variant'] == 22:
+                        self.game.machine_count += 1
                     deco_num += 1
 
             # Glowworms

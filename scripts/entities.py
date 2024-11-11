@@ -903,6 +903,8 @@ class Player(PhysicsEntity):
 
         if abs(self.dashing) <= 50 and self.game.transition < 1:
             super().render(surface, offset=offset)
+        elif abs(self.dashing) > 50:
+            super().render(surface, offset=offset, transparency=100)
 
     def jump(self):
         if self.wall_slide and self.can_dash:
@@ -1164,9 +1166,10 @@ class Bullet():
         self.light_size = 10
 
     def update(self, game):
-        if game.cave_darkness and game.transition <= 0:
-            game.darkness_circle(0, self.light_size, (int(self.pos[0]) - game.render_scroll[0], int(self.pos[1]) - game.render_scroll[1]))
-        game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - game.render_scroll[1]))
+        if game.display_frame:
+            if game.cave_darkness and game.transition <= 0:
+                game.darkness_circle(0, self.light_size, (int(self.pos[0]) - game.render_scroll[0], int(self.pos[1]) - game.render_scroll[1]))
+            game.display_outline.blit(self.img, (self.pos[0] - self.img.get_width() / 2 - game.render_scroll[0], self.pos[1] - self.img.get_height() / 2 - game.render_scroll[1]))
 
         if not game.paused:
             self.pos[0] += self.speed[0]

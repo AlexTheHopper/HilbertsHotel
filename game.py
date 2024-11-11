@@ -59,7 +59,7 @@ class Game:
 
         background = pygame.transform.scale(self.assets['menuBackground'], (self.screen_width / 2, self.screen_height / 2))
         foreground = pygame.transform.scale(self.assets['menuForeground'], (self.screen_width / 2, self.screen_height / 2))
-
+        
         while self.in_menu:
             self.display_outline.fill((0, 0, 0, 0))
             self.display_outline.blit(background, (0, 0))
@@ -69,13 +69,6 @@ class Game:
             self.clouds.render(self.display_outline, offset=self.render_scroll)
 
             self.display_outline.blit(foreground, (0, 0))
-
-            # Delete save if held for 5 secs
-            if deleting:
-                deleting = max(deleting - 1, 0)
-                if deleting == 0:
-                    self.delete_save(hover_slot % len(save_slots))
-                    save_info = self.get_save_info()
 
             # Displaying menu HUD:
             display_slot = hover_slot % len(save_slots)
@@ -97,6 +90,16 @@ class Game:
             self.draw_text('<     >', (self.screen_width * (2/4) - 128 + 130*display_slot, self.screen_height - 90), self.text_font,
                             selected, mode='center', scale = 8)
             
+            # Delete save if held for 5 secs
+            if deleting:
+                deleting = max(deleting - 1, 0)
+                if deleting == 0:
+                    self.delete_save(hover_slot % len(save_slots))
+                    save_info = self.get_save_info()
+                #Show that it is being deleted:
+                self.draw_text('DELETING', (self.screen_width * (2/4) - 130 + 130*hover_slot, self.screen_height - 90), self.text_font,
+                                (200,0,0), mode='center', scale = 3)
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -111,7 +114,7 @@ class Game:
                         hover_slot += 1
                         if deleting:
                             deleting = 0
-                    if event.key == pygame.K_x:
+                    if event.key == pygame.K_x or event.key == pygame.K_RETURN:
                         save_slot = hover_slot % len(save_slots)
                         self.game_running = True
                         self.run(save_slot)
@@ -197,7 +200,7 @@ class Game:
                     self.draw_text(f'{piece.capitalize()}:', (self.screen_width / 2 + 275, self.screen_height / 2 - 350 + 100*n), self.text_font, text_col, mode='center', scale = 2)
 
                     for offset, colour in enumerate(range(selection_indices[piece]-2, selection_indices[piece]+3)):
-                        circle_size = 25 - 3*abs(offset - 2)
+                        circle_size = 25 - 5*abs(offset - 2)
                         pygame.draw.circle(self.hud_display, (255, 255, 255), (self.screen_width / 2 + 125 + offset*75, self.screen_height / 2 - 300 + 100*n), circle_size)
                         pygame.draw.circle(self.hud_display, _utilities.index_to_value(selection_indices[piece] - 2 + offset, self.player_colours_options[piece]), (self.screen_width / 2 + 125 + offset*75, self.screen_height / 2 - 300 + 100*n), circle_size-2)
                 
@@ -247,7 +250,7 @@ class Game:
                     if event.key == pygame.K_DOWN and not reducing_player:
                         self.sfx['dashClick'].play()
                         height_index += 1
-                    if event.key == pygame.K_x:
+                    if event.key == pygame.K_x or event.key == pygame.K_RETURN:
                         reducing_player = True
                         _utilities.alter_character_colour(self, (150, 143, 126), tuple((max(1, c - 25) for c in self.player_colours['skin'])))
                         self.dummy_player.set_action('idle')
@@ -289,6 +292,8 @@ class Game:
 
         self.set_player_colours()
         self.in_menu = False
+        self.frame_count = 0
+        self.display_frame = True
         self.sfx['lobby_music'].play(-1)
         self.sfx['ambience'].stop()
 
@@ -300,60 +305,67 @@ class Game:
         #####################################################
 
         while self.game_running:
+            #Skip blitting on some frames to increase FPS on some machines
+            self.frame_count += 1
+            self.display_frame = self.display_this_frame()
+
             # Camera movement
             self.scroll[0] += (self.player.rect().centerx - self.screen_width / 4 - self.scroll[0]) / 15
             self.scroll[1] += (self.player.rect().centery - self.screen_height / 4 - self.scroll[1]) / 15
             self.render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
-            # Background
-            self.display.blit(self.background, (0, 0))
-            self.display_outline.fill((0, 0, 0, 0))
-            self.hud_display.fill((0, 0, 0, 0))
-            self.darkness_surface.fill((0, 0, 0, self.cave_darkness))
+            if self.display_frame:
+                # Background
+                self.display.blit(self.background, (0, 0))
+                self.display_outline.fill((0, 0, 0, 0))
+                self.hud_display.fill((0, 0, 0, 0))
+                self.darkness_surface.fill((0, 0, 0, self.cave_darkness))
             self.screenshake = max(0, self.screenshake - 1)
-
-            #Sync movement with framerate with dt
-            #Its not really a dt, but more a scale factor
-            #TODO change 60 back to self.fps
-            self.dt = 60 / max(15, min(self.clock.get_fps(), 60))
 
             if not self.paused:
                 self.clouds.update()
-                self.clouds.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    self.clouds.render(self.display_outline, offset=self.render_scroll)
 
             # RENDER AND UPDATE ALL THE THINGS
             for portal in self.portals:
                 if not self.paused:
                     portal.update(self.tilemap)
-                portal.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    portal.render(self.display_outline, offset=self.render_scroll)
 
             for enemy in self.enemies.copy():
                 if not self.paused:
                     if enemy.update(self.tilemap, (0, 0)):
                         self.enemies.remove(enemy)
                         self.player.updatenearest_enemy()
-                enemy.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    enemy.render(self.display_outline, offset=self.render_scroll)
 
             for boss in self.bosses.copy():
                 if not self.paused:
                     if boss.update(self.tilemap, (0, 0)):
                         self.bosses.remove(boss)
-                boss.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    boss.render(self.display_outline, offset=self.render_scroll)
 
             for character in self.characters.copy():
                 if not self.paused:
                     character.update(self.tilemap)
-                character.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    character.render(self.display_outline, offset=self.render_scroll)
 
             for spawn_point in self.spawn_points:
                 if not self.paused:
                     spawn_point.update(self.tilemap)
-                spawn_point.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    spawn_point.render(self.display_outline, offset=self.render_scroll)
 
             if not self.dead:
                 if not self.paused:
                     self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
-                self.player.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    self.player.render(self.display_outline, offset=self.render_scroll)
 
             for projectile in self.projectiles.copy():
                 if projectile.update(self):
@@ -369,30 +381,36 @@ class Game:
                 if not self.paused:
                     if currency_item.update(self.tilemap, (0, 0)):
                         self.currency_entities.remove(currency_item)
-                currency_item.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    currency_item.render(self.display_outline, offset=self.render_scroll)
 
-            self.tilemap.render(self.display_outline, offset=self.render_scroll)
+            if self.display_frame:
+                self.tilemap.render(self.display_outline, offset=self.render_scroll)
 
             for extra_entity in self.extra_entities.copy():
                 if not self.paused:
                     if extra_entity.update(self.tilemap):
                         self.extra_entities.remove(extra_entity)
-                extra_entity.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    extra_entity.render(self.display_outline, offset=self.render_scroll)
 
             for spark in self.sparks.copy():
                 if not self.paused:
                     if spark.update(self, offset=self.render_scroll):
                         self.sparks.remove(spark)
-                spark.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    spark.render(self.display_outline, offset=self.render_scroll)
 
-            display_outline_mask = pygame.mask.from_surface(self.display_outline)
-            display_outline_sillhouette = display_outline_mask.to_surface(setcolor=(0, 0, 0, 180), unsetcolor=(0, 0, 0, 0))
+            if self.display_frame:
+                display_outline_mask = pygame.mask.from_surface(self.display_outline)
+                display_outline_sillhouette = display_outline_mask.to_surface(setcolor=(0, 0, 0, 180), unsetcolor=(0, 0, 0, 0))
 
-            for offset in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-                self.display.blit(display_outline_sillhouette, offset)
+                for offset in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                    self.display.blit(display_outline_sillhouette, offset)
 
             for particle in self.particles.copy():
-                particle.render(self.display_outline, offset=self.render_scroll)
+                if self.display_frame:
+                    particle.render(self.display_outline, offset=self.render_scroll)
                 if not self.paused:
                     kill = particle.update()
                     if particle.type == 'leaf':
@@ -494,7 +512,23 @@ class Game:
                             self.wallet_temp[str(c.currency_type) + 's'] += c.value
                             self.currency_entities.remove(c)
                     if event.key == pygame.K_p:
-                        self.fps = 20 if self.fps == 60 else 60
+                        self.fps += 5
+                        print(f'New FPS: {self.fps}')
+                    if event.key == pygame.K_o:
+                        self.fps -= 5
+                        print(f'New FPS: {self.fps}')
+                    if event.key == pygame.K_l:
+                        self.machine_count = 0
+                        loops = 10
+                        for lvl in list(self.floor_specifics.keys()):
+                            for flr in range(1, 25):
+                                for _ in range(loops):
+                                    self.tilemap.load_random_tilemap(int(5 * np.log(flr ** 2) + 13 + flr / 4), 20, level_style=lvl, level_type=lvl if lvl not in ['heaven', 'hell'] else 'heaven_hell')
+                            print(f'in lvl {lvl} there were {round(self.machine_count/loops, 2)} per run on average')
+                            self.machine_count = 0
+
+
+
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
                         self.movement[0] = False
@@ -507,36 +541,38 @@ class Game:
                         self.player.gravity = 0.075 if self.level_style == 'space' else 0.12
 
             if self.dead:
-                self.darkness_surface.fill(
-                    (0, 0, 0, max(self.min_pause_darkness, self.cave_darkness)))
-                self.draw_text('YOU DIED', (self.screen_width / 4, self.screen_height / 4 - 30), self.text_font, (200, 0, 0), scale = 2, mode='center')
+                if self.display_frame:
+                    self.darkness_surface.fill(
+                        (0, 0, 0, max(self.min_pause_darkness, self.cave_darkness)))
+                    self.draw_text('YOU DIED', (self.screen_width / 4, self.screen_height / 4 - 30), self.text_font, (200, 0, 0), scale = 2, mode='center')
 
-                self.draw_text(self.death_message, (self.screen_width / 4, self.screen_height / 4 - 10), self.text_font, (200, 0, 0), mode='center')
-                self.draw_text('Deaths: ' + str(self.death_count), (self.screen_width / 4, self.screen_height / 4 + 15), self.text_font, (200, 0, 0), mode='center')
-                self.draw_text('Press z to Alive Yourself', (self.screen_width / 4, self.screen_height / 4 + 30), self.text_font, (200, 0, 0), mode='center')
+                    self.draw_text(self.death_message, (self.screen_width / 4, self.screen_height / 4 - 10), self.text_font, (200, 0, 0), mode='center')
+                    self.draw_text('Deaths: ' + str(self.death_count), (self.screen_width / 4, self.screen_height / 4 + 15), self.text_font, (200, 0, 0), mode='center')
+                    self.draw_text('Press z to Alive Yourself', (self.screen_width / 4, self.screen_height / 4 + 30), self.text_font, (200, 0, 0), mode='center')
 
                 if self.interraction_frame_z:
                     self.transition_to_level('lobby')
 
-            # Darkness effect blit:
-            if self.cave_darkness or self.paused or self.dead:
-                self.display_outline.blit(self.darkness_surface, (0, 0))
+            if self.display_frame:
+                # Darkness effect blit:
+                if self.cave_darkness or self.paused or self.dead:
+                    self.display_outline.blit(self.darkness_surface, (0, 0))
 
-            self.display.blit(self.display_outline, (0, 0))
-            screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) if self.screenshake_on else (0, 0)
-            self.display.blit(self.hud_display, screenshake_offset)
+                self.display.blit(self.display_outline, (0, 0))
+                screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2) if self.screenshake_on else (0, 0)
+                self.display.blit(self.hud_display, screenshake_offset)
 
-            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
+                self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
 
-            # Level transition circle
-            if self.transition:
-                transition_surface = pygame.Surface(self.screen.get_size())
-                pygame.draw.circle(transition_surface, (255, 255, 255), (self.screen.get_width() // 2, self.screen.get_height() // 2), (30 - abs(self.transition)) * (self.screen.get_width() / 30))
-                transition_surface.set_colorkey((255, 255, 255))
-                self.screen.blit(transition_surface, (0, 0))
+                # Level transition circle
+                if self.transition:
+                    transition_surface = pygame.Surface(self.screen.get_size())
+                    pygame.draw.circle(transition_surface, (255, 255, 255), (self.screen.get_width() // 2, self.screen.get_height() // 2), (30 - abs(self.transition)) * (self.screen.get_width() / 30))
+                    transition_surface.set_colorkey((255, 255, 255))
+                    self.screen.blit(transition_surface, (0, 0))
 
-            pygame.display.update()
-            self.clock.tick(self.fps)
+                pygame.display.update()
+                self.clock.tick(self.fps)
 
         #####################################################
         ####################GAME LOOP END####################
@@ -950,7 +986,7 @@ class Game:
 
         """
         text_col = (200, 200, 200) if not self.dead else (200, 0, 0)
-        if pygame.time.get_ticks() % 60 == 0:
+        if self.frame_count % 60 == 0:
             self.display_fps = round(self.clock.get_fps())
         hud_width = self.screen_width / 2
         hud_height = self.screen_height / 2
@@ -1035,7 +1071,6 @@ class Game:
                 self.load_menu()
 
             self.darkness_surface.fill((0, 0, 0, max(self.min_pause_darkness, self.cave_darkness)))
-
         if self.talking:
             self.display_text()
             self.darkness_surface.fill((0, 0, 0, max(self.min_pause_darkness, self.cave_darkness)))
@@ -1371,6 +1406,28 @@ class Game:
             # self.screen_width = self.default_width
             # self.screen_height = self.default_height
             self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+
+    def display_this_frame(self):
+        """Determine whether current frame should be blitted. This returns false more the lower the fps.
+
+        Args:
+            none
+        Returns:
+            Boolean. Whether the tiles/entities are blitted or not
+
+        """
+        self.frame_fps = max(round(self.clock.get_fps()), 1)
+        self.display_inc = max(min(1, self.frame_fps / self.fps), 0.05)
+
+        if self.frame_fps <= 30:
+            self.display_inc = round(max(1, self.fps / self.frame_fps))
+            return True if self.frame_count % self.display_inc == 0 else False
+        
+        elif self.frame_fps < 55:
+            self.display_inc = round(max(1, self.fps / (60-self.frame_fps)))
+            return False if self.frame_count % self.display_inc == 0 else True
+        else:
+            return True
 
     def delete_save(self, save_slot):
         """Deleted selected save file.
