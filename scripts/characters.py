@@ -4,6 +4,7 @@ Includes all character information and behaviour including trades and dialogue.
 """
 import random
 import math
+import pygame
 import scripts.entities as _entities
 import scripts.utilities as _utilities
 
@@ -78,16 +79,16 @@ class Character(_entities.PhysicsEntity):
 
                     colour = (0, 150, 0) if self.current_trade_ability[i] else (150, 0, 0)
                     self.game.draw_text(str(requirement[2]), (xpos + 15 - (requirement_num * offset_length) / 2 + offset_n *
-                                        offset_length + 13, ypos - 3), self.game.text_font, colour, mode='left')
+                                        offset_length + 13, ypos + 10), self.game.text_font, colour, mode='left')
                     offset_n += 1
 
             if distto_player >= 15 and self.new_dialogue:
                 self.game.hud_display.blit(self.game.assets['exclamation'], (xpos + 5, ypos - (20 if requirement_num else 5)))
 
             elif distto_player < 15:
-                self.game.hud_display.blit(self.game.assets['z_sign'], (xpos, ypos - (20 if requirement_num else 5)))
+                self.game.hud_display.blit(self.game.control_icons['Interract'], (xpos, ypos - (20 if requirement_num else 5)))
 
-                if self.game.interraction_frame_z and not self.game.dead:
+                if self.game.interraction_frame_int and not self.game.dead:
                     self.game.run_text(self)
 
     def get_conversation(self):
@@ -117,7 +118,6 @@ class Character(_entities.PhysicsEntity):
 class Hilbert(Character):
     def __init__(self, game, pos, size):
         super().__init__(game, pos, size, 'Hilbert')
-
         self.currency_requirements = {
             0: [],
             1: [],
@@ -126,7 +126,7 @@ class Hilbert(Character):
             4: [['purchase', 'cogs', 50]],
             5: [['purchase', 'cogs', 100]],
             6: [['purchase', 'cogs', 150]],
-            7: [['purchase', 'eyes', 100]],
+            7: [['purchase', 'eyes', 30]],
             8: [['purchase', 'redCogs', 5]],
             9: [['purchase', 'blueCogs', 5], ['purchase', 'purpleCogs', 5]],
             10: [['purchase', 'fairyBreads', 20], ['purchase', 'boxingGloves', 20], ['floor', 'aussie', 15]],
@@ -138,11 +138,11 @@ class Hilbert(Character):
             '0': ['Welcome... To my Hotel!',
                   'Where it\'s not only bigger, but INFINITE on the inside!',
                   'So you want to join my Concierge Team? Hmm I don\'t know, what skills do you bring?',
-                  'Oh! You can dash attack with your x key, and pause with your ESC key?',
+                  'Oh! You can dash attack with your [X] key, wall-jump up surfaces, and pause with your ESC key?',
                   'How original...'],
 
             '1': ['Well if you\'re that insistent. I do have a little problem, help me out with it then the job and Tophat(!) are yours!',
-                  'Recently my hotel has come under attack and the rest of the concierge team have hidden themselves in the hotel.',
+                  'Recently my hotel has come under attack and the rest of the concierge team have hidden themselves somewhere in the hotel.',
                   'If you bring me some things to build my super secret weapon so I can remove the intruders I would appreciate it.',
                   'Oh and bring back the concierge team.',
                   'You can head through my portal elevator just down there to bring me what I need, some of them are slightly odd, but trust in the process!',
@@ -154,7 +154,8 @@ class Hilbert(Character):
                   'Oh and if you get lost, follow the fireflies!'],
 
             '3': ['Also, yes I know its dark as hell up there sometimes.',
-                  'I dunno, maybe find some extra eyes. I\'m sure that\'d help you see better.'],
+                  'I dunno, maybe find some extra eyes. I\'m sure that\'d help you see better.',
+                  'Also if you\'re after a more cinematic extermination experience, hit that [H] button on that there old keyboard to toggle your HUD!'],
 
             '4': ['Amazing job wow!',
                   'Really sorry but I still need 100 more.',
@@ -212,7 +213,7 @@ class Hilbert(Character):
             self.game.wallet['cogs'] -= 150
 
         elif key == 7 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['eyes'] -= 100
+            self.game.wallet['eyes'] -= 30
             self.game.difficulty += 1
 
             #Add bats to grass and spooky to avoid being softlocked/having to kill yourself a bunch.
@@ -244,7 +245,11 @@ class Hilbert(Character):
             self.game.sfx['lobby_music'].fadeout(2000)
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True
+        self.update_text()
 
+    def update_text(self):
+        self.final_text = f'Oh! You can dash attack with your [{pygame.key.name(self.game.player_controls['Dash'])}] key, wall-jump up surfaces, and pause with your [ESC] key?'
+        self.dialogue['0'][3] = self.final_text
 
 class Noether(Character):
     def __init__(self, game, pos, size):
@@ -486,7 +491,8 @@ class Faraday(Character):
                   'Bring me 100 cogs and I\'ll show you one.'],
 
             '2': ['Amazing, here it is!',
-                  'Go take a peek, explore the hotel and discover the truth!'],
+                  'Go take a peek, explore the hotel and discover the truth!',
+                  'Oh and also these signs marked with \'HH\', you can dash through to activate them!'],
 
             '3': ['I\'ve seen so many parts to this hotel but since the attack I can\'t get to most of them! They\'ve all been sealed off but I managed to scrape this portal together.',
                   'This one is very basic, but be warned, some you wont like. And the monsters... you\'ll need to get stronger to face them.',
@@ -520,8 +526,8 @@ class Lorenz(Character):
             6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
             7: [['floor', 'infinite', 10]],
             8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'infinite', 'P']],
-            9: [['floor', 'infinite', 20]],
-            10: [['floor', 'infinite', 30]],
+            9: [['floor', 'infinite', 15]],
+            10: [['floor', 'infinite', 20]],
         }
 
         self.dialogue = {
@@ -536,19 +542,21 @@ class Lorenz(Character):
                   '...................................................................',
                   'HAMMERS!!'],
 
-            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound. You can see those lil cracks just like on my right!',
+            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound. You can see those lil cracks just like beneath that locked off door!',
+                  'Just be careful, cause when you use a hammer, it breaks! So be sure to keep coming back and buying them from me!',
                   'But I aint a fan of the normal \'pay this much for this hammer\' boring shenanigans, I only like prime numbers!',
                   'Bring me EXACTLY a prime number of cogs and a hammer is yours!',
                   '###NEXT PRIMES FOR COGS###'],
 
             '3': ['Hammer go smash!',
                   'Oh and also, youll never lose hammers on death! WOO! Go give it a go!',
+                  'Go break through to that door from the bottom of the lobby down there! This first hammer will only work there, but the rest will work anywhere you find cracks!',
                   'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!',
                   '###NEXT PRIMES FOR COGS MIN 200###'],
 
             '4': ['Hammer go smash!',
                   'I got more too! But this time you gotta bring me a prime number of cogs over 200 and a prime number of wings over 50!',
-                  'Also, have you noticed those cracks on the middle of the roof? Suuuuuper weird...',
+                  'Now go explore for more cracks around the lobby! There\'s one here just to my right!',
                   '###NEXT PRIMES FOR WINGS MIN 50###',
                   '###NEXT PRIMES FOR COGS MIN 200###'],
 
@@ -568,7 +576,7 @@ class Lorenz(Character):
                   '###NEXT PRIMES FOR NORMAL AND INFINITE###'],
 
             '8': ['Hammer go SMASH!',
-                  'For another hammer, can you clear floor 20 on this infinite thing please?',
+                  'For another hammer, can you clear floor 15 on this infinite thing please?',
                   'Hmm really not sure where this special thing is, maybe its further up!'],
 
             '9': ['Hammer go SMASH!',
@@ -583,34 +591,34 @@ class Lorenz(Character):
     def update_texts(self):
         #Updates the dialogue to inform the player of the next few prime numbers.
         if self.current_dialogue_index in [0, 2]:
-            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10)
+            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3)
 
-            self.dialogue['2'][3] = f'The next ten prime numbers for your cogs are {cogs_primes}.'
+            self.dialogue['2'][4] = f'The closest prime numbers for your cogs are {cogs_primes}.'
         
         if self.current_dialogue_index in [0, 3]:
-            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10, min=200)
+            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3, min=200)
 
-            self.dialogue['3'][3] = f'The next valid ten prime numbers for your cogs are {cogs_primes}.'
+            self.dialogue['3'][4] = f'The closest valid prime numbers for your cogs are {cogs_primes}.'
 
         if self.current_dialogue_index in [0, 4]:
-            wings_primes = _utilities.next_n_primes_str(self.game.wallet['wings'], 10, min=50)
-            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10, min=200)
+            wings_primes = _utilities.close_primes_str(self.game.wallet['wings'], 3, n_less = 3, min=50)
+            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3, min=200)
 
-            self.dialogue['4'][3] = f'The next valid primes for your wings are {wings_primes}.'
-            self.dialogue['4'][4] = f'And the next valid primes for your cogs are {cogs_primes}.'
+            self.dialogue['4'][3] = f'The closest valid primes for your wings are {wings_primes}.'
+            self.dialogue['4'][4] = f'And the closest valid primes for your cogs are {cogs_primes}.'
 
         if self.current_dialogue_index in [0, 5]:
-            cogs_primes = _utilities.next_n_primes_str(self.game.wallet['cogs'], 10)
-            wings_primes = _utilities.next_n_primes_str(self.game.wallet['wings'], 10)
-            heartFragments_primes = _utilities.next_n_primes_str(self.game.wallet['heartFragments'], 10)
+            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3)
+            wings_primes = _utilities.close_primes_str(self.game.wallet['wings'], 3, n_less = 3)
+            heartFragments_primes = _utilities.close_primes_str(self.game.wallet['heartFragments'], 3, n_less = 3)
 
-            self.dialogue['5'][2] = f'The next amounts of cogs I will accept are: are {cogs_primes}.'
-            self.dialogue['5'][3] = f'The next amounts of wings I will accept are: are {wings_primes}.'
-            self.dialogue['5'][4] = f'The next amounts of heart fragments I will accept are: are {heartFragments_primes}.'
+            self.dialogue['5'][2] = f'The closest amounts of cogs I will accept are: are {cogs_primes}.'
+            self.dialogue['5'][3] = f'The closest amounts of wings I will accept are: are {wings_primes}.'
+            self.dialogue['5'][4] = f'The closest amounts of heart fragments I will accept are: are {heartFragments_primes}.'
 
         if self.current_dialogue_index in [0, 7]:
-            normal_primes = _utilities.next_n_primes_str(self.game.floors['normal'], 3)
-            infinite_primes = _utilities.next_n_primes_str(self.game.infinite_floor_max, 3)
+            normal_primes = _utilities.close_primes_str(self.game.floors['normal'], 3)
+            infinite_primes = _utilities.close_primes_str(self.game.infinite_floor_max, 3)
 
             self.dialogue['7'][2] = f'The next few normal floors you must reach are {normal_primes} and for the inifnite they are {infinite_primes}.'
 
@@ -757,7 +765,7 @@ class Cantor(Character):
             1: [],
             2: [],
             3: [],
-            4: [['floor', 'infinite', 30]]
+            4: [['floor', 'infinite', 25]]
         }
 
         self.dialogue = {
@@ -776,7 +784,7 @@ class Cantor(Character):
             '3': ['The Infinite is quite nifty! When you enter here with a bunch of stuff, you are not at risk of losing it, only items you found in here will disappear.',
                   'And if you die, you only lose half of what you have collected!',
                   'You could always come back to the lobby from any of the floors and save it all, but if you were a true madlad you would keep going until you die.',
-                  'If you make it past floor 30, you will have earned my respect. How good is that, the respect of a guy you\'ve never met before!',
+                  'If you make it past floor 25, you will have earned my respect. How good is that, the respect of a guy you\'ve never met before!',
                   f'The furthest you have made it through The Infinite is to Floor {self.game.infinite_floor_max}.'],
 
             '4': ['You did it, woo! My respect is now yours!',
@@ -957,46 +965,35 @@ class Watson(Character):
         self.currency_requirements = {
             0: [],
             1: [],
-            2: [['purchase', 'credits', 50]],
-            3: [['purchase', 'credits', 50]],
-            4: [['purchase', 'credits', 50]]
+            2: [],
+            3: [['purchase', 'credits', 10]],
         }
 
         self.dialogue = {
             '0': ['Woah hey hi!',
-                  'I been locked down here so long it\'s been ages since I\'ve seen anyone! Can\'t believe I wasn\'t able to make that machine, ah well.',
-                  'Anyway!',
-                  'I have some reeeaaallly top secret information for you... for a price.',
-                  'It\'s worth it, I promise, I was told this by God!'],
+                  'I been locked down here so long it\'s been ages since I\'ve seen anyone! How surreal wow!'],
 
-            '1': ['Gimme CREDIT!! Mmmm gobble gobble gobble yummy I just love credit!',
-                  'Uh I mean credits, yeah, the currency.'],
+            '1': ['A little while ago, Hilbert wanted me to build him a machine, but no matter how hard I tried, I just couldn\'t get it working.',
+                  'Eventually he must have worked it out himself, so he threw me down here and locked me away.'],
 
-            '2': ['So... The first, and most important piece of information:',
-                  'I hear this "world" was created by another being and is called a "game". Here are God\'s words:',
-                  'Created By: Alex Hopper',
-                  'Yummy yummy gimme more credits for more!'],
+            '2': ['Eventually, with all the random junk down here, I worked out how to build the portal elevator back, but I dont have the courage to face him.',
+                  'I also built my own machine! As you can see it isn\'t much to look at but I\'m proud of it.',
+                  'It actuall isn\'t working at the moment, but if you fetch me some credits, I can show you how it works!'],
 
-            '3': ['God also says:',
-                  'Playtested by: Eloisa Perez-Bennetts.',
-                  'Yummy yooo, more credits pleeeease!'],
-
-            '4': ['Yeah just kidding, no more words of God.',
-                  'But, if you want to be mentioned by God, this "game" is still in playtest so let him know what you think!',
-                  'Pretty please.']}
+            '3': ['So, this machine can turn credits into anything at all in the universe!',
+                  'Firstly, you load the credits into the right-hand side, then choose another currency you want to make as an offering on the left-hand side.',
+                  'Finally, smack that big button in the middle and anything at all could happen! How exciting!',
+                  'I mean, most of the time that \'anything at all\' is, in fact, nothing at all, but sometimes it\'s amazing!']}
 
     def conversation_action(self, key):
         # Runs when dialogue matching key is said for thr first time.
         if key == 0 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.characters_met['Webster'] = True
-
-        elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['credits'] -= 50
+            self.game.characters_met['Watson'] = True
 
         elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['credits'] -= 50
-
-        elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['credits'] -= 50
+            self.game.wallet['credits'] -= 10
+            self.game.dump_machine_state['active'] = True
+            for entity in [e for e in self.game.extra_entities if e.type == 'dump_machine']:
+                entity.active = True
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True

@@ -59,10 +59,11 @@ def initialise_main_screen(game):
 
     """
 
-    game.default_width = 1280
-    game.default_height = 800
-    game.screen_width = 1280
-    game.screen_height = 800
+    game.default_width = 1024
+    game.default_height = game.default_width / 1.6
+
+    game.screen_width = game.default_width
+    game.screen_height = game.default_height
 
     if game.is_fullscreen:
         game.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -73,7 +74,7 @@ def initialise_main_screen(game):
     game.hud_display = pygame.Surface((game.screen_width, game.screen_height))
     game.hud_display.set_colorkey((0, 0, 0))
     game.draw_text('Loading...', (game.screen_width / 2, game.screen_height / 2),
-                   game.text_font, (86, 31, 126), scale=8, mode='center')
+                   game.text_font, (86, 31, 126), scale=4, mode='center')
     game.screen.blit(pygame.transform.scale(game.hud_display, game.screen.get_size()), (0, 0))
     pygame.display.update()
 
@@ -88,9 +89,11 @@ def initialise_game_params(game):
     """
     game.game_running = False
     game.in_menu = True
+    game.in_controls = False
     game.saved_characters = [False, False, False]
     game.game_ending = False
-    game.fps = 60
+    game.master_fps = 60
+    game.fps = game.master_fps
     game.dt = 1
     game.display_fps = game.fps
     game.initialising_game = True
@@ -101,21 +104,30 @@ def initialise_game_params(game):
     game.talking = False
     game.dead = False
     game.death_count = 0
-    game.interraction_frame_z = False
+    game.parrots_randomised = False
+    game.interraction_frame_c = False
     game.interraction_frame_f = False
-    game.interraction_frame_a = False
+    game.interraction_frame_q = False
     game.interraction_frame_s = False
     game.interraction_frame_v = False
-    game.interraction_frame_q = False
+    game.interraction_frame_z = False
+    game.interraction_frame_int = False
+    game.interraction_frame_up = False
+    game.interraction_frame_down = False
+    game.interraction_frame_left = False
+    game.interraction_frame_right = False
+    game.interraction_frame_key = False
+    
     game.cave_darkness_range = (50, 250)
     game.cave_darkness = True
+    game.meteor_sounds = 0
     game.min_pause_darkness = 150
     game.transition = 0
     game.currency_entities = []
     game.boss_frequency = 5
 
     game.current_text_list = []
-    game.max_characters_line = 45
+    game.max_characters_line = 40
     game.talking_to = ''
     game.temp_hearts_bought = 0
     game.temp_hearts_for_planck = 25
@@ -140,7 +152,8 @@ def initialise_game_params(game):
         'space': 1,
         'heaven_hell': 1,
         'infinite': 1,
-        'final': 'The Penthouse'
+        'final': 'The Penthouse',
+        'dump': 'The Dump',
     }
 
     # Decorations are of form [type, [variant(s)], weight, [tilesToBeEmpty(relative to x,y)], tilesToBePhysics, offset]
@@ -149,21 +162,21 @@ def initialise_game_params(game):
                    'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [22], 0.3, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
-                                   ['spawners', [18], 0.03, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
+                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
         'grass': {'decorationMod': 10,
                   'decorations': [['decor', range(0, 2), 5, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
-                                  ['spawners', [18], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                  ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                   ['spawners', [54], 0.5, [[0, 0]], ['all', [0, 1]], [range(0,8), [8]]],
                                   ['decor', [7], 0.2, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [8], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [9], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
-                                  ['decor', [22], 0.3, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]]]},
+                                  ['decor', [22], 0.3, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],]},
 
         'spooky': {'decorationMod': 1,
                    'decorations': [['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
-                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [53], 2, [[0, 0]], ['clear', [0, 0]], [[0], [0]]],
                                    ['spawners', [12], 2, [[0, 0]], ['any', [-1, 0], [1, 0]], [[0], [0]]],
                                    ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],]},
@@ -172,7 +185,7 @@ def initialise_game_params(game):
                    'decorations': [['decor', [15], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [16], 0.01, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
-                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                                   ['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'aussie': {'decorationMod': 1,
@@ -182,11 +195,11 @@ def initialise_game_params(game):
                                    ['decor', [17], 0.1, [[0, 0]], ['all', [0, 1]], [range(-2, 3), [0]]],
                                    ['decor', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 4), [0]]],
                                    ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
-                                   ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],
+                                   ['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'space': {'decorationMod': 3,
-                  'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                  'decorations': [['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                   ['decor', [7], 0.5, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), range(7, 13)]],
                                   ['decor', [10], 0.01, [[0, 0], [0, 1]], ['all', [0, 2]], [[1], [0]]],
                                   ['decor', [11], 1, [[0, 0]], ['all', [0, 1]], [range(0, 3), [0]]],
@@ -196,13 +209,13 @@ def initialise_game_params(game):
                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'heaven': {'decorationMod': 5,
-                   'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                   'decorations': [['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['decor', [19], 1, [[0, 0]], ['all', [0, 1]], [range(0, 11), range(1, 8)]],
                                    ['decor', [22], 0.2, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
         'hell': {'decorationMod': 5,
-                 'decorations': [['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
+                 'decorations': [['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                  ['spawners', [36], 0.8, [[0, 0]], ['all', [0, 1]], [range(-3, 3), [0]]],
                                  ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
                                  ['decor', [20], 1, [[0, 0]], ['all', [0, -1]], [range(0, 5), [0]]],
@@ -223,8 +236,8 @@ def initialise_game_params(game):
         'rubiks': [3, 15],
         'rubiksWeights': [1, 1],
 
-        'aussie': [3],
-        'aussieWeights': [1],
+        'aussie': [3, 13],
+        'aussieWeights': [1, 1],
 
         'space': [3, 22],
         'spaceWeights': [1, 1],
@@ -272,6 +285,8 @@ def initialise_game_params(game):
         52: {'type': 'extra_entity', 'object': _entities.PlayerCustomise, 'size': (8, 12)},
         53: {'type': 'extra_entity', 'object': _entities.Web, 'size': (16, 16)},
         54: {'type': 'extra_entity', 'object': _entities.Parrot, 'size': (7, 8)},
+        55: {'type': 'extra_entity', 'object': _entities.DumpMachine, 'size': (64, 48)},
+        56: {'type': 'extra_entity', 'object': _entities.Skull, 'size': (16, 16)},
 
         10: {'type': 'spawn_point', 'object': _entities.SpawnPoint, 'size': (16, 16)},
 
@@ -339,6 +354,8 @@ def initialise_game_params(game):
             'web/': [['idle', 1, False]],
             'parrot/': [['idle', 5, True], ['flying', 5, True]],
             'parrot_saved/': [['idle', 5, True], ['flying', 5, True]],
+            'dump_machine/': [['idle', 1, False]],
+            'skull/': [['idle', 1, False]],
         },
 
         'entities/.bosses/': {
@@ -365,6 +382,7 @@ def initialise_game_params(game):
         7: 'space',
         8: 'heaven_hell',
         9: 'final',
+        10: 'dump',
     }
 
     # Screen and display
@@ -382,6 +400,7 @@ def initialise_game_params(game):
     game.power_level = 1
     game.difficulty = 1
     game.temporary_health = 0
+    game.dump_machine_state = {'active': False, 'credits': 0, 'attempts': 0}
     game.not_lost_on_death = ['hammers', 'penthouseKeys']
     game.spawn_point = False
     game.screenshake_on = True
@@ -397,9 +416,29 @@ def initialise_game_params(game):
         'skin': (175, 168, 151),
         'eye': (0, 1, 104),
     }
+    game.player_controls = {
+        'Up / Jump': pygame.K_UP,
+        'Down': pygame.K_DOWN,
+        'Left': pygame.K_LEFT,
+        'Right': pygame.K_RIGHT,
+        'Dash': pygame.K_x,
+        'Interract': pygame.K_z,
+    }
+    game.control_icons = {
+        'Up / Jump': load_image('misc/up.png'),
+        'Down': load_image('misc/down.png'),
+        'Left': load_image('misc/left.png'),
+        'Right': load_image('misc/right.png'),
+        'Dash': load_image('misc/dash.png'),
+        'Interract': load_image('misc/interract.png'),
+    }
+    game.disallowed_controls = [pygame.K_ESCAPE, pygame.K_q]
+    game.control_index = 0
+    game.control_index_selected = 0
+    game.changing_control = False
 
     game.player_colours_options = {
-        'shirt': [game.player_colours['shirt'], (26, 35, 112), (87, 112, 103), (27, 91, 38), (193, 181, 100), (170, 111, 22), (170, 94, 88), (119, 5, 15), (96, 0, 96), (119, 79, 113)],
+        'shirt': [game.player_colours['shirt'], (26, 35, 112), (87, 112, 103), (27, 91, 38), (193, 181, 100), (170, 111, 22), (170, 94, 88), (119, 5, 15), (96, 0, 96), (119, 79, 113), (1, 1, 1)],
         'front Leg': [game.player_colours['front Leg'], (38, 38, 38), (13, 22, 99), (74, 99, 90), (14, 78, 25), (180, 168, 87), (157, 98, 9), (157, 81, 75), (106, 0, 2), (83, 0, 83), (106, 66, 100)],
         'back Leg': [game.player_colours['back Leg'], (22, 22, 22), (0, 4, 81), (56, 81, 72), (0, 60, 7), (162, 150, 69), (139, 80, 0), (139, 63, 57), (88, 0, 0), (65, 0, 65), (88, 48, 82)],
         'tie': [game.player_colours['tie'], (100, 100, 100), (255, 255, 255), (0, 0, 63), (38, 63, 54), (0, 42, 0), (114, 132, 51), (121, 62, 0), (121, 45, 39), (70, 0, 0), (47, 0, 47), (70, 30, 64)],
@@ -446,7 +485,7 @@ def initialise_game_params(game):
         'Melatos': 6,
         'Webster': 5,
         'Barad': 5,
-        'Watson': 5,
+        'Watson': 4,
     }
 
     game.dialogue_history = {
@@ -485,12 +524,14 @@ def initialise_game_params(game):
         'space': True,
         'infinite': True,
         'heaven_hell': True,
+        'dump': True,
         'final': False,
     }
 
     game.encounters_check = {
         'spawn_points': False,
         'heart_altars': False,
+        'skull': False,
         'cogs': False,
         'redCogs': False,
         'blueCogs': False,
@@ -510,7 +551,8 @@ def initialise_game_params(game):
 
     game.encounters_check_text = {
         'spawn_points': ['Spawn Point: Activate to change your spawn point in the lobby!'],
-        'heart_altars': ['Heart Altar: Gives you a handy lil heart back! Only if you have an empty one though.'],
+        'heart_altars': ['Heart Altar: Gives you handy lil hearts back! Only if you have an empty one though.'],
+        'skull': ['Skull: Interract with a skull to damage yourself as an offering to the gods.'],
         'cogs': ['Cogs: Handy little machinery parts. Can be used to fix things. Found commonly everywhere.'],
         'redCogs': ['Red Cogs: Just like a normal cog, but fancier! And Red!'],
         'blueCogs': ['Blue Cogs: Just like a normal cog, but fancier! And Blue!'],
@@ -523,7 +565,7 @@ def initialise_game_params(game):
         'boxingGloves': ['Boxing Gloves: For some reason kangaroos got \'em. Punchy punch!'],
         'yellowOrbs': ['Heavenly Orbs: They glow with the power of one million beers.'],
         'redOrbs': ['Satanic Orbs: They glow with the power of one million Jägermeisters.'],
-        'credits': ['Credit: Ooh, interesting little thingy, can be used to give credit where credit it due.'],
+        'credits': ['Credit: Ooh, interesting little thingy, what could this be used for?'],
         'hammers': ['Hammer: Hammer go SMASH! Can be used to break cracked walls to reveal secrets.'],
         'penthouseKeys': ['Penthouse Key: Grants acess to the penthouse.'],
         'error': ['OOPS! Something went wrong here and I couldnt find the text for you, soz.']
@@ -582,6 +624,7 @@ def initialise_game_params(game):
         'orb_cherub': 'Magical Yellow Orb',
         'orb_imp': 'Magical Red Orb',
         'hilbert_orb': 'Hilbert Ball',
+        'skull': 'Skull',
 
         'normalboss': 'Big Bat',
         'grassboss': 'Big Roly Poly',
@@ -655,12 +698,28 @@ def is_prime(num):
             return False
     return True
 
-def next_n_primes_str(current_check, n, min = 0):
+def close_primes_str(current, n_more, n_less = 0, min = 0):
     found_primes = []
-    current_check = max(current_check, min)
+    current_check = max(current - 1, 2)
+    #Primes less than current:
+    while len(found_primes) < n_less:
+        if is_prime(current_check) and str(current_check) not in found_primes and current_check >= min:
+            found_primes.append(str(current_check))
+        current_check -= 1
+        if current_check < 2:
+            n_less = len(found_primes)
+            break
+    found_primes.reverse()
 
-    while len(found_primes) < n:
-        if is_prime(current_check):
+    #Add current if prime
+    if is_prime(current) and str(current) not in found_primes and current_check >= min:
+        found_primes.append(current)
+        n_more += 1
+
+    #Primes more than current
+    current_check = max(current + 1, min)
+    while len(found_primes) < n_more + n_less:
+        if is_prime(current_check) and str(current_check) not in found_primes and current_check >= min:
             found_primes.append(str(current_check))
         current_check += 1
     return f"{', '.join(map(str, found_primes[:-1]))} and {found_primes[-1]}"
@@ -686,6 +745,8 @@ def colour_change(image, old_c, new_c):
 def set_area_music(game, level_style, prev):
     if level_style == 'infinite':
         level_style = 'final'
+    if level_style == 'dump':
+        level_style = 'lobby'
     areas = list(game.floor_specifics.keys())
     areas.append('lobby')
     areas.append('final')
@@ -736,12 +797,10 @@ class Animation:
 
         """
         if self.loop:
-            self.frame = (
-                self.frame + 1) % (self.img_duration * len(self.images))
+            self.frame = (self.frame + 1) % (self.img_duration * len(self.images))
 
         else:
-            self.frame = min(
-                self.frame + 1, self.img_duration * len(self.images) - 1)
+            self.frame = min(self.frame + 1, self.img_duration * len(self.images) - 1)
             if self.frame >= self.img_duration * len(self.images) - 1:
                 self.done = True
 
