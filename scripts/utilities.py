@@ -589,7 +589,7 @@ def initialise_game_params(game):
         'tunnel4': [[x, y] for x in range(-4, 7) for y in range(-33, -30)],
         'tunnel5': [[x, y] for x in range(30, 41) for y in range(-33, -30)],
         'tunnel6': [[x, y] for x in range(17, 20) for y in range(-51, -44)],
-        'tunnel7': [[18, y] for y in range(12, 16)],
+        'tunnel7': [[x, y] for x in range(17, 20) for y in range(12, 16)],
         'tunnel8': [[x, y] for x in range(2, 35) for y in range(-78, -63)],
     }
 

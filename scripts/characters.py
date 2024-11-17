@@ -121,16 +121,16 @@ class Hilbert(Character):
         self.currency_requirements = {
             0: [],
             1: [],
-            2: [['purchase', 'cogs', 5]],
-            3: [],
-            4: [['purchase', 'cogs', 50]],
-            5: [['purchase', 'cogs', 100]],
-            6: [['purchase', 'cogs', 150]],
+            2: [['floor', 'normal', 1]],
+            3: [['purchase', 'cogs', 5]],
+            4: [['purchase', 'cogs', 25]],
+            5: [['purchase', 'cogs', 75]],
+            6: [['purchase', 'cogs', 100]],
             7: [['purchase', 'eyes', 30]],
             8: [['purchase', 'redCogs', 5]],
             9: [['purchase', 'blueCogs', 5], ['purchase', 'purpleCogs', 5]],
             10: [['purchase', 'fairyBreads', 20], ['purchase', 'boxingGloves', 20], ['floor', 'aussie', 15]],
-            11: [['purchase', 'purpleCogs', 10], ['floor', 'space', 20]],
+            11: [['purchase', 'purpleCogs', 10], ['floor', 'space', 10]],
             12: [['purchase', 'yellowOrbs', 20], ['purchase', 'redOrbs', 20], ['floor', 'heaven_hell', 15]],
         }
 
@@ -143,33 +143,35 @@ class Hilbert(Character):
 
             '1': ['Well if you\'re that insistent. I do have a little problem, help me out with it then the job and Tophat(!) are yours!',
                   'Recently my hotel has come under attack and the rest of the concierge team have hidden themselves somewhere in the hotel.',
-                  'If you bring me some things to build my super secret weapon so I can remove the intruders I would appreciate it.',
-                  'Oh and bring back the concierge team.',
-                  'You can head through my portal elevator just down there to bring me what I need, some of them are slightly odd, but trust in the process!',
-                  'I\'m gonna need about 5 cogs to start this.'],
+                  'If you help me out with the intruders and bring back my team for me, I would really appreciate it.',
+                  'You can head through my portal elevator just down there to go through the floors of the hotel.',
+                  'Can you have a peek through and clear out the first floor please? Just to see what we\'re dealing with. Watch out for the bad guys!'],
 
-            '2': ['Thanks for getting some cogs woow!',
-                  'I just realised I actually need another 50 though.',
+            '2': ['You\'re back! Oh golly I\'m so glad you\'re alright!',
+                  'Okay, so it seems like the place is crawling with these GunGuys. Since there are infinite floors in here, it would be impossible to get rid of them ourselves. But not to worry, I have a plan.',
+                  'There is a machine that I think I can put together that would instantly remove them all at once. I need you to bring me the parts to make it. Some of them will be a bit strange, but trust in the process!',
+                  'To start this, I need you to bring me some cogs that the GunGuys have stolen from me.',
                   'Be careful! The floors get bigger as you ascend! Which makes no structural sense, I dont know how it works!',
                   'Oh and if you get lost, follow the fireflies!'],
 
-            '3': ['Also, yes I know its dark as hell up there sometimes.',
-                  'I dunno, maybe find some extra eyes. I\'m sure that\'d help you see better.',
+            '3': ['Amazing, you\'re brilliant woo!',
+                  'Really sorry, I miscounted how many cogs I need, can you get me some more please?',
+                  'And yeah I know it can get really dark up there, maybe find some extra eyes or something I dunno.',
                   'Also if you\'re after a more cinematic extermination experience, hit that [H] button on that there old keyboard to toggle your HUD!'],
 
             '4': ['Amazing job wow!',
-                  'Really sorry but I still need 100 more.',
-                  'I think I heard some bats around earlier, watch out for them. They fly around and suddenly go AHHH at you, ya know?'],
+                  'Really sorry but I miscounted again and still need 75 more.',
+                  'I have also detected that GunGuys aren\'t the only enemies around here... My spidey senses are telling me there are potentially dozens of different types around. Watch out!'],
 
             '5': ['You know the drill...',
-                  'This time I\'ll need 150 cogs.'],
+                  'This time I\'ll need 100 cogs.'],
 
             '6': ['A\'ight spiffo. I think we have enough cogs.',
                   'Now, this is very gross, but you know those eyes I mentioned before? I need like 30 of them. I\'m not super sure where to get them but I believe in you my lil buddy!'],
 
             '7': ['Yay thanks I love eyes! Now, with this newfound sense of vision, I detect that some of these bad guys are getting much stronger this far up!',
-                  'From now on, you\'ll have to pack a harder punch somehow. I\'m at a loss how to do that but I\'m sure theres a way!',
-                  'Oh and yeah, DONT go into this portal until you\'re a bit stronger. Like seriously you just wont be able to kill them.',
+                  'From now on, you\'ll have to pack a harder punch somehow. I think Franklin can help you with that, but I\'m not sure where she is. I know that she was studying those spiders of hers. Ah well, good luck!',
+                  'Oh and yeah, DON\'T go into this portal until you\'re a bit stronger. Like seriously you just wont be able to kill them.',
                   'Seriously.',
                   'And if you are in need of wings for some reason, I think bats have been appearing more around the hotel too.',
                   'But I do think these stronger enemies should drop a special kind of cog! Please bring me some to investigate!'],
@@ -197,20 +199,20 @@ class Hilbert(Character):
         if key == 0 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.dialogue_history[self.name]['1available'] = True
 
-        elif key == 2 and not self.game.dialogue_history[self.name][str(key) + 'said']:
+        elif key == 3 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['cogs'] -= 5
 
         elif key == 4 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['cogs'] -= 50
+            self.game.wallet['cogs'] -= 25
 
             self.game.available_enemy_variants['normal'].append(4)
             self.game.available_enemy_variants['normalWeights'].append(1)
 
         elif key == 5 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['cogs'] -= 100
+            self.game.wallet['cogs'] -= 75
 
         elif key == 6 and not self.game.dialogue_history[self.name][str(key) + 'said']:
-            self.game.wallet['cogs'] -= 150
+            self.game.wallet['cogs'] -= 100
 
         elif key == 7 and not self.game.dialogue_history[self.name][str(key) + 'said']:
             self.game.wallet['eyes'] -= 30
@@ -521,8 +523,8 @@ class Lorenz(Character):
             1: [],
             2: [],
             3: [['prime', 'cogs', 'P']],
-            4: [['primePurchase', 'cogs', 'P>200', 200]],
-            5: [['primePurchase', 'wings', 'P>50', 50], ['primePurchase', 'cogs', 'P>200', 200]],
+            4: [['primePurchase', 'cogs', 'P>100', 100]],
+            5: [['primePurchase', 'wings', 'P>50', 50], ['primePurchase', 'cogs', 'P>100', 100]],
             6: [['prime', 'cogs', 'P'], ['prime', 'wings', 'P'], ['prime', 'heartFragments', 'P']],
             7: [['floor', 'infinite', 10]],
             8: [['primeFloor', 'normal', 'P'], ['primeFloor', 'infinite', 'P']],
@@ -542,7 +544,7 @@ class Lorenz(Character):
                   '...................................................................',
                   'HAMMERS!!'],
 
-            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound. You can see those lil cracks just like beneath that locked off door!',
+            '2': ['Hammers are super useful for smashing walls that are already down on their luck by being structurally unsound. You can see those lil cracks just like beneath that locked off portal!',
                   'Just be careful, cause when you use a hammer, it breaks! So be sure to keep coming back and buying them from me!',
                   'But I aint a fan of the normal \'pay this much for this hammer\' boring shenanigans, I only like prime numbers!',
                   'Bring me EXACTLY a prime number of cogs and a hammer is yours!',
@@ -550,12 +552,12 @@ class Lorenz(Character):
 
             '3': ['Hammer go smash!',
                   'Oh and also, youll never lose hammers on death! WOO! Go give it a go!',
-                  'Go break through to that door from the bottom of the lobby down there! This first hammer will only work there, but the rest will work anywhere you find cracks!',
-                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 200!',
+                  'Go break through to that wall from the bottom of the lobby down there! This first hammer will only work there, but the rest will work anywhere you find cracks!',
+                  'I got more too! But this time you gotta bring me a prime number of cogs OVER 100!',
                   '###NEXT PRIMES FOR COGS MIN 200###'],
 
             '4': ['Hammer go smash!',
-                  'I got more too! But this time you gotta bring me a prime number of cogs over 200 and a prime number of wings over 50!',
+                  'I got more too! But this time you gotta bring me a prime number of cogs over 100 and a prime number of wings over 50!',
                   'Now go explore for more cracks around the lobby! There\'s one here just to my right!',
                   '###NEXT PRIMES FOR WINGS MIN 50###',
                   '###NEXT PRIMES FOR COGS MIN 200###'],
@@ -590,24 +592,24 @@ class Lorenz(Character):
         
     def update_texts(self):
         #Updates the dialogue to inform the player of the next few prime numbers.
-        if self.current_dialogue_index in [0, 2]:
+        if self.current_dialogue_index <= 2:
             cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3)
 
             self.dialogue['2'][4] = f'The closest prime numbers for your cogs are {cogs_primes}.'
         
-        if self.current_dialogue_index in [0, 3]:
-            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3, min=200)
+        if self.current_dialogue_index <= 3:
+            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3, min=100)
 
             self.dialogue['3'][4] = f'The closest valid prime numbers for your cogs are {cogs_primes}.'
 
-        if self.current_dialogue_index in [0, 4]:
+        if self.current_dialogue_index <= 4:
             wings_primes = _utilities.close_primes_str(self.game.wallet['wings'], 3, n_less = 3, min=50)
-            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3, min=200)
+            cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3, min=100)
 
             self.dialogue['4'][3] = f'The closest valid primes for your wings are {wings_primes}.'
             self.dialogue['4'][4] = f'And the closest valid primes for your cogs are {cogs_primes}.'
 
-        if self.current_dialogue_index in [0, 5]:
+        if self.current_dialogue_index <= 5:
             cogs_primes = _utilities.close_primes_str(self.game.wallet['cogs'], 3, n_less = 3)
             wings_primes = _utilities.close_primes_str(self.game.wallet['wings'], 3, n_less = 3)
             heartFragments_primes = _utilities.close_primes_str(self.game.wallet['heartFragments'], 3, n_less = 3)
@@ -616,7 +618,7 @@ class Lorenz(Character):
             self.dialogue['5'][3] = f'The closest amounts of wings I will accept are: are {wings_primes}.'
             self.dialogue['5'][4] = f'The closest amounts of heart fragments I will accept are: are {heartFragments_primes}.'
 
-        if self.current_dialogue_index in [0, 7]:
+        if self.current_dialogue_index <= 7:
             normal_primes = _utilities.close_primes_str(self.game.floors['normal'], 3)
             infinite_primes = _utilities.close_primes_str(self.game.infinite_floor_max, 3)
 
@@ -670,7 +672,7 @@ class Franklin(Character):
                   '"What is chitin?" you ask? Who knows!',
                   'Bring me 50 chitin and I\'ll make you stronger!'],
 
-            '2': ['Yay woo! Your power level is now 2!',
+            '2': ['Yay woo! Your power level is now 2! You can tell by the cool new colour of your dash!',
                   'With higher power levels, you will be able to defeat stronger GunGuys which may or may not drop you more exciting types of cogs!',
                   'I\'ll give ya another for 50 more chitin and some real smackeroonie gloves!'],
 
@@ -727,7 +729,7 @@ class Rubik(Character):
                   'By golly, I\'ll be following you back to the lobby methinks.'],
 
             '1': ['Wow! Thanks for helping me get out of there! This hotel really has some strange things going on.',
-                  'I was just building toys out of little colourful cogs and BAM!',
+                  'I was just building toys out of little colourful cogs and BAM! The cubes in there are a bit strange, they drop cogs, but the colour of the cog seems to change sometimes and I don\'t know why!',
                   'I\'ve got a lil\' nugget of information for you if you bring me a few colourful cogs though!'],
 
             '2': ['Pssst...',
@@ -976,11 +978,11 @@ class Watson(Character):
             '1': ['A little while ago, Hilbert wanted me to build him a machine, but no matter how hard I tried, I just couldn\'t get it working.',
                   'Eventually he must have worked it out himself, so he threw me down here and locked me away.'],
 
-            '2': ['Eventually, with all the random junk down here, I worked out how to build the portal elevator back, but I dont have the courage to face him.',
+            '2': ['Eventually, with all the random junk down here, I worked out how to build the portal elevator back, but I kinda like it down here now.',
                   'I also built my own machine! As you can see it isn\'t much to look at but I\'m proud of it.',
-                  'It actuall isn\'t working at the moment, but if you fetch me some credits, I can show you how it works!'],
+                  'It actually isn\'t working at the moment, but if you fetch me some credits, I can show you how it works!'],
 
-            '3': ['So, this machine can turn credits into anything at all in the universe!',
+            '3': ['So, this machine uses credits to turn stuff into anything at all in the universe!',
                   'Firstly, you load the credits into the right-hand side, then choose another currency you want to make as an offering on the left-hand side.',
                   'Finally, smack that big button in the middle and anything at all could happen! How exciting!',
                   'I mean, most of the time that \'anything at all\' is, in fact, nothing at all, but sometimes it\'s amazing!']}

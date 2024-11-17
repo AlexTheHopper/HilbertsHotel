@@ -191,7 +191,7 @@ class PhysicsEntity:
             self.game.sparks.append(_spark.Spark(self.rect().center, angle, 2 + random.random() * (self.death_intensity / 10)))
             self.game.particles.append(_particle.Particle(self.game, 'particle1', self.rect().center, vel=[math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame=random.randint(0, 7)))
 
-        if self.is_boss:
+        if 'boss' in self.type:
             self.game.sparks.append(_spark.Spark(self.rect().center, 0, self.death_intensity / 2))
             self.game.sparks.append(_spark.Spark(self.rect().center, math.pi, self.death_intensity / 2))
             self.game.extra_entities.append(HeartAltar(self.game, self.pos, self.game.entity_info[18]['size'], falling = True, value = 3))
@@ -203,7 +203,7 @@ class PhysicsEntity:
 
             for currency in self.currency_drops.keys():
                 for _ in range(self.currency_drops[currency]):
-                    self.game.currency_entities.append(Currency(self.game, currency, spawn_loc))
+                    self.game.currency_entities.append(Currency(self.game, currency, spawn_loc, velocity_0 = [random.uniform(-1, 1), random.uniform(-2, -1)]))
 
     def display_darkness_circle(self, offset = False):
         position = [self.rect().centerx, self.rect().centery]
@@ -590,7 +590,7 @@ class GunGuy(PhysicsEntity):
 
             # Attack condition
             if (random.random() < 0.02):
-                if (self.game.floors[self.game.current_level] != 1 or self.game.current_level == 'infinite') and not self.shoot_countdown:
+                if self.game.floors[self.game.current_level] != 1 and not self.shoot_countdown:
 
                     if self.weapon == 'gun':
                         disty = self.game.player.pos[1] - self.pos[1]
@@ -675,6 +675,7 @@ class Portal(PhysicsEntity):
         self.light_size = 0
         self.colours = {
             'lobby': [(58, 6, 82), (111, 28, 117)],
+            'dump': [(44, 21, 48), (85, 71, 92)],
             'normal': [(58, 6, 82), (111, 28, 117)],
             'grass': [(36, 120, 29), (12, 62, 8)],
             'spooky': [(55, 20, 15), (108, 50, 40)],
@@ -910,7 +911,7 @@ class Player(PhysicsEntity):
 
     def jump(self):
         if self.wall_slide and self.can_dash:
-            self.velocity[1] = -3
+            self.velocity[1] = -2.3
             self.air_time = 5
             self.jumps = max(0, self.jumps - 1)
 
@@ -1028,10 +1029,10 @@ class PlayerCustomise(PhysicsEntity):
         super().update(tilemap, movement=movement)
 
 class Currency(PhysicsEntity):
-    def __init__(self, game, currency_type, pos, size=(6, 6), value=1, velocity_0 = [random.uniform(-1,1), random.uniform(-2,-1)]):
+    def __init__(self, game, currency_type, pos, size=(6, 6), value=1, velocity_0 = [0, 0]):
         super().__init__(game, currency_type, pos, size)
 
-        self.velocity = velocity_0
+        self.velocity = list(velocity_0)
         self.value = value
         self.currency_type = currency_type
         self.size = list(size)
@@ -1061,15 +1062,15 @@ class Currency(PhysicsEntity):
             else:
                 self.velocity[0] = min(self.velocity[0]+0.1, 0.5)
 
-        # Check for player collision
-        if self.game.player.rect().colliderect(self.rect()) and not self.old_enough:
-            if self.game.current_level == 'lobby':
-                self.game.wallet[str(self.currency_type) + 's'] += self.value
-            else:
-                self.game.wallet_temp[str(self.currency_type) + 's'] += self.value
-            self.game.check_encounter(self.currency_type + 's')
-            self.game.sfx['coin'].play()
-            return True
+            # Check for player collision
+            if self.game.player.rect().colliderect(self.rect()):
+                if self.game.current_level == 'lobby':
+                    self.game.wallet[str(self.currency_type) + 's'] += self.value
+                else:
+                    self.game.wallet_temp[str(self.currency_type) + 's'] += self.value
+                self.game.check_encounter(self.currency_type + 's')
+                self.game.sfx['coin'].play()
+                return True
 
 class Glowworm(PhysicsEntity):
     def __init__(self, game, pos, size=(5, 5)):
@@ -1298,7 +1299,7 @@ class RolyPoly(PhysicsEntity):
         super().render(surface, offset=offset)
 
 class Parrot(PhysicsEntity):
-    def __init__(self, game, pos, size, friendly = False):
+    def __init__(self, game, pos, size, friendly = False, action = 'idle'):
         super().__init__(game, 'parrot', pos, size)
 
         self.currency_drops['wing'] = 1 if random.random() < 0.3 else 0
@@ -1316,7 +1317,8 @@ class Parrot(PhysicsEntity):
         self.anim_offset = (-1, -2)
 
         self.friendly = friendly
-        self.timer = 0 if self.friendly else random.randint(100, 300)
+        self.set_action(action)
+        self.timer = 0 if (self.friendly or self.action == 'flying') else random.randint(100, 300)
 
         if not self.game.parrots_randomised:
             self.reset_colours()
@@ -1433,17 +1435,17 @@ class HeartAltar(PhysicsEntity):
         elif self.falling and (self.collisions['left'] or self.collisions['right']):
             self.velocity[0] *= -0.75
 
-        if self.value > 1 and random.random() < 0.1:
+        if self.value > 1 and random.random() < 0.1 and self.action == 'active':
             self.game.sparks.append(_spark.Spark(self.rect().center, random.uniform(0, math.pi * 2), random.random() + 1, color=random.choice([(112, 0, 2), (170, 27, 36)])))
         
         dist_player = np.linalg.norm(self.vector_to(self.game.player))
-        if dist_player < 15:
+        if dist_player < 15 and self.action == 'active':
             xpos = (self.rect().centerx - self.game.render_scroll[0]) - 7
             ypos = (self.rect().centery -self.game.render_scroll[1]) - 22
 
             self.game.hud_display.blit(self.game.control_icons['Interract'], (xpos, ypos))
 
-            if self.game.interraction_frame_int and self.action == 'active':
+            if self.game.interraction_frame_int:
                 self.game.check_encounter('heart_altars')
 
                 if self.game.health < self.game.max_health:
@@ -2370,7 +2372,7 @@ class DumpMachine(PhysicsEntity):
         self.quarter_length = int(self.size[0] / 4)
         self.mini_credit = pygame.transform.scale(self.game.display_icons['credits'], (4, 4))
         self.increment_currency()
-        self.random_func_weights = [5, 2, 0.1]
+        self.random_func_weights = [5, 2, 0.1, 0.2]
 
     #RANDOM FUNCTIONS:
     def random_0(self):
@@ -2386,6 +2388,10 @@ class DumpMachine(PhysicsEntity):
         #Spawn heart altar
         self.game.extra_entities.append(HeartAltar(self.game, self.rect().midtop, self.game.entity_info[18]['size'], falling = True, value = 1,
                                                     velocity_0=self.get_random_velocity()))
+    def random_3(self):
+        #Spawn parrot
+        # def __init__(self, game, pos, size, friendly = False, action = 'idle'):
+        self.game.extra_entities.append(Parrot(self.game, self.rect().midtop, self.game.entity_info[54]['size'], action = 'flying'))
         
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
@@ -2491,6 +2497,9 @@ class DumpMachine(PhysicsEntity):
             function = getattr(self, 'random_' + str(random_choice))
             function()
 
+            for _ in range(5):
+                self.game.sparks.append(_spark.Spark(self.rect().midtop, random.uniform(0, 2 * math.pi), 2, color=tuple([random.randint(0,255) for _ in range(3)])))
+
 class Machine(PhysicsEntity):
     def __init__(self, game, pos, size):
         super().__init__(game, 'machine', pos, size)
@@ -2502,7 +2511,7 @@ class Machine(PhysicsEntity):
         self.light_size = 0
 
         self.guest_list = [4, 9, 13, 15, 19, 20, 22, 37, 39,
-                           32, 44]
+                           32, 44, 54]
         
         tile_w = game.tilemap.tilesize
         self.base = [f'{(self.rect().centerx + (n * tile_w)) // tile_w};{(self.rect().bottom + tile_w // 2) // tile_w}' for n in [-1,0,1]]
@@ -2935,10 +2944,8 @@ class Boss(PhysicsEntity):
             for currency in self.currency_drops:
                 if self.currency_drops[currency] > 0 and random.random() < 0.1:
 
-                    self.game.currency_entities.append(
-                        Currency(self.game, currency, spawn_loc, value=5))
-                    self.currency_drops[currency] = max(
-                        self.currency_drops[currency] - 1, 0)
+                    self.game.currency_entities.append(Currency(self.game, currency, spawn_loc, value=5, velocity_0 = [random.uniform(-2, 2), random.uniform(-3, -1)]))
+                    self.currency_drops[currency] = max(self.currency_drops[currency] - 1, 0)
             if max(self.currency_drops.values()) == 0:
                 self.kill()
                 return True
@@ -2985,7 +2992,7 @@ class NormalBoss(Boss):
         self.wing_count = random.randint(
             20 + 20 * self.difficulty, 40 + 20 * self.difficulty)
 
-        self.health = 2 + 2 * self.difficulty
+        self.health = min(2 + 2 * self.difficulty, 15)
         self.max_health = self.health
 
         self.anim_offset = (-3, -2)
@@ -3093,7 +3100,7 @@ class GrassBoss(Boss):
         self.eye_count = random.randint(
             20 + 20 * self.difficulty, 40 + 20 * self.difficulty)
 
-        self.health = 2 + 2 * self.difficulty
+        self.health = min(2 + 2 * self.difficulty, 15)
         self.max_health = self.health
 
         self.speed = -1
@@ -3237,12 +3244,12 @@ class SpaceBoss(Boss):
 
         self.attack_radius = int(100 * math.atan(self.difficulty / 5))
 
-        self.health = 2 + 2 * self.difficulty
+        self.health = min(2 + 2 * self.difficulty, 15)
         self.max_health = self.health
 
         self.shoot_count_max = self.difficulty
         self.shoot_count = self.shoot_count_max
-        self.speed = self.difficulty / 2
+        self.speed = max(self.difficulty / 2, 0.5)
         self.light_size = 0
 
         self.invincible_states = ['idle', 'activating',
@@ -3369,7 +3376,7 @@ class Gravestone(PhysicsEntity):
         self.gravity_affected = False
         self.collide_wall_check = False
         self.pos = list(pos)
-        self.spawn_count = round(self.game.floors[self.game.current_level] / 10)
+        self.spawn_count = max(round(self.game.floors[self.game.current_level] / 10), 1)
         self.spawning = False
         self.anim_offset = (0, 0)
 
@@ -3578,7 +3585,7 @@ class RubiksBoss(Boss):
 
         self.attack_radius = int(100 * math.atan(self.difficulty / 5))
 
-        self.health = 2 + 2 * self.difficulty
+        self.health = min(2 + 2 * self.difficulty, 15)
         self.max_health = self.health
 
         self.speed = 1
@@ -3668,7 +3675,7 @@ class RubiksCubeThrow(PhysicsEntity):
         self.spawn_count = round(self.game.floors[self.game.current_level] / 10)
         self.anim_offset = (0, 0)
         self.activated = False
-        self.attack_radius = 50
+        self.attack_radius = 25
         self.bomb_delay = 5
         self.initial_attack = False
         self.states = {
@@ -3721,7 +3728,7 @@ class AussieBoss(Boss):
         self.active_min_time = max(60, 100 - self.difficulty * 20)
         self.active_max_time = max(70, 120 - self.difficulty * 20)
 
-        self.health = 6 + 2 * self.difficulty
+        self.health = min(6 + 2 * self.difficulty, 15)
         self.max_health = self.health
 
         self.gravity_affected = True
@@ -3816,7 +3823,7 @@ class HeavenBoss(Boss):
 
         self.attack_radius = int(100 * math.atan(self.difficulty / 5))
 
-        self.health = 6 + 2 * self.difficulty
+        self.health = min(6 + 2 * self.difficulty, 15)
         self.max_health = self.health
 
         self.gravity_affected = False
@@ -3871,7 +3878,7 @@ class HeavenBoss(Boss):
                     elif self.type == 'hellboss':
                         self.game.enemies.append(Imp(self.game, self.pos, self.game.entity_info[39]['size'], start_action='flying'))
 
-                for angle in np.linspace(-math.pi / 2, math.pi * (3/2), self.difficulty + 2):
+                for angle in np.linspace(-math.pi / 2, math.pi * (3/2), self.difficulty + 3):
                     speed = min(0.8 + 0.2 * self.difficulty, 2)
                     orb_velocity = [speed * math.cos(angle), speed * math.sin(angle)]
                     self.game.extra_entities.append(Orb(self.game, self.rect().center, self.game.entity_info[38]['size'], orb_velocity, self.orb_type, colour = self.orb_colour))

@@ -441,7 +441,7 @@ class Tilemap:
             # Boss levels:
             actual_floor = (
                 self.game.floors[name] + (1 if name == 'infinite' else 0))
-            if actual_floor % self.game.boss_frequency == 0 and actual_floor != 5:
+            if actual_floor % self.game.boss_frequency == 0 and (actual_floor != 5 or name == 'infinite'):
                 filepath = 'data/maps/' + str(specific_name) + 'Boss.json'
                 self.game.level_style = specific_name
 

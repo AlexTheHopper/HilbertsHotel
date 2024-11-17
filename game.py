@@ -26,9 +26,8 @@ class Game:
 
         # Pygame specific parameters and initialisation
         pygame.init()
-        game_version = '0.8.0'
+        game_version = '0.8.5'
         pygame.display.set_caption(f'Hilbert\'s Hotel v{game_version}')
-        self.text_font = pygame.font.SysFont('Wingdings', 32, bold=True)
         self.text_font = pygame.font.Font('data/font.ttf', 8)
         self.clock = pygame.time.Clock()
 
@@ -1023,7 +1022,7 @@ class Game:
                         hud_height - 5), self.text_font, text_col, mode='right')
 
             if not self.in_controls:
-                if self.current_level != 'lobby':
+                if self.current_level not in ['lobby', 'dump']:
                     self.draw_text('Floor: ' + str(self.floors[self.current_level]), (
                         hud_width - 10, 20), self.text_font, text_col, mode='right')
                     
@@ -1085,7 +1084,7 @@ class Game:
                     self.draw_text(f'{control}', (hud_width / 2 - 75, 75 + 25 * index), self.text_font,(86, 31, 126) if index == self.control_index_selected else (200, 200, 200), mode='left')
                     self.draw_text(f'{pygame.key.name(self.player_controls[control])}', (hud_width / 2 + 75, 75 + 25 * index), self.text_font,(86, 31, 126) if index == self.control_index_selected else (200, 200, 200), mode='right')
                     self.hud_display.blit(self.control_icons[control], (hud_width / 2 - 100, 75 + 25 * index - 12))
-                self.draw_text('Press New Key...' if self.changing_control else 'Change: [Z]', (hud_width / 2 + 85, 75 + 25 * self.control_index_selected), self.text_font,(86, 31, 126), mode='left')
+                self.draw_text('Press New Key...' if self.changing_control else 'Change: [C]', (hud_width / 2 + 85, 75 + 25 * self.control_index_selected), self.text_font,(86, 31, 126), mode='left')
                 
                 if not self.changing_control:
                     if self.interraction_frame_up:
@@ -1094,7 +1093,7 @@ class Game:
                         self.control_index += 1
                     elif self.interraction_frame_q:
                         self.in_controls = False
-                    elif self.interraction_frame_z:
+                    elif self.interraction_frame_c:
                         self.changing_control = True
                 if self.changing_control:
                     for event in pygame.event.get():
@@ -1274,7 +1273,7 @@ class Game:
             self.sfx[sound] = pygame.mixer.Sound(f'data/sfx/{sound}.wav')
             self.sfx[sound].set_volume(self.sfx_volumes[sound])
 
-        self.window_icon = _utilities.load_image('misc/window_icon.png')
+        self.window_icon = _utilities.load_image('misc/window_icon.png', dim = [32, 32])
         pygame.display.set_icon(self.window_icon)
 
     def run_text(self, character, talk_type='npc'):
@@ -1391,7 +1390,7 @@ class Game:
         available_floors = []
 
         for level in self.floors.keys():
-            if level != 'final':
+            if level not in ['final', 'dump']:
                 if self.floors[level] > 1 and level not in ['infinite', 'heaven_hell', 'final']:
                     available_floors.append(level)
 
