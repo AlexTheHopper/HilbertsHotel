@@ -421,7 +421,7 @@ class GunGuy(PhysicsEntity):
                 self.type = 'gunguyPurple'
                 self.colours = [(127, 29, 116), (99, 22, 90)]
 
-        self.currency_drops['cog'] = random.randint(2, 4)
+        self.currency_drops['cog'] = random.randint(2, 4) if self.type == 'gunguy' else random.randint(0, 2)
         self.currency_drops['redCog'] = random.randint(1, 3) if (self.type == 'gunguyRed') else 0
         self.currency_drops['blueCog'] = random.randint(1, 3) if (self.type == 'gunguyBlue') else 0
         self.currency_drops['purpleCog'] = random.randint(1, 3) if (self.type == 'gunguyPurple') else 0
@@ -686,26 +686,25 @@ class Portal(PhysicsEntity):
         self.colours['infinite'] = [
             colour for colours in self.colours.values() for colour in colours]
 
-        if self.game.current_level == 'lobby':
+        if self.game.current_level in ['lobby', 'dump']:
             self.set_action('opening')
 
     def update(self, game):
-        if self.too_far_to_render():
-            return False
+        # Changing state/action
         self.animation.update()
         self.display_darkness_circle()
-        # Changing state/action
         if self.action == 'idle' and (len(self.game.enemies) + len(self.game.bosses)) == 0:
             self.set_action('opening')
             self.game.sfx['ding'].play()
-
         if self.action == 'opening':
             self.light_size += 0.5
             if self.animation.done:
                 self.set_action('active')
-
-                if self.game.current_level != 'lobby':
+                if self.game.current_level not in ['lobby', 'dump']:
                     self.game.sfx['ding'].play()
+
+        if self.too_far_to_render():
+            return False
 
         # Decals
         if self.action in ['opening', 'active'] and self.destination in self.colours:
@@ -1302,7 +1301,7 @@ class Parrot(PhysicsEntity):
     def __init__(self, game, pos, size, friendly = False, action = 'idle'):
         super().__init__(game, 'parrot', pos, size)
 
-        self.currency_drops['wing'] = 1 if random.random() < 0.3 else 0
+        self.currency_drops['wing'] = 1 if random.random() < 0.5 else 0
 
         self.death_intensity = 3
         self.gravity_affected = True
@@ -1364,8 +1363,8 @@ class Parrot(PhysicsEntity):
                 self.velocity = [0, 0]
                 self.timer = random.randint(30, 60)
 
-        if random.random() < 0.005:
-            if np.linalg.norm(self.vector_to(self.game.player)) < 50:
+        if random.random() < 0.002:
+            if np.linalg.norm(self.vector_to(self.game.player)) < 50 and self.game.level_style != 'final':
                 self.game.sfx['chirp'].play()
 
         # Death Condition
@@ -1427,7 +1426,7 @@ class HeartAltar(PhysicsEntity):
             return False
         super().update(tilemap, movement=movement)
 
-        if self.falling and self.collisions['down']:
+        if self.falling and self.collisions['down'] and tilemap.solid_check([self.rect().centerx, self.rect().centery + tilemap.tilesize], return_value='bool'):
             self.falling = False
             self.gravity_affected = self.falling
             self.collide_wall_check = self.falling
@@ -1435,8 +1434,9 @@ class HeartAltar(PhysicsEntity):
         elif self.falling and (self.collisions['left'] or self.collisions['right']):
             self.velocity[0] *= -0.75
 
-        if self.value > 1 and random.random() < 0.1 and self.action == 'active':
-            self.game.sparks.append(_spark.Spark(self.rect().center, random.uniform(0, math.pi * 2), random.random() + 1, color=random.choice([(112, 0, 2), (170, 27, 36)])))
+        if self.value > 1 and self.game.frame_count % 60 in [0, 15] and self.action == 'active':
+            for _ in range(self.value):
+                self.game.sparks.append(_spark.Spark(self.rect().center, random.uniform(0, math.pi * 2), random.random() + 1, color=random.choice([(112, 0, 2), (170, 27, 36)])))
         
         dist_player = np.linalg.norm(self.vector_to(self.game.player))
         if dist_player < 15 and self.action == 'active':
@@ -1498,9 +1498,9 @@ class Spider(PhysicsEntity):
     def __init__(self, game, pos, size, friendly = False):
         super().__init__(game, 'spider', pos, size)
 
-        self.currency_drops['cog'] = random.randint(0, 3)
+        self.currency_drops['cog'] = random.randint(0, 1)
         self.currency_drops['heartFragment'] = 1 if random.random() < 0.2 else 0
-        self.currency_drops['chitin'] = random.randint(0, 3)
+        self.currency_drops['chitin'] = random.randint(1, 3)
 
         self.attack_power = 1
         self.death_intensity = 10
@@ -1554,7 +1554,7 @@ class Spider(PhysicsEntity):
 
                     self.timer = random.randint(30, 90)
 
-                    if random.random() < 0.05 and dist_to_player < 50:
+                    if random.random() < 0.05 and dist_to_player < 50 and self.game.level_style != 'final':
                         self.game.sfx['spider'].play()
 
             elif self.action == 'run':
@@ -1591,7 +1591,7 @@ class RubiksCube(PhysicsEntity):
         super().__init__(game, 'rubiksCube', pos, size)
 
         self.currency_drops['cog'] = random.randint(0, 3)
-        self.currency_drops['heartFragment'] = random.randint(0, 3)
+        self.currency_drops['heartFragment'] = random.randint(0, 1)
 
         self.attack_power = 1
         self.death_intensity = 10
@@ -1682,9 +1682,9 @@ class Kangaroo(PhysicsEntity):
     def __init__(self, game, pos, size, friendly = False):
         super().__init__(game, 'kangaroo', pos, size)
 
-        self.currency_drops['cog'] = random.randint(0, 3)
-        self.currency_drops['heartFragment'] = 1 if random.random() < 0.3 else 0
-        self.currency_drops['fairyBread'] = random.randint(0, 4)
+        self.currency_drops['cog'] = random.randint(0, 1)
+        self.currency_drops['heartFragment'] = 1
+        self.currency_drops['fairyBread'] = random.randint(0, 3)
         self.currency_drops['boxingGlove'] = random.randint(0, 3)
 
         self.attack_power = 1
@@ -1769,9 +1769,9 @@ class Echidna(PhysicsEntity):
     def __init__(self, game, pos, size, friendly = False):
         super().__init__(game, 'echidna', pos, size)
 
-        self.currency_drops['cog'] = random.randint(0, 3)
-        self.currency_drops['heartFragment'] = 1 if random.random() < 0.3 else 0
-        self.currency_drops['fairyBread'] = random.randint(0, 4)
+        self.currency_drops['cog'] = random.randint(0, 1)
+        self.currency_drops['heartFragment'] = 1
+        self.currency_drops['fairyBread'] = random.randint(0, 3)
 
         self.attack_power = 1
         self.death_intensity = 10
@@ -1887,7 +1887,7 @@ class AlienShip(PhysicsEntity):
     def __init__(self, game, pos, size, grace_done=False, velocity=[0, 0], friendly = False):
         super().__init__(game, 'alienship', pos, size)
 
-        self.currency_drops['cog'] = random.randint(0, 3)
+        self.currency_drops['cog'] = random.randint(0, 2)
         self.currency_drops['heartFragment'] = 1 if random.random() < 0.3 else 0
         self.currency_drops['purpleCog'] = 1 if random.random() < 0.2 else 0
 
@@ -2120,7 +2120,6 @@ class Cherub(PhysicsEntity):
     def __init__(self, game, pos, size, start_action = 'idle', friendly = False):
         super().__init__(game, 'cherub', pos, size)
 
-        self.currency_drops['cog'] = random.randint(0, 3)
         self.currency_drops['blueCog'] = random.randint(2, 5)
         self.currency_drops['purpleCog'] = random.randint(0, 1)
         self.currency_drops['heartFragment'] = 1
@@ -2296,7 +2295,7 @@ class Web(PhysicsEntity):
         self.collide_wall_check = False
         self.collide_wall = False
         self.anim_offset = (0, 0)
-        self.currency_drops['chitin'] = 1 if random.random() < 0.1 else 0
+        self.currency_drops['chitin'] = 1 if random.random() < 0.2 else 0
 
     def update(self, tilemap, movement=(0, 0)):
         if self.too_far_to_render():
@@ -2312,7 +2311,7 @@ class Crate(PhysicsEntity):
         self.gravity_affected = False
         self.collide_wall_check = False
         self.collide_wall = False
-        self.anim_offset = (-2, -4)
+        self.anim_offset = (-2, 0)
 
         for currency in self.currency_drops.keys():
             if self.game.encounters_check[f'{currency}s'] and random.random() < 0.2 and currency not in ['hammer', 'credit']:
@@ -2362,16 +2361,45 @@ class DumpMachine(PhysicsEntity):
         self.collide_wall_check = False
         self.pos = list(pos)
         self.anim_offset = (0, 0)
-        self.light_size = 0
         self.credits = self.game.dump_machine_state['credits']
         self.attempts = self.game.dump_machine_state['attempts']
         self.max_credits = 8
         self.credit_value = 10
         self.selected_currency = ''
-        self.active = self.game.dump_machine_state['active']
+        if self.game.dump_machine_state['active']:
+            self.set_action('active')
+        self.light_size = 100 if self.action == 'active' else 0
         self.quarter_length = int(self.size[0] / 4)
         self.mini_credit = pygame.transform.scale(self.game.display_icons['credits'], (4, 4))
         self.increment_currency()
+
+        self.primes = [['', '', '', '', '', '', '', '', 'n', 'n', 'n', '', '', '', '', '', '', '', ''],
+                       ['', '', '', '', '', '', 'n', 'n', 'n', 'n', 'n', 'n', 'n', '', '', '', '', '', ''],
+                       ['', '', '', '', 'n', 'n', 'n', 'n', '', 'n', '', 'n', 'n', 'n', 'n', '', '', '', ''],
+                       ['', '', 'n', 'n', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', 'n', 'n', '', ''],
+                       ['', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', ''],
+                       ['n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n'],
+                       ['', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', ''],
+                       ['n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n'],
+                       ['', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', ''],
+                       ['n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n'],
+                       ['', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', ''],
+                       ['n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n'],
+                       ['', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', ''],
+                       ['n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n', '', 'n'],]
+        self.lines_activated = len(self.primes) if self.action == 'active' else 0
+
+        N = 2
+        for y, line in enumerate(self.primes):
+            for x, element in enumerate(line):
+                if element != '':
+                    self.primes[y][x] = N
+                    found_next = False
+                    while not found_next:
+                        N += 1
+                        if self.is_prime(N):
+                            found_next = True
+
         self.random_func_weights = [5, 2, 0.1, 0.2]
 
     #RANDOM FUNCTIONS:
@@ -2395,9 +2423,19 @@ class DumpMachine(PhysicsEntity):
         
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
+        if self.action == 'activating':
+            if self.lines_activated < len(self.primes) and self.game.frame_count % 60 == 0:
+                self.lines_activated += 1
+                if self.lines_activated == len(self.primes):
+                    self.game.sfx['ding'].play()
+                    self.set_action('active')
+                else:
+                    self.game.sfx['blip'].play()
+            if self.light_size > 0 and self.light_size < 100:
+                self.light_size += 0.1
 
         ypos = (self.rect().centery - self.game.render_scroll[1]) + int(self.size[1] / 2) + 4
-        if self.rect().colliderect(self.game.player.rect()) and self.active:
+        if self.rect().colliderect(self.game.player.rect()) and self.lines_activated == len(self.primes):
 
             #Changing currency:
             if self.game.player.pos[0] + 4 < self.pos[0] + self.quarter_length:
@@ -2407,6 +2445,7 @@ class DumpMachine(PhysicsEntity):
             #Go
             elif self.game.player.pos[0] + 4 < self.pos[0] + 3 * self.quarter_length:
                 xpos = (self.rect().x - self.game.render_scroll[0]) + 2 * self.quarter_length - 7
+                ypos += self.game.tilemap.tilesize / 2
                 if self.game.interraction_frame_int and self.attempts > 0:
                     self.do_random_thing()
                 elif self.game.interraction_frame_int:
@@ -2417,11 +2456,12 @@ class DumpMachine(PhysicsEntity):
                 if self.game.interraction_frame_int and self.credits < self.max_credits:
                     self.add_credit()
             
-            self.game.hud_display.blit(self.game.control_icons['Interract'], (xpos, ypos))
+            self.game.hud_display.blit(self.game.control_icons['Interract'], (xpos, ypos - 4 * self.game.tilemap.tilesize))
 
     def render(self, surface, offset=(0, 0)):
         super().render(surface, offset=offset)
-        if self.active:
+        self.display_primes()
+        if self.action == 'active':
             ypos = (self.rect().centery - self.game.render_scroll[1]) + int(self.size[1] / 2) + 4
 
             self.game.hud_display.blit(self.game.display_icons[self.selected_currency], (self.rect().x - self.game.render_scroll[0] + 5, ypos - 40))
@@ -2442,6 +2482,34 @@ class DumpMachine(PhysicsEntity):
         x_vel = random.uniform(2,4) * (-1 if random.random() < 0.5 else 1)
         y_vel = random.uniform(-2, -4)
         return([x_vel, y_vel])
+    
+    def display_primes(self):
+        x0 = (self.rect().x - self.game.render_scroll[0]) - 7 * self.game.tilemap.tilesize + 1
+        y0 = (self.rect().y - self.game.render_scroll[1]) + 8 + 3 * self.game.tilemap.tilesize + 2
+
+        for y, list in enumerate(self.primes[:self.lines_activated]):
+            for x, prime in enumerate(list):
+                self.game.draw_text(prime, (x0 + self.game.tilemap.tilesize * x, y0 + self.game.tilemap.tilesize * y),
+                                    self.game.text_font, (1, 1, 1), mode = 'center')
+    
+    def is_prime(self, num):
+        """Determine if an integer is a prime number.
+
+        Args:
+            num: integer.
+        Returns:
+            bool
+
+        """
+        if num < 2:
+            return False
+        if num == 2:
+            return True
+
+        for n in range(2, math.ceil(np.sqrt(num)) + 1):
+            if num % n == 0:
+                return False
+        return True
 
     def increment_currency(self):
         available_currencies = [c for c in list(self.game.wallet.keys()) if (self.game.wallet[c] > 0 and c not in ['credits', 'hammers', 'penthouseKeys'])]
@@ -2915,7 +2983,7 @@ class Boss(PhysicsEntity):
             self.difficulty = round(self.game.floors['infinite'] / self.game.boss_frequency) - 1
         self.death_intensity = 50
 
-        self.currency_drops['cog'] = 20 + 2 * self.difficulty
+        self.currency_drops['cog'] = 10 + 2 * self.difficulty
         self.currency_drops['heartFragment'] = random.randint(0, 5) * self.difficulty
 
         self.damage_cooldown = 0

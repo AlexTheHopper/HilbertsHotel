@@ -60,12 +60,24 @@ for filename in os.listdir(directory):
         # Loop through each pixel in the image data
         for item in data:
             rgb_value = item[:3]  # Extract the RGB value
+
+            if rgb_value == (238, 117, 67):
+                new_data.append((153, 136, 85))
+            elif rgb_value == (209, 102, 60):
+                new_data.append((219, 177, 116))
+            elif rgb_value == (206, 92, 57):
+                new_data.append((175, 122, 84))
+            elif rgb_value == (178, 59, 35):
+                new_data.append((145, 73, 50))
+            elif rgb_value == (160, 62, 35):
+                new_data.append((160, 62, 35))
             
-            if rgb_value in color_replacements:
-                # Convert hex to RGB for replacement
-                new_rgb = hex_to_rgb(color_replacements[rgb_value])
-                #print(f"Replacing {rgb_value} with {color_replacements[rgb_value]}")
-                new_data.append(new_rgb + (item[3],))  # Append the new RGB and keep the alpha value
+            # #Character colourchange
+            # if rgb_value in color_replacements:
+            #     # Convert hex to RGB for replacement
+            #     new_rgb = hex_to_rgb(color_replacements[rgb_value])
+            #     #print(f"Replacing {rgb_value} with {color_replacements[rgb_value]}")
+            #     new_data.append(new_rgb + (item[3],))  # Append the new RGB and keep the alpha value
             else:
                 new_data.append(item)
         

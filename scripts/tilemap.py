@@ -263,7 +263,7 @@ class Tilemap:
         player_placed = False
         portal_placed = False
         infinite_portal_placed = False if self.game.infinite_mode_active else True
-        skull_placed = False
+        # skull_placed = False
         noether_placed = False
         curie_placed = False
         planck_placed = False
@@ -275,7 +275,7 @@ class Tilemap:
         enemy_count = 0
         attempt_counter = 0
 
-        while (not player_placed or not portal_placed or enemy_count < enemy_count_max or not infinite_portal_placed or not skull_placed) and attempt_counter < 5000:
+        while (not player_placed or not portal_placed or enemy_count < enemy_count_max or not infinite_portal_placed) and attempt_counter < 5000:
             attempt_counter += 1
 
             y = random.choice(range(buffer, self.map_size - buffer))
@@ -284,7 +284,7 @@ class Tilemap:
 
             # Important things:
             if not self.is_tile([[x, y]]):
-                if self.is_physics_tile([[x, y+1]]):
+                if self.is_physics_tile([[x, y+1]], count_portal = False):
 
                     # Player
                     if not player_placed:
@@ -305,10 +305,10 @@ class Tilemap:
                         self.tilemap[loc] = {
                             'type': 'spawnersPortal', 'variant': 5, 'pos': [x, y]}
                         
-                    elif not skull_placed:
-                        self.tilemap[loc] = {
-                            'type': 'spawners', 'variant': 56, 'pos': [x, y]}
-                        skull_placed = True
+                    # elif not skull_placed:
+                    #     self.tilemap[loc] = {
+                    #         'type': 'spawners', 'variant': 56, 'pos': [x, y]}
+                    #     skull_placed = True
 
                     # Characters
                     elif not self.game.characters_met['Noether'] and self.game.floors[level_type] > 5 and level_type == 'normal' and not noether_placed:
@@ -361,14 +361,15 @@ class Tilemap:
 
             # Add random decorations
             potential_decoration = random.choices(decoration_list, weights, k=1)[0]
-            if not self.is_physics_tile([[x, y]], offsets=potential_decoration[3]) and not broken_machine_placed:
+            if not self.is_physics_tile([[x, y]], offsets=potential_decoration[3], count_portal = True):
                 if self.is_physics_tile([[x, y]], offsets=potential_decoration[4][1:], mode=potential_decoration[4][0]):
 
                     deco_offset_x = random.choice(potential_decoration[5][0])
                     deco_offset_y = random.choice(potential_decoration[5][1])
                     add_deco = {'type': potential_decoration[0], 'variant': random.choice(
                         potential_decoration[1]), 'pos': [x * self.tile_size + deco_offset_x, y * self.tile_size + deco_offset_y]}
-                    offgrid_tiles.append(add_deco)
+                    if add_deco['variant'] != 22 or not broken_machine_placed:
+                        offgrid_tiles.append(add_deco)
                     deco_num += 1
                     if add_deco['variant'] == 22:
                         broken_machine_placed = True
@@ -382,7 +383,7 @@ class Tilemap:
 
         return offgrid_tiles
 
-    def is_physics_tile(self, poss, offsets=[[0, 0]], mode='any'):
+    def is_physics_tile(self, poss, offsets=[[0, 0]], mode='any', count_portal = False):
         if mode == 'clear':
             return True
         for pos in poss:
@@ -397,10 +398,9 @@ class Tilemap:
                     else:
                         return False
 
-                # also counts portal as physics tile to not block portal.
                 elif mode == 'any':
                     if loc in self.tilemap:
-                        if self.tilemap[loc]['type'] in PHYSICS_TILES or self.tilemap[loc]['type'] == 'spawnersPortal':
+                        if self.tilemap[loc]['type'] in PHYSICS_TILES or (self.tilemap[loc]['type'] == 'spawnersPortal' and count_portal):
                             return True
 
         return True if mode == 'all' else False

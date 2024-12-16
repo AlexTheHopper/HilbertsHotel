@@ -58,7 +58,7 @@ def initialise_main_screen(game):
         none
 
     """
-
+    pygame.mouse.set_visible(False)
     game.default_width = 1024
     game.default_height = game.default_width / 1.6
 
@@ -69,7 +69,7 @@ def initialise_main_screen(game):
         game.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     else:
         game.screen = pygame.display.set_mode((game.default_width, game.default_height))
-
+    pygame.mouse.set_visible(not game.is_fullscreen)
     
     game.hud_display = pygame.Surface((game.screen_width, game.screen_height))
     game.hud_display.set_colorkey((0, 0, 0))
@@ -107,6 +107,7 @@ def initialise_game_params(game):
     game.parrots_randomised = False
     game.interraction_frame_c = False
     game.interraction_frame_f = False
+    game.interraction_frame_k = False
     game.interraction_frame_q = False
     game.interraction_frame_s = False
     game.interraction_frame_v = False
@@ -121,6 +122,7 @@ def initialise_game_params(game):
     game.cave_darkness_range = (50, 250)
     game.cave_darkness = True
     game.meteor_sounds = 0
+    game.confirm_kill = False
     game.min_pause_darkness = 150
     game.transition = 0
     game.currency_entities = []
@@ -161,7 +163,7 @@ def initialise_game_params(game):
         'normal': {'decorationMod': 2,
                    'decorations': [['potplants', range(0, 4), 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [22], 0.3, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
-                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],
+                                   ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [0]]],
                                    ['spawners', [18], 0.05, [[0, 0]], ['all', [0, 1]], [[0], [0]]],]},
 
         'grass': {'decorationMod': 10,
@@ -188,13 +190,14 @@ def initialise_game_params(game):
                                    ['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [[0], [0]]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
-        'aussie': {'decorationMod': 1,
+        'aussie': {'decorationMod': 10,
                    'decorations': [['decor', [4], 1, [[0, 0]], ['all', [0, 1]], [range(-4, 4), [0]]],
                                    ['decor', [5], 1, [[0, 0], [1, 0]], ['all', [0, 1], [1, 1]], [range(-4, 4), [4]]],
                                    ['decor', [6], 1, [[x, y] for x in range(0, 2) for y in range(0, 3)], ['all', [0, 3], [1, 3]], [range(-3, 3), range(3, 8)]],
                                    ['decor', [17], 0.1, [[0, 0]], ['all', [0, 1]], [range(-2, 3), [0]]],
                                    ['decor', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 4), [0]]],
                                    ['decor', [22], 0.5, [[x, y] for x in range(0, 3) for y in range(0, 3)], ['all', [0, 3], [1, 3], [2, 3]], [[0], [0]]],
+                                   ['decor', [23], 10, [[0, 0]], ['all', [0, 1]], [range(0, 4), [0]]],
                                    ['spawners', [18], 0.1, [[0, 0]], ['all', [0, 1]], [range(-3, 3), range(-1, 1)]],
                                    ['spawners', [51], 0.2, [[0, 0]], ['all', [0, 1]], [range(-2,3), [4]]],]},
 
@@ -354,7 +357,7 @@ def initialise_game_params(game):
             'web/': [['idle', 1, False]],
             'parrot/': [['idle', 5, True], ['flying', 5, True]],
             'parrot_saved/': [['idle', 5, True], ['flying', 5, True]],
-            'dump_machine/': [['idle', 1, False]],
+            'dump_machine/': [['idle', 1, False], ['activating', 10, True], ['active', 5, True]],
             'skull/': [['idle', 1, False]],
         },
 
@@ -424,13 +427,16 @@ def initialise_game_params(game):
         'Dash': pygame.K_x,
         'Interract': pygame.K_z,
     }
+    game.joysticks = []
+    game.int_icon_other = load_image('misc/icon_interract.png')
+    game.int_icon_z = load_image('misc/icon_z.png')
     game.control_icons = {
-        'Up / Jump': load_image('misc/up.png'),
-        'Down': load_image('misc/down.png'),
-        'Left': load_image('misc/left.png'),
-        'Right': load_image('misc/right.png'),
-        'Dash': load_image('misc/dash.png'),
-        'Interract': load_image('misc/interract.png'),
+        'Up / Jump': load_image('misc/icon_up.png'),
+        'Down': load_image('misc/icon_down.png'),
+        'Left': load_image('misc/icon_left.png'),
+        'Right': load_image('misc/icon_right.png'),
+        'Dash': load_image('misc/icon_dash.png'),
+        'Interract': game.int_icon_z,
     }
     game.disallowed_controls = [pygame.K_ESCAPE, pygame.K_q]
     game.control_index = 0
@@ -624,6 +630,7 @@ def initialise_game_params(game):
         'orb_cherub': 'Magical Yellow Orb',
         'orb_imp': 'Magical Red Orb',
         'hilbert_orb': 'Hilbert Ball',
+        'self': 'Higher Power',
         'skull': 'Skull',
 
         'normalboss': 'Big Bat',
@@ -677,6 +684,21 @@ def initialise_game_params(game):
                    'The machine worked. In the wake of destruction, a new hotel is formed.',
                    'And even with an influx of uncountably infinite guests, each with an infinitely long unique name, the new hotel has a room for all.',
                    'The End.']
+    }
+    game.in_credits = False
+    game.in_credits_time = 0
+    game.game_credits = {
+        0: {'text': 'Hilbert\'s Hotel', 'scale': 4, 'colour': (86, 31, 126)},
+
+        2: {'text': 'Created By:', 'scale': 2, 'colour': (255, 255, 255)},
+        3: {'text': 'Alex Hopper', 'scale': 1, 'colour': (255, 255, 255)},
+
+        6: {'text': 'Playtesters:', 'scale': 2, 'colour': (255, 255, 255)},
+        7: {'text': 'Eloisa', 'scale': 1, 'colour': (255, 255, 255)},
+        8: {'text': 'Jack', 'scale': 1, 'colour': (255, 255, 255)},
+        9: {'text': 'Eddie', 'scale': 1, 'colour': (255, 255, 255)},
+
+        12: {'text': 'Thanks For Playing!', 'scale': 2, 'colour': (255, 255, 255)},
     }
 
 def is_prime(num):
@@ -767,6 +789,9 @@ def reset_music(game):
         game.sfx[f'{style}_music'].fadeout(1000)
     game.sfx['hilbert_music'].fadeout(1000)
     game.sfx['ambience'].play(loops = -1, fade_ms = 1000)
+
+def detect_joysticks(game):
+    game.joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
 
 class Animation:
     def __init__(self, images, img_dur=5, loop=True):

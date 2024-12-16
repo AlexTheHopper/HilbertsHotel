@@ -996,6 +996,7 @@ class Watson(Character):
             self.game.wallet['credits'] -= 10
             self.game.dump_machine_state['active'] = True
             for entity in [e for e in self.game.extra_entities if e.type == 'dump_machine']:
-                entity.active = True
+                entity.set_action('activating')
+                entity.light_size = 1
 
         self.game.dialogue_history[self.name][str(key) + 'said'] = True

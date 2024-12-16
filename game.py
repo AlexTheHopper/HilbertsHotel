@@ -38,6 +38,8 @@ class Game:
 
         _utilities.initialise_main_screen(self)
         _utilities.initialise_game_params(self)
+        pygame.joystick.init()
+        _utilities.detect_joysticks(self)
         self.load_game_assets()
 
         self.player = _entities.Player(self, (0, 0), (8, 12))
@@ -430,6 +432,7 @@ class Game:
             # Remove interaction frames
             self.interraction_frame_c = False
             self.interraction_frame_f = False
+            self.interraction_frame_k = False
             self.interraction_frame_q = False
             self.interraction_frame_s = False
             self.interraction_frame_v = False
@@ -487,14 +490,16 @@ class Game:
                         self.interraction_frame_down = True
                     if event.key == pygame.K_c:
                         self.interraction_frame_c = True
+                    if event.key == pygame.K_f:
+                        self.interraction_frame_f = True
+                    if event.key == pygame.K_k:
+                        self.interraction_frame_k = True
+                    if event.key == pygame.K_q:
+                        self.interraction_frame_q = True
                     if event.key == pygame.K_s:
                         self.interraction_frame_s = True
                     if event.key == pygame.K_v:
                         self.interraction_frame_v = True
-                    if event.key == pygame.K_f:
-                        self.interraction_frame_f = True
-                    if event.key == pygame.K_q:
-                        self.interraction_frame_q = True
                     if event.key == pygame.K_z:
                         self.interraction_frame_z = True
                     if event.key == pygame.K_h:
@@ -504,6 +509,7 @@ class Game:
                             self.paused = not self.paused
                         if self.in_controls:
                             self.in_controls = False
+                        self.confirm_kill = False
 
                     # DEBUGGING
                     if event.key == pygame.K_r:
@@ -513,7 +519,7 @@ class Game:
                     if event.key == pygame.K_t:
                         for currency in self.wallet:
                             self.wallet[currency] += 20
-                    if event.key == pygame.K_k:
+                    if event.key == pygame.K_i:
                         for e in self.enemies.copy():
                             e.kill()
                             self.enemies.remove(e)
@@ -521,7 +527,7 @@ class Game:
                             if c.type == 'crate':
                                 c.kill()
                                 self.extra_entities.remove(c)
-                    if event.key ==pygame.K_j:
+                    if event.key ==pygame.K_u:
                         for c in self.currency_entities.copy():
                             self.wallet_temp[str(c.currency_type) + 's'] += c.value
                             self.currency_entities.remove(c)
@@ -612,8 +618,13 @@ class Game:
 
             self.display_text()
             if not self.talking:
-                self.in_menu = True
-                self.game_ending = False
+                self.in_credits = True
+
+            if self.in_credits:
+                self.display_credits()
+                if not self.in_credits:
+                    self.in_menu = True
+                    self.game_ending = False
 
             self.interraction_frame_int = False
 
@@ -806,6 +817,19 @@ class Game:
             icon = pygame.transform.scale(icon, (icon.get_width() * 2, icon.get_height() * 2))
             self.hud_display.blit(icon, ((self.screen_width / 4) - icon.get_width() / 2, self.screen_height / 4 - 70 - icon.get_height() / 2))
 
+    def display_credits(self):
+        self.in_credits_time += 0.5
+
+        for i in self.game_credits.keys():
+            ypos = self.screen_height / 2 + 25 * (i - 1) + 50 - self.in_credits_time
+            self.draw_text(self.game_credits[i]['text'],
+                           (self.screen_width / 4, ypos),
+                           self.text_font, self.game_credits[i]['colour'],
+                           scale = self.game_credits[i]['scale'],
+                           mode = 'center')
+        if ypos < -10:
+            self.in_credits = False
+
     def check_encounter(self, entity):
         """Determine if the player has encountered entity before.
             If not, run text for introduction.
@@ -943,8 +967,10 @@ class Game:
 
         # Level Specifics
         if self.current_level == 'lobby':
-            self.cave_darkness = 0
+            self.cave_darkness = 50
             self.remove_broken_tunnels()
+        elif self.current_level == 'dump':
+            self.cave_darkness = 100
 
         elif self.level_style == 'normal':
             self.cave_darkness = random.randint(self.cave_darkness_range[0], self.cave_darkness_range[1])
@@ -1093,7 +1119,9 @@ class Game:
                         self.control_index += 1
                     elif self.interraction_frame_q:
                         self.in_controls = False
+                        self.confirm_kill = False
                     elif self.interraction_frame_c:
+                        _utilities.detect_joysticks(self)
                         self.changing_control = True
                 if self.changing_control:
                     for event in pygame.event.get():
@@ -1103,13 +1131,19 @@ class Game:
                                 control_change = list(self.player_controls.keys())[self.control_index_selected]
                                 self.player_controls[control_change] = event.key
                                 self.changing_control = False
+
+                                #Change interraction icon:
+                                self.control_icons['Interract'] = self.int_icon_z if self.player_controls['Interract'] == pygame.K_z else self.int_icon_other
+
                             else:
                                 self.sfx['hit'].play()
+
             else:
                 self.draw_text('PAUSED', (hud_width / 2, hud_height / 2 - 20), self.text_font, (200, 200, 200), scale = 2, mode='center')
                 self.draw_text('Return To Game: [ESC]', (hud_width / 2, hud_height / 2), self.text_font, (200, 200, 200), mode='center')
                 self.draw_text('Return To Main Menu: [Q]', (hud_width / 2, hud_height / 2 + 20), self.text_font, (200, 200, 200), mode='center')
                 self.draw_text('Controls: [C]', (hud_width / 2, hud_height / 2 + 40), self.text_font, (200, 200, 200), mode='center')
+                self.draw_text('Sacrifice Yourself: [K]' if not self.confirm_kill else 'Are You Sure? [K]', (hud_width / 2, hud_height / 2 + 60), self.text_font, (200, 200, 200), mode='center')
                             
                 self.draw_text('Screenshake: ' + ('On' if self.screenshake_on else 'Off') + ' [S]', (3 * hud_width / 4, hud_height - 15), self.text_font, (200, 200, 200), mode='center')
                 self.draw_text('Volume: ' + ('On' if self.volume_on else 'Off') + ' [V]', (hud_width / 2, hud_height - 15), self.text_font, (200, 200, 200), mode='center')
@@ -1122,6 +1156,13 @@ class Game:
                 if self.interraction_frame_f:
                     self.is_fullscreen = not self.is_fullscreen
                     self.toggle_fullscreen()
+                if self.interraction_frame_k:
+                    if self.confirm_kill:
+                        self.player.damage(self.health, 'self')
+                        self.confirm_kill = False
+                        self.paused = False
+                    else:
+                        self.confirm_kill = True
                 if self.interraction_frame_v:
                     self.volume_on = not self.volume_on
                     for sound in self.sfx_volumes.keys():
@@ -1159,7 +1200,7 @@ class Game:
             'heartTemp': _utilities.load_image('misc/heartTemp.png'),
             'bossHeart': _utilities.load_image('misc/bossHeart.png'),
             'bossHeartEmpty': _utilities.load_image('misc/bossHeartEmpty.png'),
-            'exclamation': _utilities.load_image('misc/exclamation.png'),
+            'exclamation': _utilities.load_image('misc/icon_exclamation.png'),
             'particle/leaf': _utilities.Animation(_utilities.load_images('particles/leaf'), img_dur=20, loop=False),
         }
 
@@ -1174,7 +1215,7 @@ class Game:
         for tile in ['decor', 'potplants', 'spawners', 'cracked']:
             self.assets[tile] = _utilities.load_images(f'tiles/{tile}')
 
-        for misc in ['menuBackground', 'menuForeground', 'backgroundcustom', 'spine', 'light', 'witchHat']:
+        for misc in ['menuBackground', 'menuForeground', 'backgroundcustom', 'spine', 'witchHat']:
             self.assets[misc] = _utilities.load_image(f'misc/{misc}.png')
         for proj_colour in ['', 'Red', 'Blue', 'Purple']:
             self.assets[f'projectile_{proj_colour}'] = _utilities.load_image(f'misc/projectile_{proj_colour}.png')
@@ -1477,6 +1518,7 @@ class Game:
             # self.screen_width = self.default_width
             # self.screen_height = self.default_height
             self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        pygame.mouse.set_visible(not self.is_fullscreen)
 
     def display_this_frame(self):
         """Determine whether current frame should be blitted. This returns false more the lower the fps.
@@ -1603,6 +1645,7 @@ class Game:
         for sound in self.sfx_volumes.keys():
             self.sfx[sound].set_volume(
                 self.sfx_volumes[sound] if self.volume_on else 0)
+        self.control_icons['Interract'] = self.int_icon_z if self.player_controls['Interract'] == pygame.K_z else self.int_icon_other
 
     def validate_save(self, data):
         """Validates game parameters from a save file.
