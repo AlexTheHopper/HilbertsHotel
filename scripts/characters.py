@@ -121,7 +121,7 @@ class Hilbert(Character):
         self.currency_requirements = {
             0: [],
             1: [],
-            2: [['floor', 'normal', 1]],
+            2: [['purchase', 'cogs', 1]],
             3: [['purchase', 'cogs', 5]],
             4: [['purchase', 'cogs', 25]],
             5: [['purchase', 'cogs', 75]],
@@ -145,7 +145,7 @@ class Hilbert(Character):
                   'Recently my hotel has come under attack and the rest of the concierge team have hidden themselves somewhere in the hotel.',
                   'If you help me out with the intruders and bring back my team for me, I would really appreciate it.',
                   'You can head through my portal elevator just down there to go through the floors of the hotel.',
-                  'Can you have a peek through and clear out the first floor please? Just to see what we\'re dealing with. Watch out for the bad guys!'],
+                  'Can you have a peek through and bring me a single measly cog please? Just to see what we\'re dealing with. Watch out for the bad guys!'],
 
             '2': ['You\'re back! Oh golly I\'m so glad you\'re alright!',
                   'Okay, so it seems like the place is crawling with these GunGuys. Since there are infinite floors in here, it would be impossible to get rid of them ourselves. But not to worry, I have a plan.',

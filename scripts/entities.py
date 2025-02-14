@@ -2400,7 +2400,7 @@ class DumpMachine(PhysicsEntity):
                         if self.is_prime(N):
                             found_next = True
 
-        self.random_func_weights = [5, 2, 0.1, 0.2]
+        self.random_func_weights = [5, 2, 0.1, 0.2, 0.08]
 
     #RANDOM FUNCTIONS:
     def random_0(self):
@@ -2420,6 +2420,18 @@ class DumpMachine(PhysicsEntity):
         #Spawn parrot
         # def __init__(self, game, pos, size, friendly = False, action = 'idle'):
         self.game.extra_entities.append(Parrot(self.game, self.rect().midtop, self.game.entity_info[54]['size'], action = 'flying'))
+    def random_4(self):
+        if self.game.dump_arc == 0:
+            self.game.dump_arc += 1
+
+    def change_tiles(self):
+        #Change tiles to random
+        types = ['aussie', 'grass', 'heaven', 'hell', 'normal', 'rubiks', 'space', 'spooky']
+        choice = random.choice(types)
+        for tile in self.game.tilemap.tilemap.keys():
+            if self.game.tilemap.tilemap[tile]['type'] in types:
+                self.game.tilemap.tilemap[tile]['type'] = choice
+        self.game.tilemap.autotile(windows = False)
         
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
@@ -2457,6 +2469,13 @@ class DumpMachine(PhysicsEntity):
                     self.add_credit()
             
             self.game.hud_display.blit(self.game.control_icons['Interract'], (xpos, ypos - 4 * self.game.tilemap.tilesize))
+
+        if self.game.dump_arc:
+            self.game.dump_arc += 1
+            if self.game.dump_arc > 15:
+                self.change_tiles()
+                self.game.dump_arc = -16
+
 
     def render(self, surface, offset=(0, 0)):
         super().render(surface, offset=offset)

@@ -127,6 +127,7 @@ def initialise_game_params(game):
     game.transition = 0
     game.currency_entities = []
     game.boss_frequency = 5
+    game.dump_arc = 0
 
     game.current_text_list = []
     game.max_characters_line = 40
@@ -691,7 +692,7 @@ def initialise_game_params(game):
         0: {'text': 'Hilbert\'s Hotel', 'scale': 4, 'colour': (86, 31, 126)},
 
         2: {'text': 'Created By:', 'scale': 2, 'colour': (255, 255, 255)},
-        3: {'text': 'Alex Hopper', 'scale': 1, 'colour': (255, 255, 255)},
+        3: {'text': 'Sasha', 'scale': 1, 'colour': (255, 255, 255)},
 
         6: {'text': 'Playtesters:', 'scale': 2, 'colour': (255, 255, 255)},
         7: {'text': 'Eloisa', 'scale': 1, 'colour': (255, 255, 255)},

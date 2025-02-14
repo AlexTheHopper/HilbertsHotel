@@ -31,6 +31,8 @@ class Game:
         self.text_font = pygame.font.Font('data/font.ttf', 8)
         self.clock = pygame.time.Clock()
 
+        self.debug_on = False
+
         # Define all general game parameters and load in assets
         self.is_fullscreen = fullscreen
         self.screen_width = screen_size[0]
@@ -512,42 +514,30 @@ class Game:
                         self.confirm_kill = False
 
                     # DEBUGGING
-                    if event.key == pygame.K_r:
-                        self.transition_to_level(self.current_level)
-                    if event.key == pygame.K_m:
-                        self.game_running = False
-                    if event.key == pygame.K_t:
-                        for currency in self.wallet:
-                            self.wallet[currency] += 20
-                    if event.key == pygame.K_i:
-                        for e in self.enemies.copy():
-                            e.kill()
-                            self.enemies.remove(e)
-                        for c in self.extra_entities.copy():
-                            if c.type == 'crate':
-                                c.kill()
-                                self.extra_entities.remove(c)
-                    if event.key ==pygame.K_u:
-                        for c in self.currency_entities.copy():
-                            self.wallet_temp[str(c.currency_type) + 's'] += c.value
-                            self.currency_entities.remove(c)
-                    if event.key == pygame.K_p:
-                        self.fps += 5
-                        print(f'New FPS: {self.fps}')
-                    if event.key == pygame.K_o:
-                        self.fps -= 5
-                        print(f'New FPS: {self.fps}')
-                    if event.key == pygame.K_l:
-                        self.machine_count = 0
-                        loops = 10
-                        for lvl in list(self.floor_specifics.keys()):
-                            for flr in range(1, 25):
-                                for _ in range(loops):
-                                    self.tilemap.load_random_tilemap(int(5 * np.log(flr ** 2) + 13 + flr / 4), 20, level_style=lvl, level_type=lvl if lvl not in ['heaven', 'hell'] else 'heaven_hell')
-                            print(f'in lvl {lvl} there were {round(self.machine_count/loops, 2)} per run on average')
-                            self.machine_count = 0
-
-
+                    if self.debug_on:
+                        if event.key == pygame.K_r:
+                            self.transition_to_level(self.current_level)
+                        if event.key == pygame.K_t:
+                            for currency in self.wallet:
+                                self.wallet[currency] += 20
+                        if event.key == pygame.K_i:
+                            for e in self.enemies.copy():
+                                e.kill()
+                                self.enemies.remove(e)
+                            for c in self.extra_entities.copy():
+                                if c.type == 'crate':
+                                    c.kill()
+                                    self.extra_entities.remove(c)
+                        if event.key ==pygame.K_u:
+                            for c in self.currency_entities.copy():
+                                self.wallet_temp[str(c.currency_type) + 's'] += c.value
+                                self.currency_entities.remove(c)
+                        if event.key == pygame.K_p:
+                            self.fps += 5
+                            print(f'New FPS: {self.fps}')
+                        if event.key == pygame.K_o:
+                            self.fps -= 5
+                            print(f'New FPS: {self.fps}')
 
                 if event.type == pygame.KEYUP:
                     if event.key == self.player_controls['Left']:
@@ -590,6 +580,9 @@ class Game:
                     pygame.draw.circle(transition_surface, (255, 255, 255), (self.screen.get_width() // 2, self.screen.get_height() // 2), (30 - abs(self.transition)) * (self.screen.get_width() / 30))
                     transition_surface.set_colorkey((255, 255, 255))
                     self.screen.blit(transition_surface, (0, 0))
+                # Dump machine circle
+                if self.dump_arc:
+                    pygame.draw.circle(self.screen, (1, 1, 1), (self.screen.get_width() // 2, self.screen.get_height() // 2), (abs(self.dump_arc)) * (self.screen.get_width() / 15))
 
                 pygame.display.update()
                 self.clock.tick(self.fps)
@@ -613,7 +606,7 @@ class Game:
                     sys.exit()
                 
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_z:
+                    if event.key == self.player_controls['Interract']:
                         self.interraction_frame_int = True
 
             self.display_text()
